@@ -198,33 +198,33 @@
           "id": "task_2_2",
           "name": "实现音频播放服务",
           "description": "使用 just_audio 实现音频播放核心功能",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_2_1"],
           "steps": [
             {
               "id": "step_2_2_1",
               "description": "创建 lib/features/player/data/services/audio_player_service.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_2_2_2",
               "description": "实现播放/暂停/停止功能",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_2_2_3",
               "description": "实现进度控制功能",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_2_2_4",
               "description": "实现后台播放配置",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_2_2_5",
               "description": "创建播放服务单元测试",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -768,8 +768,8 @@
   ],
   "statistics": {
     "total_tasks": 21,
-    "completed_tasks": 6,
-    "pending_tasks": 15,
+    "completed_tasks": 7,
+    "pending_tasks": 14,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
     "completed_phases": 1,
