@@ -1,0 +1,264 @@
+import 'dart:io';
+
+/// 歌词行数据模型
+class LyricLine {
+  final Duration timestamp;
+  final String text;
+
+  const LyricLine({
+    required this.timestamp,
+    required this.text,
+  });
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is LyricLine &&
+        other.timestamp == timestamp &&
+        other.text == text;
+  }
+
+  @override
+  int get hashCode => Object.hash(timestamp, text);
+
+  @override
+  String toString() => 'LyricLine($timestamp, $text)';
+}
+
+/// 歌词解析结果
+class LyricsResult {
+  final List<LyricLine> lines;
+  final Map<String, String> metadata;
+  final bool isValid;
+
+  const LyricsResult({
+    required this.lines,
+    required this.metadata,
+    this.isValid = true,
+  });
+
+  /// 空歌词结果
+  static const LyricsResult empty = LyricsResult(
+    lines: [],
+    metadata: {},
+    isValid: false,
+  );
+
+  /// 获取标题
+  String? get title => metadata['ti'];
+
+  /// 获取艺术家
+  String? get artist => metadata['ar'];
+
+  /// 获取专辑
+  String? get album => metadata['al'];
+
+  /// 获取歌词作者
+  String? get author => metadata['au'];
+
+  /// 获取时长
+  Duration? get duration {
+    final length = metadata['length'];
+    if (length == null) return null;
+    return _parseTimeTag(length);
+  }
+
+  /// 根据时间获取当前歌词行索引
+  int getCurrentLineIndex(Duration position) {
+    if (lines.isEmpty) return -1;
+
+    for (int i = lines.length - 1; i >= 0; i--) {
+      if (position >= lines[i].timestamp) {
+        return i;
+      }
+    }
+    return 0;
+  }
+
+  /// 根据时间获取当前歌词行
+  LyricLine? getCurrentLine(Duration position) {
+    final index = getCurrentLineIndex(position);
+    if (index < 0 || index >= lines.length) return null;
+    return lines[index];
+  }
+
+  /// 解析时间标签 (mm:ss.xx 或 mm:ss)
+  static Duration? _parseTimeTag(String tag) {
+    // 支持格式: mm:ss.xx 或 mm:ss
+    final regex = RegExp(r'(\d+):(\d+)(?:\.(\d+))?');
+    final match = regex.firstMatch(tag);
+    if (match == null) return null;
+
+    final minutes = int.tryParse(match.group(1) ?? '0') ?? 0;
+    final seconds = int.tryParse(match.group(2) ?? '0') ?? 0;
+    final milliseconds = int.tryParse(match.group(3)?.padRight(3, '0') ?? '0') ?? 0;
+
+    return Duration(
+      minutes: minutes,
+      seconds: seconds,
+      milliseconds: milliseconds,
+    );
+  }
+}
+
+/// 歌词解析服务
+/// 解析 .lrc 文件，支持时间标签
+class LyricsParser {
+  /// 时间标签正则表达式
+  /// 支持格式: [mm:ss.xx], [mm:ss], [mm:ss:xx]
+  static final RegExp _timeTagRegex = RegExp(
+    r'\[(\d+):(\d+)(?:[.:](\d+))?\]',
+  );
+
+  /// 元数据标签正则表达式
+  /// 支持格式: [ti:标题], [ar:艺术家], [al:专辑] 等
+  static final RegExp _metadataRegex = RegExp(
+    r'\[([a-zA-Z]+):(.+)\]',
+  );
+
+  /// 从字符串解析歌词
+  LyricsResult parse(String content) {
+    if (content.trim().isEmpty) {
+      return LyricsResult.empty;
+    }
+
+    final lines = <LyricLine>[];
+    final metadata = <String, String>{};
+
+    // 按行分割
+    final contentLines = content.split('\n');
+
+    for (var line in contentLines) {
+      line = line.trim();
+      if (line.isEmpty) continue;
+
+      // 检查是否是元数据行
+      final metadataMatch = _metadataRegex.firstMatch(line);
+      if (metadataMatch != null) {
+        final key = metadataMatch.group(1)?.toLowerCase();
+        final value = metadataMatch.group(2);
+        if (key != null && value != null) {
+          metadata[key] = value.trim();
+        }
+        continue;
+      }
+
+      // 解析时间标签
+      final timeTags = _timeTagRegex.allMatches(line);
+      if (timeTags.isEmpty) continue;
+
+      // 获取歌词文本（移除时间标签）
+      var text = line.replaceAll(_timeTagRegex, '').trim();
+      if (text.isEmpty) continue;
+
+      // 处理多个时间标签（同一行歌词可能有多个时间点）
+      for (final timeMatch in timeTags) {
+        final minutes = int.tryParse(timeMatch.group(1) ?? '0') ?? 0;
+        final seconds = int.tryParse(timeMatch.group(2) ?? '0') ?? 0;
+        final milliseconds = int.tryParse(
+              (timeMatch.group(3) ?? '0').padRight(3, '0').substring(0, 3),
+            ) ??
+            0;
+
+        final timestamp = Duration(
+          minutes: minutes,
+          seconds: seconds,
+          milliseconds: milliseconds,
+        );
+
+        lines.add(LyricLine(
+          timestamp: timestamp,
+          text: text,
+        ));
+      }
+    }
+
+    // 按时间排序
+    lines.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    return LyricsResult(
+      lines: lines,
+      metadata: metadata,
+      isValid: lines.isNotEmpty,
+    );
+  }
+
+  /// 从文件解析歌词
+  Future<LyricsResult> parseFile(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        return LyricsResult.empty;
+      }
+
+      final content = await file.readAsString();
+      return parse(content);
+    } catch (e) {
+      return LyricsResult.empty;
+    }
+  }
+
+  /// 从文件路径解析歌词（同步）
+  LyricsResult parseFileSync(String filePath) {
+    try {
+      final file = File(filePath);
+      if (!file.existsSync()) {
+        return LyricsResult.empty;
+      }
+
+      final content = file.readAsStringSync();
+      return parse(content);
+    } catch (e) {
+      return LyricsResult.empty;
+    }
+  }
+
+  /// 将歌词转换为 LRC 格式字符串
+  String toLrc(LyricsResult lyrics) {
+    final buffer = StringBuffer();
+
+    // 写入元数据
+    for (final entry in lyrics.metadata.entries) {
+      buffer.writeln('[${entry.key}:${entry.value}]');
+    }
+
+    // 写入歌词行
+    for (final line in lyrics.lines) {
+      final minutes = line.timestamp.inMinutes;
+      final seconds = line.timestamp.inSeconds % 60;
+      final milliseconds = line.timestamp.inMilliseconds % 1000;
+
+      final timeTag = '[${minutes.toString().padLeft(2, '0')}:'
+          '${seconds.toString().padLeft(2, '0')}.'
+          '${milliseconds.toString().padLeft(3, '0')}]';
+
+      buffer.writeln('$timeTag${line.text}');
+    }
+
+    return buffer.toString();
+  }
+
+  /// 根据音频文件路径查找对应的歌词文件
+  /// 支持同名 .lrc 文件
+  String? findLyricsFile(String audioFilePath) {
+    final audioFile = File(audioFilePath);
+    final directory = audioFile.parent;
+
+    // 获取文件名（包含扩展名）
+    final parts = audioFilePath.split(RegExp(r'[\\/]'));
+    final fileName = parts.isNotEmpty ? parts.last : '';
+
+    // 移除扩展名
+    final baseName = fileName.contains('.')
+        ? fileName.substring(0, fileName.lastIndexOf('.'))
+        : fileName;
+
+    // 查找同名 .lrc 文件
+    final lrcFile = File('${directory.path}${Platform.pathSeparator}$baseName.lrc');
+    if (lrcFile.existsSync()) {
+      return lrcFile.path;
+    }
+
+    return null;
+  }
+}
