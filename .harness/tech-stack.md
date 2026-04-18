@@ -86,6 +86,23 @@
 - SharedPreferences: 功能有限，不支持复杂查询
 - Hive: 性能好，但 SQL 查询能力不如 SQLite
 
+### 2.6 歌词解析: 自定义 LRC 解析器
+
+**选择理由**:
+- LRC 格式简单，易于解析
+- 支持时间标签 [mm:ss.xx]
+- 支持逐字/逐行歌词
+- 可扩展支持在线歌词 API
+
+**LRC 格式示例**:
+```
+[ti:歌曲标题]
+[ar:艺术家]
+[al:专辑]
+[00:00.00]第一行歌词
+[00:05.50]第二行歌词
+```
+
 ## 3. 项目架构
 
 ### 3.1 分层架构
@@ -112,13 +129,17 @@ lib/
 ├── core/                        # 核心功能
 │   ├── theme/                   # 主题配置
 │   ├── constants/               # 常量定义
-│   └── router/                  # 路由配置
+│   ├── router/                  # 路由配置
+│   └── database/                # 数据库帮助类
 ├── features/                    # 功能模块
 │   ├── player/                  # 播放器模块
 │   │   ├── data/                # 数据层
 │   │   ├── domain/              # 业务逻辑层
 │   │   └── presentation/        # 展示层
 │   ├── playlist/                # 歌单模块
+│   ├── lyrics/                  # 歌词模块
+│   │   ├── data/                # 数据层（LRC 解析）
+│   │   └── presentation/        # 展示层（歌词页面）
 │   └── settings/                # 设置模块
 └── shared/                      # 共享组件
     ├── widgets/                 # 通用组件

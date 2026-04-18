@@ -31,6 +31,10 @@
               "status": "pending"
             }
           ],
+          "verification": {
+            "command": "cd mysic_flutter && flutter analyze",
+            "expected": "No issues found"
+          },
           "artifacts": ["mysic_flutter/"],
           "estimated_time": "5min"
         },
@@ -53,6 +57,10 @@
               "status": "pending"
             }
           ],
+          "verification": {
+            "command": "cd mysic_flutter && flutter pub deps | grep -E 'just_audio|provider|on_audio_query|sqflite'",
+            "expected": "显示已安装的依赖包"
+          },
           "artifacts": ["mysic_flutter/pubspec.yaml"],
           "estimated_time": "10min"
         },
@@ -74,6 +82,10 @@
               "status": "pending"
             }
           ],
+          "verification": {
+            "command": "cd mysic_flutter && flutter analyze lib/core/theme/",
+            "expected": "No issues found"
+          },
           "artifacts": ["lib/core/theme/"],
           "estimated_time": "15min"
         },
@@ -98,9 +110,18 @@
               "id": "step_1_4_3",
               "description": "配置 Windows 平台 SQLite FFI 支持",
               "status": "pending"
+            },
+            {
+              "id": "step_1_4_4",
+              "description": "创建数据库单元测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/core/database/"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/database_helper_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/core/database/", "test/database_helper_test.dart"],
           "estimated_time": "20min"
         },
         {
@@ -126,6 +147,9 @@
               "status": "pending"
             }
           ],
+          "verification": {
+            "manual": "检查 AndroidManifest.xml 包含 READ_MEDIA_AUDIO 权限，Info.plist 包含 NSAppleMusicUsageDescription"
+          },
           "artifacts": [
             "android/app/src/main/AndroidManifest.xml",
             "ios/Runner/Info.plist",
@@ -156,9 +180,18 @@
               "id": "step_2_1_2",
               "description": "创建 lib/features/player/data/models/playlist.dart",
               "status": "pending"
+            },
+            {
+              "id": "step_2_1_3",
+              "description": "创建数据模型单元测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/features/player/data/models/"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/models_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/player/data/models/", "test/models_test.dart"],
           "estimated_time": "20min"
         },
         {
@@ -187,9 +220,18 @@
               "id": "step_2_2_4",
               "description": "实现后台播放配置",
               "status": "pending"
+            },
+            {
+              "id": "step_2_2_5",
+              "description": "创建播放服务单元测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/features/player/data/services/"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/audio_player_service_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/player/data/services/", "test/audio_player_service_test.dart"],
           "estimated_time": "45min"
         },
         {
@@ -208,9 +250,18 @@
               "id": "step_2_3_2",
               "description": "实现状态管理和业务逻辑",
               "status": "pending"
+            },
+            {
+              "id": "step_2_3_3",
+              "description": "创建 Provider 单元测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/features/player/presentation/providers/"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/player_provider_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/player/presentation/providers/", "test/player_provider_test.dart"],
           "estimated_time": "30min"
         }
       ]
@@ -236,9 +287,18 @@
               "id": "step_3_1_2",
               "description": "实现脉冲发光动画",
               "status": "pending"
+            },
+            {
+              "id": "step_3_1_3",
+              "description": "创建组件 Widget 测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/features/player/presentation/widgets/album_cover.dart"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/widgets/album_cover_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/player/presentation/widgets/album_cover.dart", "test/widgets/album_cover_test.dart"],
           "estimated_time": "30min"
         },
         {
@@ -252,9 +312,18 @@
               "id": "step_3_2_1",
               "description": "创建 lib/features/player/presentation/widgets/play_controls.dart",
               "status": "pending"
+            },
+            {
+              "id": "step_3_2_2",
+              "description": "创建组件 Widget 测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/features/player/presentation/widgets/play_controls.dart"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/widgets/play_controls_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/player/presentation/widgets/play_controls.dart", "test/widgets/play_controls_test.dart"],
           "estimated_time": "20min"
         },
         {
@@ -268,15 +337,24 @@
               "id": "step_3_3_1",
               "description": "创建 lib/features/player/presentation/widgets/progress_bar.dart",
               "status": "pending"
+            },
+            {
+              "id": "step_3_3_2",
+              "description": "创建组件 Widget 测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/features/player/presentation/widgets/progress_bar.dart"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/widgets/progress_bar_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/player/presentation/widgets/progress_bar.dart", "test/widgets/progress_bar_test.dart"],
           "estimated_time": "25min"
         },
         {
           "id": "task_3_4",
           "name": "创建主播放页面",
-          "description": "整合所有组件，创建主页面",
+          "description": "整合所有组件，创建主页面，包含歌词预览",
           "status": "pending",
           "dependencies": ["task_3_1", "task_3_2", "task_3_3"],
           "steps": [
@@ -289,9 +367,93 @@
               "id": "step_3_4_2",
               "description": "整合所有组件到页面",
               "status": "pending"
+            },
+            {
+              "id": "step_3_4_3",
+              "description": "添加歌词预览组件（两行）",
+              "status": "pending"
+            },
+            {
+              "id": "step_3_4_4",
+              "description": "创建页面 Widget 测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/features/player/presentation/pages/player_page.dart"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/pages/player_page_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/player/presentation/pages/player_page.dart", "test/pages/player_page_test.dart"],
+          "estimated_time": "30min"
+        },
+        {
+          "id": "task_3_5",
+          "name": "创建歌词页面",
+          "description": "完整歌词显示页面，支持时间同步高亮",
+          "status": "pending",
+          "dependencies": ["task_3_4"],
+          "steps": [
+            {
+              "id": "step_3_5_1",
+              "description": "创建 lib/features/lyrics/presentation/pages/lyrics_page.dart",
+              "status": "pending"
+            },
+            {
+              "id": "step_3_5_2",
+              "description": "实现歌词滚动和高亮效果",
+              "status": "pending"
+            },
+            {
+              "id": "step_3_5_3",
+              "description": "创建底部迷你播放器",
+              "status": "pending"
+            },
+            {
+              "id": "step_3_5_4",
+              "description": "创建页面 Widget 测试",
+              "status": "pending"
+            }
+          ],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/pages/lyrics_page_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/lyrics/presentation/pages/lyrics_page.dart", "test/pages/lyrics_page_test.dart"],
+          "estimated_time": "40min"
+        },
+        {
+          "id": "task_3_6",
+          "name": "实现歌词解析服务",
+          "description": "解析 .lrc 文件，支持时间标签",
+          "status": "pending",
+          "dependencies": ["task_2_1"],
+          "steps": [
+            {
+              "id": "step_3_6_1",
+              "description": "创建 lib/features/lyrics/data/services/lyrics_parser.dart",
+              "status": "pending"
+            },
+            {
+              "id": "step_3_6_2",
+              "description": "实现 LRC 格式解析",
+              "status": "pending"
+            },
+            {
+              "id": "step_3_6_3",
+              "description": "实现歌词时间同步逻辑",
+              "status": "pending"
+            },
+            {
+              "id": "step_3_6_4",
+              "description": "创建解析器单元测试",
+              "status": "pending"
+            }
+          ],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/lyrics_parser_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/lyrics/data/services/lyrics_parser.dart", "test/lyrics_parser_test.dart"],
           "estimated_time": "30min"
         }
       ]
@@ -312,9 +474,18 @@
               "id": "step_4_1_1",
               "description": "创建 lib/shared/widgets/app_drawer.dart",
               "status": "pending"
+            },
+            {
+              "id": "step_4_1_2",
+              "description": "创建组件 Widget 测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/shared/widgets/app_drawer.dart"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/widgets/app_drawer_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/shared/widgets/app_drawer.dart", "test/widgets/app_drawer_test.dart"],
           "estimated_time": "30min"
         },
         {
@@ -328,9 +499,18 @@
               "id": "step_4_2_1",
               "description": "创建 lib/features/playlist/presentation/widgets/playlist_item.dart",
               "status": "pending"
+            },
+            {
+              "id": "step_4_2_2",
+              "description": "创建组件 Widget 测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/features/playlist/presentation/widgets/playlist_item.dart"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/widgets/playlist_item_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/playlist/presentation/widgets/playlist_item.dart", "test/widgets/playlist_item_test.dart"],
           "estimated_time": "20min"
         },
         {
@@ -344,9 +524,18 @@
               "id": "step_4_3_1",
               "description": "创建 lib/shared/widgets/bottom_sheet.dart",
               "status": "pending"
+            },
+            {
+              "id": "step_4_3_2",
+              "description": "创建组件 Widget 测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/shared/widgets/bottom_sheet.dart"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/widgets/bottom_sheet_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/shared/widgets/bottom_sheet.dart", "test/widgets/bottom_sheet_test.dart"],
           "estimated_time": "25min"
         }
       ]
@@ -377,9 +566,18 @@
               "id": "step_5_1_3",
               "description": "实现音乐文件扫描",
               "status": "pending"
+            },
+            {
+              "id": "step_5_1_4",
+              "description": "创建扫描服务单元测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/shared/utils/music_scanner.dart"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/music_scanner_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/shared/utils/music_scanner.dart", "test/music_scanner_test.dart"],
           "estimated_time": "40min"
         },
         {
@@ -393,9 +591,18 @@
               "id": "step_5_2_1",
               "description": "创建 lib/features/settings/presentation/widgets/scan_button.dart",
               "status": "pending"
+            },
+            {
+              "id": "step_5_2_2",
+              "description": "创建组件 Widget 测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/features/settings/presentation/widgets/scan_button.dart"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/widgets/scan_button_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/settings/presentation/widgets/scan_button.dart", "test/widgets/scan_button_test.dart"],
           "estimated_time": "20min"
         }
       ]
@@ -426,9 +633,18 @@
               "id": "step_6_1_3",
               "description": "实现歌曲缓存到数据库",
               "status": "pending"
+            },
+            {
+              "id": "step_6_1_4",
+              "description": "创建仓库单元测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/features/playlist/data/playlist_repository.dart"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/playlist_repository_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/playlist/data/playlist_repository.dart", "test/playlist_repository_test.dart"],
           "estimated_time": "40min"
         },
         {
@@ -442,9 +658,18 @@
               "id": "step_6_2_1",
               "description": "创建 lib/features/playlist/presentation/providers/playlist_provider.dart",
               "status": "pending"
+            },
+            {
+              "id": "step_6_2_2",
+              "description": "创建 Provider 单元测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/features/playlist/presentation/providers/playlist_provider.dart"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/playlist_provider_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/playlist/presentation/providers/playlist_provider.dart", "test/playlist_provider_test.dart"],
           "estimated_time": "25min"
         }
       ]
@@ -465,9 +690,18 @@
               "id": "step_7_1_1",
               "description": "创建 lib/features/settings/presentation/pages/about_page.dart",
               "status": "pending"
+            },
+            {
+              "id": "step_7_1_2",
+              "description": "创建页面 Widget 测试",
+              "status": "pending"
             }
           ],
-          "artifacts": ["lib/features/settings/presentation/pages/about_page.dart"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/pages/about_page_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["lib/features/settings/presentation/pages/about_page.dart", "test/pages/about_page_test.dart"],
           "estimated_time": "20min"
         }
       ]
@@ -479,23 +713,27 @@
       "tasks": [
         {
           "id": "task_8_1",
-          "name": "编写单元测试",
-          "description": "核心功能的单元测试",
+          "name": "编写集成测试",
+          "description": "核心功能的集成测试",
           "status": "pending",
           "dependencies": ["task_3_4", "task_5_1", "task_6_2"],
           "steps": [
             {
               "id": "step_8_1_1",
-              "description": "创建 test/player_provider_test.dart",
+              "description": "创建 integration_test/player_flow_test.dart",
               "status": "pending"
             },
             {
               "id": "step_8_1_2",
-              "description": "创建 test/playlist_repository_test.dart",
+              "description": "创建 integration_test/playlist_flow_test.dart",
               "status": "pending"
             }
           ],
-          "artifacts": ["test/"],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test integration_test/",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["integration_test/"],
           "estimated_time": "40min"
         },
         {
@@ -518,6 +756,10 @@
               "status": "pending"
             }
           ],
+          "verification": {
+            "command": "ls mysic_flutter/build/app/outputs/flutter-apk/app-release.apk && ls mysic_flutter/build/windows/x64/runner/Release/",
+            "expected": "构建产物存在"
+          },
           "artifacts": ["build/"],
           "estimated_time": "30min"
         }
@@ -525,11 +767,16 @@
     }
   ],
   "statistics": {
-    "total_tasks": 19,
+    "total_tasks": 21,
     "completed_tasks": 0,
-    "pending_tasks": 19,
+    "pending_tasks": 21,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
-    "estimated_total_time": "9h"
+    "estimated_total_time": "12h",
+    "test_coverage": {
+      "unit_tests": 12,
+      "widget_tests": 10,
+      "integration_tests": 2
+    }
   }
 }
