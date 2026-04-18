@@ -610,34 +610,34 @@
     {
       "id": "phase_6",
       "name": "歌单管理与持久化",
-      "status": "pending",
+      "status": "completed",
       "tasks": [
         {
           "id": "task_6_1",
           "name": "实现歌单数据仓库",
           "description": "歌单 CRUD 操作，使用 SQLite 持久化",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_2_1", "task_1_4"],
           "steps": [
             {
               "id": "step_6_1_1",
               "description": "创建 lib/features/playlist/data/playlist_repository.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_6_1_2",
               "description": "实现 SQLite 数据库操作",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_6_1_3",
               "description": "实现歌曲缓存到数据库",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_6_1_4",
               "description": "创建仓库单元测试",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -651,18 +651,18 @@
           "id": "task_6_2",
           "name": "创建歌单状态管理",
           "description": "使用 Provider 管理歌单状态",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_6_1"],
           "steps": [
             {
               "id": "step_6_2_1",
               "description": "创建 lib/features/playlist/presentation/providers/playlist_provider.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_6_2_2",
               "description": "创建 Provider 单元测试",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -768,15 +768,15 @@
   ],
   "statistics": {
     "total_tasks": 21,
-    "completed_tasks": 19,
-    "pending_tasks": 2,
+    "completed_tasks": 21,
+    "pending_tasks": 0,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
-    "completed_phases": 5,
-    "pending_phases": 3,
+    "completed_phases": 6,
+    "pending_phases": 2,
     "estimated_total_time": "12h",
     "test_coverage": {
-      "unit_tests": 13,
+      "unit_tests": 15,
       "widget_tests": 14,
       "integration_tests": 2
     }
