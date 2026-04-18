@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm list *)",
+      "WebSearch",
+      "Bash(npm search *)",
+      "Bash(npm view *)",
+      "Bash(npx uipro-cli *)",
+      "Bash(where node *)",
+      "Bash(D:\\\\\\\\Program Files\\\\\\\\nodejs\\\\\\\\npx.cmd uipro-cli *)",
+      "Bash(export PATH=\"/d/Program Files/nodejs:$PATH\")",
+      "Bash(python skills/ui-ux-pro-max/scripts/search.py \"music player app modern elegant dark\" --design-system -p \"Music App\")",
+      "Bash(python .claude/skills/ui-ux-pro-max/scripts/search.py \"music player app modern elegant dark\" --design-system -p \"Music App\")",
+      "Bash(python .claude/skills/ui-ux-pro-max/scripts/search.py \"sidebar drawer navigation\" --domain ux)",
+      "WebFetch(domain:lcnaoyjp4e3z.feishu.cn)",
+      "WebFetch(domain:www.anthropic.com)",
+      "Bash(curl -sL \"https://www.anthropic.com/engineering/harness-design-long-running-apps\")",
+      "Bash(sed '/^$/d')",
+      "Read(//tmp/**)",
+      "Bash(python3 -c \" import sys import re from html.parser import HTMLParser class TextExtractor\\(HTMLParser\\): def __init__\\(self\\): super\\(\\).__init__\\(\\) self.text = [] self.skip = False def handle_starttag\\(self, tag, attrs\\): if tag in ['script', 'style', 'nav', 'footer', 'header']: self.skip = True def handle_endtag\\(self, tag\\): if tag in ['script', 'style', 'nav', 'footer', 'header']: self.skip = False def handle_data\\(self, data\\): if not self.skip: text = data.strip\\(\\) if text: self.text.append\\(text\\) html = sys.stdin.read\\(\\) parser = TextExtractor\\(\\) parser.feed\\(html\\) print\\('\\\\n\\\\n'.join\\(parser.text\\)\\) \")",
+      "Bash(grep -v '^[[:space:]]*$')",
+      "Bash(grep -v '^[{}[\\\\],;]*$')"
+    ]
+  }
+}
