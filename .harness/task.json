@@ -15,20 +15,20 @@
           "id": "task_1_1",
           "name": "创建 Flutter 项目",
           "description": "使用 flutter create 创建项目，配置多平台支持",
-          "status": "pending",
+          "status": "completed",
           "dependencies": [],
           "steps": [
             {
               "id": "step_1_1_1",
               "description": "执行 flutter create 命令创建项目",
               "command": "flutter create --org com.nbb --platforms android,ios,windows mysic_flutter",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_1_1_2",
               "description": "验证项目创建成功",
               "command": "cd mysic_flutter && flutter pub get",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
