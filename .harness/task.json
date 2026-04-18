@@ -543,34 +543,34 @@
     {
       "id": "phase_5",
       "name": "本地音乐扫描",
-      "status": "pending",
+      "status": "completed",
       "tasks": [
         {
           "id": "task_5_1",
           "name": "实现音乐扫描服务",
           "description": "使用 on_audio_query 扫描本地音乐",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_2_1"],
           "steps": [
             {
               "id": "step_5_1_1",
               "description": "创建 lib/shared/utils/music_scanner.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_5_1_2",
               "description": "实现权限请求逻辑",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_5_1_3",
               "description": "实现音乐文件扫描",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_5_1_4",
               "description": "创建扫描服务单元测试",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -584,18 +584,18 @@
           "id": "task_5_2",
           "name": "创建扫描按钮组件",
           "description": "扫描全盘按钮，显示进度",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_5_1", "task_4_1"],
           "steps": [
             {
               "id": "step_5_2_1",
               "description": "创建 lib/features/settings/presentation/widgets/scan_button.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_5_2_2",
               "description": "创建组件 Widget 测试",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -768,16 +768,16 @@
   ],
   "statistics": {
     "total_tasks": 21,
-    "completed_tasks": 17,
-    "pending_tasks": 4,
+    "completed_tasks": 19,
+    "pending_tasks": 2,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
-    "completed_phases": 4,
-    "pending_phases": 4,
+    "completed_phases": 5,
+    "pending_phases": 3,
     "estimated_total_time": "12h",
     "test_coverage": {
-      "unit_tests": 12,
-      "widget_tests": 13,
+      "unit_tests": 13,
+      "widget_tests": 14,
       "integration_tests": 2
     }
   }
