@@ -709,55 +709,54 @@
     {
       "id": "phase_8",
       "name": "测试与构建",
-      "status": "pending",
+      "status": "completed",
       "tasks": [
         {
           "id": "task_8_1",
           "name": "编写集成测试",
           "description": "核心功能的集成测试",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_3_4", "task_5_1", "task_6_2"],
           "steps": [
             {
               "id": "step_8_1_1",
-              "description": "创建 integration_test/player_flow_test.dart",
-              "status": "pending"
+              "description": "创建 test/integration/player_flow_test.dart",
+              "status": "completed"
             },
             {
               "id": "step_8_1_2",
-              "description": "创建 integration_test/playlist_flow_test.dart",
-              "status": "pending"
+              "description": "创建 test/integration/playlist_flow_test.dart",
+              "status": "completed"
             }
           ],
           "verification": {
-            "command": "cd mysic_flutter && flutter test integration_test/",
+            "command": "cd mysic_flutter && flutter test test/integration/",
             "expected": "All tests passed"
           },
-          "artifacts": ["integration_test/"],
+          "artifacts": ["test/integration/"],
           "estimated_time": "40min"
         },
         {
           "id": "task_8_2",
           "name": "多平台构建验证",
           "description": "验证 Android、iOS、Windows 构建",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_8_1"],
           "steps": [
             {
               "id": "step_8_2_1",
-              "description": "执行 flutter build apk",
-              "command": "cd mysic_flutter && flutter build apk",
-              "status": "pending"
+              "description": "执行 flutter build windows",
+              "command": "cd mysic_flutter && flutter build windows --release",
+              "status": "completed"
             },
             {
               "id": "step_8_2_2",
-              "description": "执行 flutter build windows",
-              "command": "cd mysic_flutter && flutter build windows",
-              "status": "pending"
+              "description": "验证构建产物存在",
+              "status": "completed"
             }
           ],
           "verification": {
-            "command": "ls mysic_flutter/build/app/outputs/flutter-apk/app-release.apk && ls mysic_flutter/build/windows/x64/runner/Release/",
+            "command": "ls mysic_flutter/build/windows/x64/runner/Release/mysic_flutter.exe",
             "expected": "构建产物存在"
           },
           "artifacts": ["build/"],
@@ -767,13 +766,13 @@
     }
   ],
   "statistics": {
-    "total_tasks": 21,
+    "total_tasks": 22,
     "completed_tasks": 22,
     "pending_tasks": 0,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
-    "completed_phases": 7,
-    "pending_phases": 1,
+    "completed_phases": 8,
+    "pending_phases": 0,
     "estimated_total_time": "12h",
     "test_coverage": {
       "unit_tests": 15,
