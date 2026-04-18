@@ -677,24 +677,24 @@
     {
       "id": "phase_7",
       "name": "关于页面",
-      "status": "pending",
+      "status": "completed",
       "tasks": [
         {
           "id": "task_7_1",
           "name": "创建关于页面",
           "description": "显示应用信息、版本、支持作者",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_3_4"],
           "steps": [
             {
               "id": "step_7_1_1",
               "description": "创建 lib/features/settings/presentation/pages/about_page.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_7_1_2",
               "description": "创建页面 Widget 测试",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -768,16 +768,16 @@
   ],
   "statistics": {
     "total_tasks": 21,
-    "completed_tasks": 21,
+    "completed_tasks": 22,
     "pending_tasks": 0,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
-    "completed_phases": 6,
-    "pending_phases": 2,
+    "completed_phases": 7,
+    "pending_phases": 1,
     "estimated_total_time": "12h",
     "test_coverage": {
       "unit_tests": 15,
-      "widget_tests": 14,
+      "widget_tests": 15,
       "integration_tests": 2
     }
   }
