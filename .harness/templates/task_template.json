@@ -1,0 +1,42 @@
+{
+  "project": {
+    "name": "{{PROJECT_NAME}}",
+    "description": "{{PROJECT_DESCRIPTION}}",
+    "created_at": "{{TIMESTAMP}}",
+    "updated_at": "{{TIMESTAMP}}"
+  },
+  "phases": [
+    {
+      "id": "phase_1",
+      "name": "{{PHASE_NAME}}",
+      "status": "pending",
+      "tasks": [
+        {
+          "id": "task_1_1",
+          "name": "{{TASK_NAME}}",
+          "description": "{{TASK_DESCRIPTION}}",
+          "status": "pending",
+          "dependencies": [],
+          "steps": [
+            {
+              "id": "step_1_1_1",
+              "description": "{{STEP_DESCRIPTION}}",
+              "command": "{{COMMAND}}",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["{{OUTPUT_FILE}}"],
+          "estimated_time": "{{TIME}}"
+        }
+      ]
+    }
+  ],
+  "statistics": {
+    "total_tasks": 0,
+    "completed_tasks": 0,
+    "pending_tasks": 0,
+    "in_progress_tasks": 0,
+    "failed_tasks": 0,
+    "estimated_total_time": "0h"
+  }
+}

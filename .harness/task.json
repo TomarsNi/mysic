@@ -1,0 +1,503 @@
+{
+  "project": {
+    "name": "mysic",
+    "description": "Flutter 音乐播放器应用",
+    "created_at": "2026-04-18T21:20:00Z",
+    "updated_at": "2026-04-18T21:20:00Z"
+  },
+  "phases": [
+    {
+      "id": "phase_1",
+      "name": "项目初始化",
+      "status": "pending",
+      "tasks": [
+        {
+          "id": "task_1_1",
+          "name": "创建 Flutter 项目",
+          "description": "使用 flutter create 创建项目，配置多平台支持",
+          "status": "pending",
+          "dependencies": [],
+          "steps": [
+            {
+              "id": "step_1_1_1",
+              "description": "执行 flutter create 命令创建项目",
+              "command": "flutter create --org com.nbb --platforms android,ios,windows mysic_flutter",
+              "status": "pending"
+            },
+            {
+              "id": "step_1_1_2",
+              "description": "验证项目创建成功",
+              "command": "cd mysic_flutter && flutter pub get",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["mysic_flutter/"],
+          "estimated_time": "5min"
+        },
+        {
+          "id": "task_1_2",
+          "name": "配置项目依赖",
+          "description": "在 pubspec.yaml 中添加所需依赖包",
+          "status": "pending",
+          "dependencies": ["task_1_1"],
+          "steps": [
+            {
+              "id": "step_1_2_1",
+              "description": "编辑 pubspec.yaml 添加依赖",
+              "status": "pending"
+            },
+            {
+              "id": "step_1_2_2",
+              "description": "执行 flutter pub get",
+              "command": "cd mysic_flutter && flutter pub get",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["mysic_flutter/pubspec.yaml"],
+          "estimated_time": "10min"
+        },
+        {
+          "id": "task_1_3",
+          "name": "配置项目主题",
+          "description": "创建深色主题，定义颜色、字体等",
+          "status": "pending",
+          "dependencies": ["task_1_2"],
+          "steps": [
+            {
+              "id": "step_1_3_1",
+              "description": "创建 lib/core/theme/app_colors.dart",
+              "status": "pending"
+            },
+            {
+              "id": "step_1_3_2",
+              "description": "创建 lib/core/theme/app_theme.dart",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/core/theme/"],
+          "estimated_time": "15min"
+        },
+        {
+          "id": "task_1_4",
+          "name": "配置平台权限",
+          "description": "配置 Android、iOS、Windows 的必要权限",
+          "status": "pending",
+          "dependencies": ["task_1_1"],
+          "steps": [
+            {
+              "id": "step_1_4_1",
+              "description": "配置 Android 权限 (AndroidManifest.xml)",
+              "status": "pending"
+            },
+            {
+              "id": "step_1_4_2",
+              "description": "配置 iOS 权限 (Info.plist)",
+              "status": "pending"
+            },
+            {
+              "id": "step_1_4_3",
+              "description": "配置 Windows 权限",
+              "status": "pending"
+            }
+          ],
+          "artifacts": [
+            "android/app/src/main/AndroidManifest.xml",
+            "ios/Runner/Info.plist"
+          ],
+          "estimated_time": "15min"
+        }
+      ]
+    },
+    {
+      "id": "phase_2",
+      "name": "核心播放功能",
+      "status": "pending",
+      "tasks": [
+        {
+          "id": "task_2_1",
+          "name": "创建数据模型",
+          "description": "创建 Song、Playlist 等数据模型",
+          "status": "pending",
+          "dependencies": ["task_1_3"],
+          "steps": [
+            {
+              "id": "step_2_1_1",
+              "description": "创建 lib/features/player/data/models/song.dart",
+              "status": "pending"
+            },
+            {
+              "id": "step_2_1_2",
+              "description": "创建 lib/features/player/data/models/playlist.dart",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/features/player/data/models/"],
+          "estimated_time": "20min"
+        },
+        {
+          "id": "task_2_2",
+          "name": "实现音频播放服务",
+          "description": "使用 just_audio 实现音频播放核心功能",
+          "status": "pending",
+          "dependencies": ["task_2_1"],
+          "steps": [
+            {
+              "id": "step_2_2_1",
+              "description": "创建 lib/features/player/data/services/audio_player_service.dart",
+              "status": "pending"
+            },
+            {
+              "id": "step_2_2_2",
+              "description": "实现播放/暂停/停止功能",
+              "status": "pending"
+            },
+            {
+              "id": "step_2_2_3",
+              "description": "实现进度控制功能",
+              "status": "pending"
+            },
+            {
+              "id": "step_2_2_4",
+              "description": "实现后台播放配置",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/features/player/data/services/"],
+          "estimated_time": "45min"
+        },
+        {
+          "id": "task_2_3",
+          "name": "创建播放器状态管理",
+          "description": "使用 Provider 管理播放器状态",
+          "status": "pending",
+          "dependencies": ["task_2_2"],
+          "steps": [
+            {
+              "id": "step_2_3_1",
+              "description": "创建 lib/features/player/presentation/providers/player_provider.dart",
+              "status": "pending"
+            },
+            {
+              "id": "step_2_3_2",
+              "description": "实现状态管理和业务逻辑",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/features/player/presentation/providers/"],
+          "estimated_time": "30min"
+        }
+      ]
+    },
+    {
+      "id": "phase_3",
+      "name": "UI 组件开发",
+      "status": "pending",
+      "tasks": [
+        {
+          "id": "task_3_1",
+          "name": "创建专辑封面组件",
+          "description": "圆形专辑封面，带播放动画效果",
+          "status": "pending",
+          "dependencies": ["task_2_3"],
+          "steps": [
+            {
+              "id": "step_3_1_1",
+              "description": "创建 lib/features/player/presentation/widgets/album_cover.dart",
+              "status": "pending"
+            },
+            {
+              "id": "step_3_1_2",
+              "description": "实现脉冲发光动画",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/features/player/presentation/widgets/album_cover.dart"],
+          "estimated_time": "30min"
+        },
+        {
+          "id": "task_3_2",
+          "name": "创建播放控制组件",
+          "description": "播放/暂停、上一首、下一首按钮",
+          "status": "pending",
+          "dependencies": ["task_2_3"],
+          "steps": [
+            {
+              "id": "step_3_2_1",
+              "description": "创建 lib/features/player/presentation/widgets/play_controls.dart",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/features/player/presentation/widgets/play_controls.dart"],
+          "estimated_time": "20min"
+        },
+        {
+          "id": "task_3_3",
+          "name": "创建进度条组件",
+          "description": "可拖动的进度条，显示时间",
+          "status": "pending",
+          "dependencies": ["task_2_3"],
+          "steps": [
+            {
+              "id": "step_3_3_1",
+              "description": "创建 lib/features/player/presentation/widgets/progress_bar.dart",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/features/player/presentation/widgets/progress_bar.dart"],
+          "estimated_time": "25min"
+        },
+        {
+          "id": "task_3_4",
+          "name": "创建主播放页面",
+          "description": "整合所有组件，创建主页面",
+          "status": "pending",
+          "dependencies": ["task_3_1", "task_3_2", "task_3_3"],
+          "steps": [
+            {
+              "id": "step_3_4_1",
+              "description": "创建 lib/features/player/presentation/pages/player_page.dart",
+              "status": "pending"
+            },
+            {
+              "id": "step_3_4_2",
+              "description": "整合所有组件到页面",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/features/player/presentation/pages/player_page.dart"],
+          "estimated_time": "30min"
+        }
+      ]
+    },
+    {
+      "id": "phase_4",
+      "name": "抽屉菜单与歌单",
+      "status": "pending",
+      "tasks": [
+        {
+          "id": "task_4_1",
+          "name": "创建抽屉菜单组件",
+          "description": "左侧滑出的抽屉菜单",
+          "status": "pending",
+          "dependencies": ["task_3_4"],
+          "steps": [
+            {
+              "id": "step_4_1_1",
+              "description": "创建 lib/shared/widgets/app_drawer.dart",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/shared/widgets/app_drawer.dart"],
+          "estimated_time": "30min"
+        },
+        {
+          "id": "task_4_2",
+          "name": "创建歌单列表组件",
+          "description": "显示歌单列表，支持点击切换",
+          "status": "pending",
+          "dependencies": ["task_4_1"],
+          "steps": [
+            {
+              "id": "step_4_2_1",
+              "description": "创建 lib/features/playlist/presentation/widgets/playlist_item.dart",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/features/playlist/presentation/widgets/playlist_item.dart"],
+          "estimated_time": "20min"
+        },
+        {
+          "id": "task_4_3",
+          "name": "创建底部面板组件",
+          "description": "添加到歌单的底部弹出面板",
+          "status": "pending",
+          "dependencies": ["task_4_2"],
+          "steps": [
+            {
+              "id": "step_4_3_1",
+              "description": "创建 lib/shared/widgets/bottom_sheet.dart",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/shared/widgets/bottom_sheet.dart"],
+          "estimated_time": "25min"
+        }
+      ]
+    },
+    {
+      "id": "phase_5",
+      "name": "本地音乐扫描",
+      "status": "pending",
+      "tasks": [
+        {
+          "id": "task_5_1",
+          "name": "实现音乐扫描服务",
+          "description": "使用 on_audio_query 扫描本地音乐",
+          "status": "pending",
+          "dependencies": ["task_2_1"],
+          "steps": [
+            {
+              "id": "step_5_1_1",
+              "description": "创建 lib/shared/utils/music_scanner.dart",
+              "status": "pending"
+            },
+            {
+              "id": "step_5_1_2",
+              "description": "实现权限请求逻辑",
+              "status": "pending"
+            },
+            {
+              "id": "step_5_1_3",
+              "description": "实现音乐文件扫描",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/shared/utils/music_scanner.dart"],
+          "estimated_time": "40min"
+        },
+        {
+          "id": "task_5_2",
+          "name": "创建扫描按钮组件",
+          "description": "扫描全盘按钮，显示进度",
+          "status": "pending",
+          "dependencies": ["task_5_1", "task_4_1"],
+          "steps": [
+            {
+              "id": "step_5_2_1",
+              "description": "创建 lib/features/settings/presentation/widgets/scan_button.dart",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/features/settings/presentation/widgets/scan_button.dart"],
+          "estimated_time": "20min"
+        }
+      ]
+    },
+    {
+      "id": "phase_6",
+      "name": "歌单管理与持久化",
+      "status": "pending",
+      "tasks": [
+        {
+          "id": "task_6_1",
+          "name": "实现歌单数据仓库",
+          "description": "歌单 CRUD 操作，本地持久化",
+          "status": "pending",
+          "dependencies": ["task_2_1"],
+          "steps": [
+            {
+              "id": "step_6_1_1",
+              "description": "创建 lib/features/playlist/data/playlist_repository.dart",
+              "status": "pending"
+            },
+            {
+              "id": "step_6_1_2",
+              "description": "实现 SharedPreferences 持久化",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/features/playlist/data/playlist_repository.dart"],
+          "estimated_time": "30min"
+        },
+        {
+          "id": "task_6_2",
+          "name": "创建歌单状态管理",
+          "description": "使用 Provider 管理歌单状态",
+          "status": "pending",
+          "dependencies": ["task_6_1"],
+          "steps": [
+            {
+              "id": "step_6_2_1",
+              "description": "创建 lib/features/playlist/presentation/providers/playlist_provider.dart",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/features/playlist/presentation/providers/playlist_provider.dart"],
+          "estimated_time": "25min"
+        }
+      ]
+    },
+    {
+      "id": "phase_7",
+      "name": "关于页面",
+      "status": "pending",
+      "tasks": [
+        {
+          "id": "task_7_1",
+          "name": "创建关于页面",
+          "description": "显示应用信息、版本、支持作者",
+          "status": "pending",
+          "dependencies": ["task_3_4"],
+          "steps": [
+            {
+              "id": "step_7_1_1",
+              "description": "创建 lib/features/settings/presentation/pages/about_page.dart",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/features/settings/presentation/pages/about_page.dart"],
+          "estimated_time": "20min"
+        }
+      ]
+    },
+    {
+      "id": "phase_8",
+      "name": "测试与构建",
+      "status": "pending",
+      "tasks": [
+        {
+          "id": "task_8_1",
+          "name": "编写单元测试",
+          "description": "核心功能的单元测试",
+          "status": "pending",
+          "dependencies": ["task_3_4", "task_5_1", "task_6_2"],
+          "steps": [
+            {
+              "id": "step_8_1_1",
+              "description": "创建 test/player_provider_test.dart",
+              "status": "pending"
+            },
+            {
+              "id": "step_8_1_2",
+              "description": "创建 test/playlist_repository_test.dart",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["test/"],
+          "estimated_time": "40min"
+        },
+        {
+          "id": "task_8_2",
+          "name": "多平台构建验证",
+          "description": "验证 Android、iOS、Windows 构建",
+          "status": "pending",
+          "dependencies": ["task_8_1"],
+          "steps": [
+            {
+              "id": "step_8_2_1",
+              "description": "执行 flutter build apk",
+              "command": "cd mysic_flutter && flutter build apk",
+              "status": "pending"
+            },
+            {
+              "id": "step_8_2_2",
+              "description": "执行 flutter build windows",
+              "command": "cd mysic_flutter && flutter build windows",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["build/"],
+          "estimated_time": "30min"
+        }
+      ]
+    }
+  ],
+  "statistics": {
+    "total_tasks": 18,
+    "completed_tasks": 0,
+    "pending_tasks": 18,
+    "in_progress_tasks": 0,
+    "failed_tasks": 0,
+    "estimated_total_time": "8h"
+  }
+}
