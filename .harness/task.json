@@ -461,24 +461,24 @@
     {
       "id": "phase_4",
       "name": "抽屉菜单与歌单",
-      "status": "pending",
+      "status": "completed",
       "tasks": [
         {
           "id": "task_4_1",
           "name": "创建抽屉菜单组件",
           "description": "左侧滑出的抽屉菜单",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_3_4"],
           "steps": [
             {
               "id": "step_4_1_1",
               "description": "创建 lib/shared/widgets/app_drawer.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_4_1_2",
               "description": "创建组件 Widget 测试",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -492,18 +492,18 @@
           "id": "task_4_2",
           "name": "创建歌单列表组件",
           "description": "显示歌单列表，支持点击切换",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_4_1"],
           "steps": [
             {
               "id": "step_4_2_1",
               "description": "创建 lib/features/playlist/presentation/widgets/playlist_item.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_4_2_2",
               "description": "创建组件 Widget 测试",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -517,18 +517,18 @@
           "id": "task_4_3",
           "name": "创建底部面板组件",
           "description": "添加到歌单的底部弹出面板",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_4_2"],
           "steps": [
             {
               "id": "step_4_3_1",
               "description": "创建 lib/shared/widgets/bottom_sheet.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_4_3_2",
               "description": "创建组件 Widget 测试",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -768,16 +768,16 @@
   ],
   "statistics": {
     "total_tasks": 21,
-    "completed_tasks": 14,
-    "pending_tasks": 7,
+    "completed_tasks": 17,
+    "pending_tasks": 4,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
-    "completed_phases": 3,
-    "pending_phases": 5,
+    "completed_phases": 4,
+    "pending_phases": 4,
     "estimated_total_time": "12h",
     "test_coverage": {
       "unit_tests": 12,
-      "widget_tests": 10,
+      "widget_tests": 13,
       "integration_tests": 2
     }
   }
