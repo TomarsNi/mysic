@@ -162,7 +162,7 @@
     {
       "id": "phase_2",
       "name": "核心播放功能",
-      "status": "pending",
+      "status": "completed",
       "tasks": [
         {
           "id": "task_2_1",
@@ -238,23 +238,23 @@
           "id": "task_2_3",
           "name": "创建播放器状态管理",
           "description": "使用 Provider 管理播放器状态",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_2_2"],
           "steps": [
             {
               "id": "step_2_3_1",
               "description": "创建 lib/features/player/presentation/providers/player_provider.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_2_3_2",
               "description": "实现状态管理和业务逻辑",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_2_3_3",
               "description": "创建 Provider 单元测试",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -768,12 +768,12 @@
   ],
   "statistics": {
     "total_tasks": 21,
-    "completed_tasks": 7,
-    "pending_tasks": 14,
+    "completed_tasks": 8,
+    "pending_tasks": 13,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
-    "completed_phases": 1,
-    "pending_phases": 7,
+    "completed_phases": 2,
+    "pending_phases": 6,
     "estimated_total_time": "12h",
     "test_coverage": {
       "unit_tests": 12,
