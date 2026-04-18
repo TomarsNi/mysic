@@ -93,28 +93,28 @@
           "id": "task_1_4",
           "name": "初始化 SQLite 数据库",
           "description": "创建数据库帮助类，定义表结构，初始化数据库",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_1_2"],
           "steps": [
             {
               "id": "step_1_4_1",
               "description": "创建 lib/core/database/database_helper.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_1_4_2",
               "description": "定义数据库表结构（songs, playlists, playlist_songs, lyrics, play_history）",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_1_4_3",
               "description": "配置 Windows 平台 SQLite FFI 支持",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_1_4_4",
               "description": "创建数据库单元测试",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -768,8 +768,8 @@
   ],
   "statistics": {
     "total_tasks": 21,
-    "completed_tasks": 2,
-    "pending_tasks": 19,
+    "completed_tasks": 4,
+    "pending_tasks": 17,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
     "estimated_total_time": "12h",
