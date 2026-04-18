@@ -9,7 +9,7 @@
     {
       "id": "phase_1",
       "name": "项目初始化",
-      "status": "pending",
+      "status": "completed",
       "tasks": [
         {
           "id": "task_1_1",
@@ -128,23 +128,23 @@
           "id": "task_1_5",
           "name": "配置平台权限",
           "description": "配置 Android、iOS、Windows 的必要权限",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_1_1"],
           "steps": [
             {
               "id": "step_1_5_1",
               "description": "配置 Android 权限 (AndroidManifest.xml)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_1_5_2",
               "description": "配置 iOS 权限 (Info.plist)",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_1_5_3",
               "description": "配置 Windows 权限和 SQLite FFI",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -768,10 +768,12 @@
   ],
   "statistics": {
     "total_tasks": 21,
-    "completed_tasks": 4,
-    "pending_tasks": 17,
+    "completed_tasks": 5,
+    "pending_tasks": 16,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
+    "completed_phases": 1,
+    "pending_phases": 7,
     "estimated_total_time": "12h",
     "test_coverage": {
       "unit_tests": 12,
