@@ -168,23 +168,23 @@
           "id": "task_2_1",
           "name": "创建数据模型",
           "description": "创建 Song、Playlist 等数据模型",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_1_3"],
           "steps": [
             {
               "id": "step_2_1_1",
               "description": "创建 lib/features/player/data/models/song.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_2_1_2",
               "description": "创建 lib/features/player/data/models/playlist.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_2_1_3",
               "description": "创建数据模型单元测试",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -768,8 +768,8 @@
   ],
   "statistics": {
     "total_tasks": 21,
-    "completed_tasks": 5,
-    "pending_tasks": 16,
+    "completed_tasks": 6,
+    "pending_tasks": 15,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
     "completed_phases": 1,
