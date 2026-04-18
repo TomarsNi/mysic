@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mysic - Music Player</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            surface: '#18181b',
+            card: '#27272a',
+            accent: '#10b981',
+            muted: '#71717a',
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+
+    .progress-bar {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    .progress-bar::-webkit-slider-runnable-track {
+      height: 8px;
+      background: #3f3f46;
+      border-radius: 8px;
+    }
+    .progress-bar::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      background: #10b981;
+      border-radius: 50%;
+      margin-top: -8px;
+      transition: transform 0.15s ease;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+    }
+    .progress-bar:hover::-webkit-slider-thumb {
+      transform: scale(1.1);
+    }
+    .progress-bar::-moz-range-track {
+      height: 8px;
+      background: #3f3f46;
+      border-radius: 8px;
+    }
+    .progress-bar::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      background: #10b981;
+      border-radius: 50%;
+      border: none;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+    }
+
+    .drawer-overlay { transition: opacity 250ms ease; }
+    .drawer { transition: transform 280ms ease; }
+
+    .bottom-sheet-overlay { transition: opacity 250ms ease; }
+    .bottom-sheet { transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1); }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 60px -20px rgba(16, 185, 129, 0.2); }
+      50% { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 80px -15px rgba(16, 185, 129, 0.4); }
+    }
+    .album-cover {
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease;
+    }
+    .album-cover.playing {
+      animation: pulse-glow 3s ease-in-out infinite;
+      transform: scale(1.08);
+    }
+
+    .vinyl-ring {
+      position: absolute;
+      inset: -8px;
+      border: 2px solid rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .vinyl-ring::before {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 50%;
+    }
+
+    .play-shadow {
+      box-shadow: 0 10px 40px -10px rgba(16, 185, 129, 0.5);
+    }
+  </style>
+</head>
+<body class="bg-surface min-h-screen text-white overflow-hidden">
+  <!-- 抽屉遮罩 -->
+  <div id="drawerOverlay" class="drawer-overlay fixed inset-0 bg-black/70 z-40 opacity-0 pointer-events-none"></div>
+
+  <!-- 左侧抽屉 -->
+  <aside id="drawer" class="drawer fixed left-0 top-0 h-full w-72 bg-card z-50 -translate-x-full">
+    <div class="p-6 h-full flex flex-col">
+      <!-- 抽屉头部 -->
+      <div class="flex items-center justify-between mb-8">
+        <h2 class="text-lg font-semibold">设置</h2>
+        <button id="closeDrawer" class="p-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 播放模式 -->
+      <div class="mb-8">
+        <h3 class="text-xs text-muted uppercase tracking-wider mb-3">播放模式</h3>
+        <div class="grid grid-cols-3 gap-2">
+          <button data-mode="sequence" class="mode-btn group flex flex-col items-center gap-2 p-3 rounded-xl border border-white/10 hover:border-accent/50 hover:bg-white/5 transition-all cursor-pointer">
+            <svg class="w-6 h-6 text-muted group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+            <span class="text-xs text-muted group-hover:text-white transition-colors">顺序</span>
+          </button>
+          <button data-mode="shuffle" class="mode-btn group flex flex-col items-center gap-2 p-3 rounded-xl border border-white/10 hover:border-accent/50 hover:bg-white/5 transition-all cursor-pointer">
+            <svg class="w-6 h-6 text-muted group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h5l2 3m4 0l2-3h5M4 20h5l2-3m4 0l2 3h5M6 9l3 3-3 3M18 9l-3 3 3 3"/>
+            </svg>
+            <span class="text-xs text-muted group-hover:text-white transition-colors">随机</span>
+          </button>
+          <button data-mode="repeat" class="mode-btn group flex flex-col items-center gap-2 p-3 rounded-xl border border-white/10 hover:border-accent/50 hover:bg-white/5 transition-all cursor-pointer">
+            <svg class="w-6 h-6 text-muted group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9a8 8 0 0113.292-6A8 8 0 0120 9M20 15a8 8 0 01-13.292 6A8 8 0 014 15"/>
+            </svg>
+            <span class="text-xs text-muted group-hover:text-white transition-colors">循环</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 歌单列表 -->
+      <div class="flex-1 overflow-hidden">
+        <h3 class="text-xs text-muted uppercase tracking-wider mb-3">歌单</h3>
+        <div class="space-y-1 overflow-y-auto max-h-[calc(100vh-280px)]">
+          <button data-playlist="all" class="playlist-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer text-left">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-accent to-teal-600 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-medium truncate">全部歌曲</div>
+              <div class="text-sm text-muted">175 首</div>
+            </div>
+          </button>
+          <button data-playlist="favorites" class="playlist-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer text-left">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-medium truncate">我喜欢的</div>
+              <div class="text-sm text-muted">42 首</div>
+            </div>
+          </button>
+          <button data-playlist="recent" class="playlist-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer text-left">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-medium truncate">最近播放</div>
+              <div class="text-sm text-muted">28 首</div>
+            </div>
+          </button>
+          <button data-playlist="chill" class="playlist-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer text-left">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-medium truncate">轻音乐</div>
+              <div class="text-sm text-muted">35 首</div>
+            </div>
+          </button>
+          <button data-playlist="workout" class="playlist-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer text-left">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-medium truncate">运动健身</div>
+              <div class="text-sm text-muted">50 首</div>
+            </div>
+          </button>
+          <button data-playlist="sleep" class="playlist-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer text-left">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-medium truncate">助眠音乐</div>
+              <div class="text-sm text-muted">20 首</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 扫描全盘 -->
+      <div class="mt-4 pt-4 border-t border-white/10">
+        <button id="scanBtn" class="w-full relative overflow-hidden px-4 py-3 rounded-xl bg-accent/20 text-accent hover:bg-accent/30 transition-colors cursor-pointer">
+          <div id="scanProgress" class="absolute inset-0 bg-accent/30 transition-all duration-300" style="width: 0%"></div>
+          <div class="relative flex items-center justify-center gap-2">
+            <svg id="scanIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <span id="scanText">扫描全盘</span>
+          </div>
+        </button>
+        <button id="openAbout" class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 text-white/70 hover:bg-white/10 transition-colors cursor-pointer mt-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>关于我们</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 添加到歌单底部面板 -->
+  <div id="addSheetOverlay" class="bottom-sheet-overlay fixed inset-0 bg-black/70 z-40 opacity-0 pointer-events-none"></div>
+  <div id="addSheet" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-card rounded-t-3xl z-50 translate-y-full max-h-[70vh]">
+    <div class="p-6">
+      <!-- 拖拽指示 -->
+      <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6"></div>
+      <h3 class="text-lg font-semibold mb-4">添加到歌单</h3>
+      <div class="space-y-2 overflow-y-auto max-h-[50vh]">
+        <button data-add-playlist="all" class="add-playlist-btn w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer text-left">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-teal-600 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">全部歌曲</div>
+            <div class="text-sm text-muted">175 首</div>
+          </div>
+        </button>
+        <button data-add-playlist="favorites" class="add-playlist-btn w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer text-left">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">我喜欢的</div>
+            <div class="text-sm text-muted">42 首</div>
+          </div>
+        </button>
+        <button data-add-playlist="recent" class="add-playlist-btn w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer text-left">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">最近播放</div>
+            <div class="text-sm text-muted">28 首</div>
+          </div>
+        </button>
+        <button data-add-playlist="chill" class="add-playlist-btn w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer text-left">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">轻音乐</div>
+            <div class="text-sm text-muted">35 首</div>
+          </div>
+        </button>
+        <button data-add-playlist="workout" class="add-playlist-btn w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer text-left">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">运动健身</div>
+            <div class="text-sm text-muted">50 首</div>
+          </div>
+        </button>
+        <button data-add-playlist="sleep" class="add-playlist-btn w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer text-left">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">助眠音乐</div>
+            <div class="text-sm text-muted">20 首</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 关于我们页面 -->
+  <div id="aboutPage" class="fixed inset-0 bg-surface z-50 translate-x-full transition-transform duration-300">
+    <div class="min-h-screen flex flex-col px-6 pt-16 pb-8">
+      <!-- 顶部栏 -->
+      <div class="flex items-center justify-between mb-8">
+        <button id="closeAbout" class="p-3 rounded-xl bg-card hover:bg-card/80 transition-colors cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <div class="text-center">
+          <div class="text-xs text-muted">Mysic</div>
+          <div class="text-sm font-medium">关于我们</div>
+        </div>
+        <div class="w-11"></div>
+      </div>
+
+      <!-- 内容 -->
+      <div class="flex-1 flex flex-col items-center justify-center pb-8">
+        <!-- Logo -->
+        <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-accent to-teal-600 flex items-center justify-center mb-6">
+          <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold mb-2">Mysic</h1>
+        <p class="text-muted mb-8">简洁优雅的音乐播放器</p>
+
+        <!-- GitHub -->
+        <a href="https://github.com/nbb/mysic" target="_blank" class="w-full max-w-xs flex items-center gap-4 px-5 py-4 rounded-2xl bg-card hover:bg-card/80 transition-colors cursor-pointer mb-4">
+          <div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <div class="font-medium">GitHub</div>
+            <div class="text-sm text-muted">查看源码 / Star 支持</div>
+          </div>
+          <svg class="w-5 h-5 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </a>
+
+        <!-- 支持作者 -->
+        <div class="w-full max-w-xs mt-4">
+          <div class="text-center text-muted text-sm mb-4">支持作者</div>
+          <div class="flex gap-4 justify-center">
+            <div class="flex flex-col items-center">
+              <div class="w-28 h-28 rounded-2xl bg-white p-2 mb-2">
+                <div class="w-full h-full rounded-xl bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+                  <span class="text-white text-xs font-medium">微信</span>
+                </div>
+              </div>
+              <span class="text-xs text-muted">微信支付</span>
+            </div>
+            <div class="flex flex-col items-center">
+              <div class="w-28 h-28 rounded-2xl bg-white p-2 mb-2">
+                <div class="w-full h-full rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                  <span class="text-white text-xs font-medium">支付宝</span>
+                </div>
+              </div>
+              <span class="text-xs text-muted">支付宝</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 版本信息 -->
+      <div class="text-center pb-4">
+        <p class="text-xs text-muted">Version 1.0.0</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主播放页面 -->
+  <main class="min-h-screen flex flex-col px-6 pt-16 pb-8 relative">
+    <!-- 顶部栏 -->
+    <div class="flex items-center justify-between mb-8">
+      <button id="openDrawer" class="p-3 rounded-xl bg-card hover:bg-card/80 transition-colors cursor-pointer">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <div class="text-center">
+        <div class="text-xs text-muted">正在播放</div>
+        <div class="text-sm font-medium" id="currentPlaylist">全部歌曲</div>
+      </div>
+      <button id="openAddSheet" class="p-3 rounded-xl bg-card hover:bg-card/80 transition-colors cursor-pointer">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 专辑封面区域 -->
+    <div class="flex-1 flex items-center justify-center py-8">
+      <div class="relative">
+        <div class="vinyl-ring"></div>
+        <div id="albumCover" class="album-cover w-64 h-64 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-800 overflow-hidden">
+          <img src="https://picsum.photos/seed/music1/400/400" alt="Album" class="w-full h-full object-cover">
+        </div>
+      </div>
+    </div>
+
+    <!-- 歌曲信息 -->
+    <div class="text-center mb-6">
+      <h1 id="songTitle" class="text-2xl font-bold mb-1">夜曲</h1>
+      <p id="songArtist" class="text-muted">周杰伦</p>
+    </div>
+
+    <!-- 进度条 -->
+    <div class="mb-6">
+      <input type="range" id="progressBar" class="progress-bar w-full" value="35" min="0" max="100">
+      <div class="flex justify-between text-xs text-muted mt-2">
+        <span id="currentTime">1:24</span>
+        <span id="totalTime">4:02</span>
+      </div>
+    </div>
+
+    <!-- 播放控制 -->
+    <div class="flex items-center justify-center gap-8">
+      <button id="prevBtn" class="p-3 rounded-full hover:bg-white/10 transition-colors cursor-pointer active:scale-95">
+        <svg class="w-8 h-8 text-white/80" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+        </svg>
+      </button>
+      <button id="playBtn" class="p-5 rounded-full bg-accent hover:bg-accent/90 transition-all cursor-pointer play-shadow hover:scale-105 active:scale-95">
+        <svg id="playIcon" class="w-8 h-8 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <svg id="pauseIcon" class="w-8 h-8 text-white hidden" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+        </svg>
+      </button>
+      <button id="nextBtn" class="p-3 rounded-full hover:bg-white/10 transition-colors cursor-pointer active:scale-95">
+        <svg class="w-8 h-8 text-white/80" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+        </svg>
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    const drawer = document.getElementById('drawer');
+    const drawerOverlay = document.getElementById('drawerOverlay');
+    const openDrawerBtn = document.getElementById('openDrawer');
+    const closeDrawerBtn = document.getElementById('closeDrawer');
+    const addSheet = document.getElementById('addSheet');
+    const addSheetOverlay = document.getElementById('addSheetOverlay');
+    const openAddSheetBtn = document.getElementById('openAddSheet');
+    const playBtn = document.getElementById('playBtn');
+    const playIcon = document.getElementById('playIcon');
+    const pauseIcon = document.getElementById('pauseIcon');
+    const albumCover = document.getElementById('albumCover');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    const playlistBtns = document.querySelectorAll('.playlist-btn');
+    const addPlaylistBtns = document.querySelectorAll('.add-playlist-btn');
+    const currentModeEl = document.getElementById('currentMode');
+    const currentPlaylistEl = document.getElementById('currentPlaylist');
+
+    let isPlaying = false;
+
+    function openDrawer() {
+      drawer.classList.remove('-translate-x-full');
+      drawerOverlay.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    function closeDrawer() {
+      drawer.classList.add('-translate-x-full');
+      drawerOverlay.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    function openAddSheet() {
+      addSheet.classList.remove('translate-y-full');
+      addSheetOverlay.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    function closeAddSheet() {
+      addSheet.classList.add('translate-y-full');
+      addSheetOverlay.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    openDrawerBtn.addEventListener('click', openDrawer);
+    closeDrawerBtn.addEventListener('click', closeDrawer);
+    drawerOverlay.addEventListener('click', closeDrawer);
+
+    openAddSheetBtn.addEventListener('click', openAddSheet);
+    addSheetOverlay.addEventListener('click', closeAddSheet);
+
+    playBtn.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        albumCover.classList.add('playing');
+      } else {
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        albumCover.classList.remove('playing');
+      }
+    });
+
+    const modeNames = {
+      sequence: '顺序播放',
+      shuffle: '随机播放',
+      repeat: '单曲循环'
+    };
+
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        currentModeEl.textContent = modeNames[mode];
+        modeBtns.forEach(b => {
+          b.classList.remove('border-accent', 'bg-accent/10');
+          b.querySelector('svg').classList.remove('text-accent');
+          b.querySelector('svg').classList.add('text-muted');
+          b.querySelector('span').classList.remove('text-accent');
+          b.querySelector('span').classList.add('text-muted');
+        });
+        btn.classList.add('border-accent', 'bg-accent/10');
+        btn.querySelector('svg').classList.remove('text-muted');
+        btn.querySelector('svg').classList.add('text-accent');
+        btn.querySelector('span').classList.remove('text-muted');
+        btn.querySelector('span').classList.add('text-accent');
+        closeDrawer();
+      });
+    });
+
+    const playlistNames = {
+      all: '全部歌曲',
+      favorites: '我喜欢的',
+      recent: '最近播放',
+      chill: '轻音乐',
+      workout: '运动健身',
+      sleep: '助眠音乐'
+    };
+
+    addPlaylistBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const playlist = btn.dataset.addPlaylist;
+        closeAddSheet();
+        // 显示添加成功提示
+        showToast(`已添加到「${playlistNames[playlist]}」`);
+      });
+    });
+
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-lg text-white px-6 py-3 rounded-full text-sm font-medium z-50 transition-all duration-300 opacity-0 translate-y-4';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('opacity-0', 'translate-y-4');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-4');
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+
+    // 扫描全盘
+    const scanBtn = document.getElementById('scanBtn');
+    const scanProgress = document.getElementById('scanProgress');
+    const scanText = document.getElementById('scanText');
+    const scanIcon = document.getElementById('scanIcon');
+
+    let isScanning = false;
+
+    scanBtn.addEventListener('click', () => {
+      if (isScanning) return;
+      isScanning = true;
+      scanBtn.classList.remove('cursor-pointer', 'hover:bg-accent/30');
+      scanBtn.classList.add('cursor-default');
+
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 8 + 2;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(interval);
+          isScanning = false;
+
+          setTimeout(() => {
+            scanProgress.style.width = '0%';
+            scanText.textContent = '扫描全盘';
+            scanIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>';
+            scanBtn.classList.add('cursor-pointer', 'hover:bg-accent/30');
+            scanBtn.classList.remove('cursor-default');
+            showToast('扫描完成，共发现 175 首歌曲');
+          }, 500);
+        }
+
+        scanProgress.style.width = progress + '%';
+        scanText.textContent = Math.floor(progress) + '%';
+        scanIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>';
+      }, 200);
+    });
+
+    // 关于我们页面
+    const aboutPage = document.getElementById('aboutPage');
+    const openAboutBtn = document.getElementById('openAbout');
+    const closeAboutBtn = document.getElementById('closeAbout');
+
+    openAboutBtn.addEventListener('click', () => {
+      aboutPage.classList.remove('translate-x-full');
+      closeDrawer();
+    });
+
+    closeAboutBtn.addEventListener('click', () => {
+      aboutPage.classList.add('translate-x-full');
+    });
+
+    playlistBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const playlist = btn.dataset.playlist;
+        currentPlaylistEl.textContent = playlistNames[playlist];
+        playlistBtns.forEach(b => b.classList.remove('bg-white/10'));
+        btn.classList.add('bg-white/10');
+        closeDrawer();
+      });
+    });
+
+    const sequenceBtn = document.querySelector('[data-mode="sequence"]');
+    sequenceBtn.classList.add('border-accent', 'bg-accent/10');
+    sequenceBtn.querySelector('svg').classList.remove('text-muted');
+    sequenceBtn.querySelector('svg').classList.add('text-accent');
+    sequenceBtn.querySelector('span').classList.remove('text-muted');
+    sequenceBtn.querySelector('span').classList.add('text-accent');
+    document.querySelector('[data-playlist="all"]').classList.add('bg-white/10');
+  </script>
+</body>
+</html>
