@@ -319,6 +319,103 @@
     </div>
   </div>
 
+  <!-- 歌词页面 -->
+  <div id="lyricsPage" class="fixed inset-0 bg-surface z-50 translate-y-full transition-transform duration-300">
+    <div class="min-h-screen flex flex-col">
+      <!-- 顶部栏 -->
+      <div class="flex items-center justify-between px-6 pt-16 pb-4">
+        <button id="closeLyrics" class="p-3 rounded-xl bg-card hover:bg-card/80 transition-colors cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+        <div class="text-center">
+          <div class="text-xs text-muted">正在播放</div>
+          <div class="text-sm font-medium" id="lyricsSongTitle">夜曲</div>
+        </div>
+        <div class="w-11"></div>
+      </div>
+
+      <!-- 歌曲信息 -->
+      <div class="px-6 py-4 flex items-center gap-4 border-b border-white/5">
+        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-800 overflow-hidden flex-shrink-0">
+          <img src="https://picsum.photos/seed/music1/100/100" alt="Album" class="w-full h-full object-cover">
+        </div>
+        <div class="flex-1 min-w-0">
+          <h2 class="font-semibold truncate">夜曲</h2>
+          <p class="text-sm text-muted truncate">周杰伦 · 十一月的肖邦</p>
+        </div>
+      </div>
+
+      <!-- 歌词内容 -->
+      <div class="flex-1 overflow-y-auto px-6 py-6" id="lyricsContainer">
+        <div class="space-y-6 text-center">
+          <p class="text-muted text-sm">作词：方文山</p>
+          <p class="text-muted text-sm">作曲：周杰伦</p>
+
+          <div class="py-4">
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="0">一群嗜血的蚂蚁</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="5">被腐肉所吸引</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="10">我面无表情</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="14">看孤独的风景</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="18">失去你 爱恨都不能说明</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="24">紧紧拥抱的痕迹</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="28">变成了伤心</p>
+          </div>
+
+          <div class="py-4">
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="32">为你弹奏肖邦的夜曲</p>
+            <p class="lyric-line text-white text-lg font-medium py-2 transition-colors duration-300" data-time="38">纪念我死去的爱情</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="44">跟夜风一样的声音</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="50">心碎的很好听</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="54">手在键盘敲很轻</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="60">我给的思念很小心</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="66">你埋葬的地方叫幽冥</p>
+          </div>
+
+          <div class="py-4">
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="72">为你弹奏肖邦的夜曲</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="78">纪念我死去的爱情</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="84">而我为你隐姓埋名</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="90">在月光下弹琴</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="94">对你心跳的感应</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="100">还是如此温热亲近</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="106">怀念你那鲜红的唇印</p>
+          </div>
+
+          <div class="py-4">
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="112">那些断翅的蜻蜓</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="116">散落在这森林</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="120">而我的眼睛</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="124">没有扎心的声音</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="128">你在回忆里飞行</p>
+            <p class="lyric-line text-muted py-2 transition-colors duration-300" data-time="134">我却在现实里沉溺</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部迷你播放器 -->
+      <div class="px-6 py-4 border-t border-white/5 bg-card/50 backdrop-blur-lg">
+        <div class="flex items-center gap-4">
+          <div class="flex-1">
+            <div class="h-1 bg-white/10 rounded-full overflow-hidden">
+              <div class="h-full bg-accent rounded-full transition-all duration-300" style="width: 35%"></div>
+            </div>
+            <div class="flex justify-between text-xs text-muted mt-1">
+              <span>1:24</span>
+              <span>4:02</span>
+            </div>
+          </div>
+          <button class="p-3 rounded-full bg-accent hover:bg-accent/90 transition-colors cursor-pointer">
+            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 关于我们页面 -->
   <div id="aboutPage" class="fixed inset-0 bg-surface z-50 translate-x-full transition-transform duration-300">
     <div class="min-h-screen flex flex-col px-6 pt-16 pb-8">
@@ -428,6 +525,12 @@
     <div class="text-center mb-6">
       <h1 id="songTitle" class="text-2xl font-bold mb-1">夜曲</h1>
       <p id="songArtist" class="text-muted">周杰伦</p>
+    </div>
+
+    <!-- 歌词预览（两行） -->
+    <div id="lyricsPreview" class="mb-4 text-center cursor-pointer hover:bg-white/5 rounded-xl py-3 transition-colors">
+      <p id="currentLyric" class="text-lg font-medium text-white mb-1">为你弹奏肖邦的夜曲</p>
+      <p id="nextLyric" class="text-sm text-muted">纪念我死去的爱情</p>
     </div>
 
     <!-- 进度条 -->
@@ -633,6 +736,19 @@
 
     closeAboutBtn.addEventListener('click', () => {
       aboutPage.classList.add('translate-x-full');
+    });
+
+    // 歌词页面
+    const lyricsPage = document.getElementById('lyricsPage');
+    const lyricsPreview = document.getElementById('lyricsPreview');
+    const closeLyricsBtn = document.getElementById('closeLyrics');
+
+    lyricsPreview.addEventListener('click', () => {
+      lyricsPage.classList.remove('translate-y-full');
+    });
+
+    closeLyricsBtn.addEventListener('click', () => {
+      lyricsPage.classList.add('translate-y-full');
     });
 
     playlistBtns.forEach(btn => {
