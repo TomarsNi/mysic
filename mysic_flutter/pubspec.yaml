@@ -35,6 +35,41 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  # 状态管理
+  provider: ^6.1.1
+
+  # 路由
+  go_router: ^13.0.0
+
+  # 音频播放
+  just_audio: ^0.9.36
+  audio_session: ^0.1.18
+  audio_service: ^0.18.12
+
+  # 本地音乐
+  on_audio_query: ^2.6.1
+  permission_handler: ^11.1.0
+
+  # 本地存储
+  sqflite: ^2.3.0
+  sqflite_common_ffi: ^2.3.0  # Windows 支持
+  path: ^1.8.0
+
+  # 动画
+  flutter_animate: ^4.3.0
+
+  # 图片缓存
+  cached_network_image: ^3.3.0
+
+  # 路径
+  path_provider: ^2.1.1
+
+  # 共享偏好
+  shared_preferences: ^2.2.2
+
+  # 字体
+  google_fonts: ^6.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

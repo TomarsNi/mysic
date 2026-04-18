@@ -40,15 +40,6 @@ fi
 echo -e "${YELLOW}待处理任务数: $PENDING_TASKS${NC}"
 echo ""
 
-# 确认执行
-read -p "是否开始自动执行？(y/n) " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "已取消执行"
-    exit 0
-fi
-
-echo ""
 echo -e "${GREEN}开始自动执行...${NC}"
 echo ""
 
@@ -63,6 +54,13 @@ while true; do
 
     echo -e "${BLUE}----------------------------------------${NC}"
     echo -e "${BLUE}执行下一个任务...${NC}"
+
+    # 获取下一个待处理任务的名称
+    NEXT_TASK=$(grep -B 2 '"status": "pending"' "$TASK_FILE" | grep '"name"' | head -1 | sed 's/.*"name": "\([^"]*\)".*/\1/')
+    if [ -n "$NEXT_TASK" ]; then
+        echo -e "${GREEN}任务: $NEXT_TASK${NC}"
+    fi
+
     echo -e "${BLUE}----------------------------------------${NC}"
 
     # 调用 Claude Code 执行任务
@@ -70,7 +68,7 @@ while true; do
     claude --dangerously-skip-permissions \
         --allowedTools "Bash,Read,Write,Edit,Glob,Grep" \
         --system-prompt "你是一个自动化开发代理。请阅读 .harness/task.json，找到第一个 status 为 pending 的任务，执行该任务的所有步骤，完成后更新任务状态为 completed，并更新 .harness/进度记录.md。继续执行直到所有任务完成。" \
-        "请继续执行 task.json 中的下一个待处理任务。完成后更新任务状态和进度记录。"
+        "请继续执行 task.json 中的下一个待处理任务。完成后更新任务状态和进度记录。" < /dev/null
 
     # 检查执行结果
     if [ $? -ne 0 ]; then

@@ -42,19 +42,19 @@
           "id": "task_1_2",
           "name": "配置项目依赖",
           "description": "在 pubspec.yaml 中添加所需依赖包",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_1_1"],
           "steps": [
             {
               "id": "step_1_2_1",
               "description": "编辑 pubspec.yaml 添加依赖",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_1_2_2",
               "description": "执行 flutter pub get",
               "command": "cd mysic_flutter && flutter pub get",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -68,18 +68,18 @@
           "id": "task_1_3",
           "name": "配置项目主题",
           "description": "创建深色主题，定义颜色、字体等",
-          "status": "pending",
+          "status": "completed",
           "dependencies": ["task_1_2"],
           "steps": [
             {
               "id": "step_1_3_1",
               "description": "创建 lib/core/theme/app_colors.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_1_3_2",
               "description": "创建 lib/core/theme/app_theme.dart",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -768,8 +768,8 @@
   ],
   "statistics": {
     "total_tasks": 21,
-    "completed_tasks": 0,
-    "pending_tasks": 21,
+    "completed_tasks": 2,
+    "pending_tasks": 19,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
     "estimated_total_time": "12h",

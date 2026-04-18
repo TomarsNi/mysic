@@ -73,6 +73,39 @@
 3. **文档规范**：关键逻辑需添加注释
 4. **提交规范**：每个任务完成后提交代码
 
+### Git 提交规范
+
+**重要规则**：每个任务完成后必须执行 git commit。
+
+**提交流程**：
+1. 任务执行完成并通过验证后
+2. 执行 `git status` 查看变更文件
+3. 执行 `git add <相关文件>` 添加变更
+4. 执行 `git commit` 提交，提交信息格式：
+   ```
+   <type>(<scope>): <description>
+
+   - 完成任务: <task_id> - <task_name>
+   - 变更文件: <file_list>
+   ```
+
+**提交类型 (type)**：
+- `feat`: 新功能
+- `fix`: 修复 Bug
+- `refactor`: 重构
+- `test`: 测试相关
+- `docs`: 文档
+- `chore`: 构建/配置
+
+**示例**：
+```
+feat(player): 实现音频播放服务
+
+- 完成任务: task_2_2 - 实现音频播放服务
+- 变更文件: lib/features/player/data/services/audio_player_service.dart
+            test/audio_player_service_test.dart
+```
+
 ### 进度记录规范
 
 每次任务完成后，更新 `进度记录.md`：
