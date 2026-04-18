@@ -69,16 +69,22 @@
 - flutter_audio_query: 维护不活跃
 - 手动文件扫描: 实现复杂，兼容性差
 
-### 2.5 本地存储: SharedPreferences
+### 2.5 本地存储: SQLite + 文件存储
 
 **选择理由**:
-- 简单易用
-- 跨平台支持
-- 适合存储歌单等简单数据
+- SQLite: 结构化数据存储，支持复杂查询
+- 文件存储: 歌词、封面等大文件
+- 为后期歌词功能扩展做准备
+
+**数据存储分工**:
+| 存储类型 | 数据内容 |
+|---------|---------|
+| SQLite | 歌单、播放历史、歌词元数据、用户设置 |
+| 文件存储 | 歌词文件(.lrc)、封面图片缓存 |
 
 **替代方案**:
-- Hive: 性能更好，但需要额外学习
-- SQLite: 功能强大，但对于歌单管理过于复杂
+- SharedPreferences: 功能有限，不支持复杂查询
+- Hive: 性能好，但 SQL 查询能力不如 SQLite
 
 ## 3. 项目架构
 
@@ -142,7 +148,9 @@ dependencies:
   permission_handler: ^11.1.0
 
   # 本地存储
-  shared_preferences: ^2.2.2
+  sqflite: ^2.3.0
+  sqflite_common_ffi: ^2.3.0  # Windows 支持
+  path: ^1.8.0
 
   # 动画
   flutter_animate: ^4.3.0
@@ -183,6 +191,56 @@ dev_dependencies:
 
 - 需要文件系统访问权限
 - Visual Studio 2022 with C++ workload
+- SQLite FFI 支持（通过 sqflite_common_ffi）
+
+### 5.4 数据库设计
+
+```sql
+-- 歌曲信息缓存
+CREATE TABLE songs (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    artist TEXT,
+    album TEXT,
+    duration INTEGER,
+    path TEXT,
+    cover_path TEXT,
+    created_at INTEGER
+);
+
+-- 歌单
+CREATE TABLE playlists (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    icon TEXT,
+    color TEXT,
+    created_at INTEGER
+);
+
+-- 歌单-歌曲关联
+CREATE TABLE playlist_songs (
+    playlist_id TEXT,
+    song_id TEXT,
+    position INTEGER,
+    added_at INTEGER,
+    PRIMARY KEY (playlist_id, song_id)
+);
+
+-- 歌词元数据（为后期扩展准备）
+CREATE TABLE lyrics (
+    song_id TEXT PRIMARY KEY,
+    source TEXT,           -- 'local' | 'online' | 'cached'
+    local_path TEXT,       -- 本地 .lrc 文件路径
+    is_cached INTEGER,     -- 是否已缓存
+    fetched_at INTEGER     -- 获取时间
+);
+
+-- 播放历史
+CREATE TABLE play_history (
+    song_id TEXT PRIMARY KEY,
+    played_at INTEGER,
+    play_count INTEGER
+);
 
 ---
 

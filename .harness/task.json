@@ -79,30 +79,57 @@
         },
         {
           "id": "task_1_4",
+          "name": "初始化 SQLite 数据库",
+          "description": "创建数据库帮助类，定义表结构，初始化数据库",
+          "status": "pending",
+          "dependencies": ["task_1_2"],
+          "steps": [
+            {
+              "id": "step_1_4_1",
+              "description": "创建 lib/core/database/database_helper.dart",
+              "status": "pending"
+            },
+            {
+              "id": "step_1_4_2",
+              "description": "定义数据库表结构（songs, playlists, playlist_songs, lyrics, play_history）",
+              "status": "pending"
+            },
+            {
+              "id": "step_1_4_3",
+              "description": "配置 Windows 平台 SQLite FFI 支持",
+              "status": "pending"
+            }
+          ],
+          "artifacts": ["lib/core/database/"],
+          "estimated_time": "20min"
+        },
+        {
+          "id": "task_1_5",
           "name": "配置平台权限",
           "description": "配置 Android、iOS、Windows 的必要权限",
           "status": "pending",
           "dependencies": ["task_1_1"],
           "steps": [
             {
-              "id": "step_1_4_1",
+              "id": "step_1_5_1",
               "description": "配置 Android 权限 (AndroidManifest.xml)",
               "status": "pending"
             },
             {
-              "id": "step_1_4_2",
+              "id": "step_1_5_2",
               "description": "配置 iOS 权限 (Info.plist)",
               "status": "pending"
             },
             {
-              "id": "step_1_4_3",
-              "description": "配置 Windows 权限",
+              "id": "step_1_5_3",
+              "description": "配置 Windows 权限和 SQLite FFI",
               "status": "pending"
             }
           ],
           "artifacts": [
             "android/app/src/main/AndroidManifest.xml",
-            "ios/Runner/Info.plist"
+            "ios/Runner/Info.plist",
+            "windows/runner/main.cpp"
           ],
           "estimated_time": "15min"
         }
@@ -381,9 +408,9 @@
         {
           "id": "task_6_1",
           "name": "实现歌单数据仓库",
-          "description": "歌单 CRUD 操作，本地持久化",
+          "description": "歌单 CRUD 操作，使用 SQLite 持久化",
           "status": "pending",
-          "dependencies": ["task_2_1"],
+          "dependencies": ["task_2_1", "task_1_4"],
           "steps": [
             {
               "id": "step_6_1_1",
@@ -392,12 +419,17 @@
             },
             {
               "id": "step_6_1_2",
-              "description": "实现 SharedPreferences 持久化",
+              "description": "实现 SQLite 数据库操作",
+              "status": "pending"
+            },
+            {
+              "id": "step_6_1_3",
+              "description": "实现歌曲缓存到数据库",
               "status": "pending"
             }
           ],
           "artifacts": ["lib/features/playlist/data/playlist_repository.dart"],
-          "estimated_time": "30min"
+          "estimated_time": "40min"
         },
         {
           "id": "task_6_2",
@@ -493,11 +525,11 @@
     }
   ],
   "statistics": {
-    "total_tasks": 18,
+    "total_tasks": 19,
     "completed_tasks": 0,
-    "pending_tasks": 18,
+    "pending_tasks": 19,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
-    "estimated_total_time": "8h"
+    "estimated_total_time": "9h"
   }
 }

@@ -153,6 +153,15 @@
 | songIds | List<String> | 歌曲ID列表 |
 | createdAt | DateTime | 创建时间 |
 
+### Lyrics（歌词）- 后期扩展
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| songId | String | 关联歌曲ID |
+| source | String | 来源：local/online/cached |
+| localPath | String? | 本地 .lrc 文件路径 |
+| isCached | bool | 是否已缓存 |
+| fetchedAt | DateTime? | 获取时间 |
+
 ### PlayMode（播放模式）
 - `sequence` - 顺序播放
 - `shuffle` - 随机播放
@@ -165,3 +174,4 @@
 | P0 | 核心功能，必须实现 | 音乐播放、本地扫描、播放控制 |
 | P1 | 重要功能，应该实现 | 歌单管理、播放模式、后台播放 |
 | P2 | 增强功能，可以实现 | 关于页面、添加到歌单动画 |
+| P3 | 后期扩展 | 歌词显示、在线歌词获取 |

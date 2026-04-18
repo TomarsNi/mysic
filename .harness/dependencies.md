@@ -85,6 +85,21 @@
 Windows 平台需要：
 - 文件系统访问权限（默认已有）
 - 音频播放权限（默认已有）
+- SQLite FFI 支持（sqflite_common_ffi）
+
+**Windows SQLite 配置**:
+
+在 `windows/runner/main.cpp` 中添加：
+```cpp
+#include <sqflite_common_ffi.h>
+```
+
+在 `pubspec.yaml` 中添加：
+```yaml
+dependencies:
+  sqflite: ^2.3.0
+  sqflite_common_ffi: ^2.3.0
+```
 
 ## 4. 环境变量
 
