@@ -1205,12 +1205,12 @@
             {
               "id": "step_11_4_5",
               "description": "修复歌单图标渐变色背景",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_4_6",
               "description": "添加扫描按钮进度条动画",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {

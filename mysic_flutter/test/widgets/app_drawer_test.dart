@@ -4,10 +4,13 @@ import 'package:mysic_flutter/shared/widgets/app_drawer.dart';
 import 'package:mysic_flutter/core/theme/app_colors.dart';
 import 'package:mysic_flutter/features/player/data/models/playlist.dart';
 import 'package:mysic_flutter/features/player/data/models/song.dart';
+import 'package:mysic_flutter/features/player/presentation/providers/player_provider.dart';
+import 'package:mysic_flutter/features/player/data/services/audio_player_service.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   group('AppDrawer', () {
-    // Helper to pump AppDrawer directly
+    // Helper to pump AppDrawer with necessary providers and proper window size
     Future<void> pumpAppDrawer(
       WidgetTester tester, {
       List<Playlist> playlists = const [],
@@ -18,26 +21,36 @@ void main() {
       VoidCallback? onAboutTap,
       VoidCallback? onCreatePlaylistTap,
     }) async {
+      // Set a larger window size to avoid overflow
+      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: Row(
-              children: [
-                AppDrawer(
-                  playlists: playlists,
-                  selectedPlaylistId: selectedPlaylistId,
-                  onPlaylistTap: onPlaylistTap,
-                  onScanTap: onScanTap,
-                  onSettingsTap: onSettingsTap,
-                  onAboutTap: onAboutTap,
-                  onCreatePlaylistTap: onCreatePlaylistTap,
-                ),
-                const Expanded(child: Text('Content')),
-              ],
+          home: ChangeNotifierProvider<PlayerProvider>(
+            create: (_) => PlayerProvider(audioPlayerService: AudioPlayerService()),
+            child: Scaffold(
+              body: Row(
+                children: [
+                  AppDrawer(
+                    playlists: playlists,
+                    selectedPlaylistId: selectedPlaylistId,
+                    onPlaylistTap: onPlaylistTap,
+                    onScanTap: onScanTap,
+                    onSettingsTap: onSettingsTap,
+                    onAboutTap: onAboutTap,
+                    onCreatePlaylistTap: onCreatePlaylistTap,
+                  ),
+                  const Expanded(child: Text('Content')),
+                ],
+              ),
             ),
           ),
         ),
       );
+      await tester.pumpAndSettle();
     }
 
     testWidgets('should render header with app name', (tester) async {
