@@ -64,10 +64,10 @@ class AddToPlaylistSheet extends StatelessWidget {
 
   Widget _buildDragHandle() {
     return Container(
-      width: 40,
-      height: 4,
+      width: 40, // 设计稿要求 w-10 (40px)
+      height: 4, // 设计稿要求 h-1 (4px)
       decoration: BoxDecoration(
-        color: AppColors.muted.withValues(alpha: 0.3),
+        color: AppColors.white.withValues(alpha: 0.2), // 设计稿要求 bg-white/20
         borderRadius: BorderRadius.circular(2),
       ),
     );
@@ -230,6 +230,7 @@ class AddToPlaylistSheet extends StatelessWidget {
 }
 
 /// 歌单选项瓦片
+/// 设计稿规范：图标 48px (w-12 h-12)，圆角 rounded-xl (12px)，渐变背景
 class _PlaylistOptionTile extends StatelessWidget {
   final Playlist playlist;
   final VoidCallback? onTap;
@@ -239,19 +240,41 @@ class _PlaylistOptionTile extends StatelessWidget {
     this.onTap,
   });
 
+  /// 根据歌单类型返回对应的渐变色
+  LinearGradient _getGradientForPlaylist(Playlist playlist) {
+    final name = playlist.name.toLowerCase();
+
+    if (name.contains('喜欢') || name.contains('favorite')) {
+      return AppColors.roseGradient;
+    } else if (name.contains('最近') || name.contains('recent')) {
+      return AppColors.blueGradient;
+    } else if (name.contains('轻音乐') || name.contains('chill')) {
+      return AppColors.emeraldGradient;
+    } else if (name.contains('运动') || name.contains('workout')) {
+      return AppColors.orangeGradient;
+    } else if (name.contains('助眠') || name.contains('sleep')) {
+      return AppColors.violetGradient;
+    }
+
+    return AppColors.accentGradient;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListTile(
       leading: Container(
-        width: 48,
+        width: 48, // 设计稿要求 w-12 (48px)
         height: 48,
         decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(8),
+          gradient: playlist.coverPath == null
+              ? _getGradientForPlaylist(playlist)
+              : null,
+          color: playlist.coverPath != null ? AppColors.card : null,
+          borderRadius: BorderRadius.circular(12), // 设计稿要求 rounded-xl
         ),
         child: playlist.coverPath != null
             ? ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
                 child: Image.network(
                   playlist.coverPath!,
                   fit: BoxFit.cover,
@@ -284,7 +307,7 @@ class _PlaylistOptionTile extends StatelessWidget {
   Widget _buildDefaultIcon() {
     return const Icon(
       Icons.playlist_play_rounded,
-      color: AppColors.muted,
+      color: AppColors.white,
       size: 24,
     );
   }
@@ -325,11 +348,11 @@ class PlaylistOptionsSheet extends StatelessWidget {
         children: [
           // 拖动指示器
           Container(
-            width: 40,
-            height: 4,
+            width: 40, // 设计稿要求 w-10 (40px)
+            height: 4, // 设计稿要求 h-1 (4px)
             margin: const EdgeInsets.only(top: 8),
             decoration: BoxDecoration(
-              color: AppColors.muted.withValues(alpha: 0.3),
+              color: AppColors.white.withValues(alpha: 0.2), // 设计稿要求 bg-white/20
               borderRadius: BorderRadius.circular(2),
             ),
           ),

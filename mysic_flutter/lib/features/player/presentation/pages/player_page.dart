@@ -159,49 +159,20 @@ class PlayerPage extends StatelessWidget {
   Widget _buildLyricsPreview(BuildContext context, PlayerProvider provider) {
     // TODO: 实现真实歌词预览
     // 目前显示占位文本
+    // 设计稿规范：
+    // - 两行歌词：当前行 lg font-medium white，下一行 muted
+    // - hover:bg-white/5，圆角 rounded-xl
+    // - 点击可进入歌词页面
     final currentSong = provider.currentSong;
 
     if (currentSong == null) {
       return const SizedBox.shrink();
     }
 
-    return GestureDetector(
+    return _LyricsPreviewWidget(
+      currentLyric: '这是当前播放的歌词行',
+      nextLyric: '这是下一句歌词',
       onTap: () => _navigateToLyricsPage(context, provider),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            // 第一行歌词
-            const Text(
-              '这是歌词预览的第一行',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.muted,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            const SizedBox(height: 4),
-
-            // 第二行歌词（当前高亮）
-            const Text(
-              '这是当前播放的歌词行',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: AppColors.accent,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -251,6 +222,82 @@ class LyricsPage extends StatelessWidget {
             color: AppColors.muted,
           ),
           textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+/// 歌词预览组件
+/// 设计稿规范：
+/// - 当前行：text-lg (18px) font-medium white，mb-1
+/// - 下一行：text-sm muted
+/// - hover:bg-white/5，rounded-xl，py-3
+/// - 点击可进入歌词页面
+class _LyricsPreviewWidget extends StatefulWidget {
+  final String currentLyric;
+  final String nextLyric;
+  final VoidCallback? onTap;
+
+  const _LyricsPreviewWidget({
+    required this.currentLyric,
+    required this.nextLyric,
+    this.onTap,
+  });
+
+  @override
+  State<_LyricsPreviewWidget> createState() => _LyricsPreviewWidgetState();
+}
+
+class _LyricsPreviewWidgetState extends State<_LyricsPreviewWidget> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 12), // 设计稿 py-3
+          decoration: BoxDecoration(
+            color: _isHovering
+                ? Colors.white.withValues(alpha: 0.05) // 设计稿 hover:bg-white/5
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12), // 设计稿 rounded-xl
+          ),
+          child: Column(
+            children: [
+              // 当前歌词行 - 设计稿：text-lg font-medium white mb-1
+              Text(
+                widget.currentLyric,
+                style: const TextStyle(
+                  fontSize: 18, // 设计稿 text-lg
+                  fontWeight: FontWeight.w500, // 设计稿 font-medium
+                  color: AppColors.white, // 设计稿 white
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+
+              const SizedBox(height: 4), // 设计稿 mb-1
+
+              // 下一行歌词 - 设计稿：text-sm text-muted
+              Text(
+                widget.nextLyric,
+                style: const TextStyle(
+                  fontSize: 14, // 设计稿 text-sm
+                  color: AppColors.muted, // 设计稿 muted
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );

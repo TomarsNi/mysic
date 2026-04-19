@@ -17,6 +17,10 @@ class PlayerProvider extends ChangeNotifier {
   bool _isShuffleMode = false;
   MysicLoopMode _loopMode = MysicLoopMode.off;
 
+  // 扫描状态
+  bool _isScanning = false;
+  double? _scanProgress;
+
   PlayerProvider({AudioPlayerService? audioPlayerService})
       : _audioPlayerService = audioPlayerService ?? AudioPlayerService() {
     _init();
@@ -60,6 +64,8 @@ class PlayerProvider extends ChangeNotifier {
   int get currentIndex => _currentIndex;
   bool get isShuffleMode => _isShuffleMode;
   MysicLoopMode get loopMode => _loopMode;
+  bool get isScanning => _isScanning;
+  double? get scanProgress => _scanProgress;
 
   // 便捷 Getters
   bool get isPlaying => _playerState == MysicPlayerState.playing;
@@ -233,6 +239,26 @@ class PlayerProvider extends ChangeNotifier {
     await stop();
     _playlist = [];
     _currentIndex = -1;
+    notifyListeners();
+  }
+
+  /// 开始扫描
+  void startScan() {
+    _isScanning = true;
+    _scanProgress = 0.0;
+    notifyListeners();
+  }
+
+  /// 更新扫描进度
+  void updateScanProgress(double progress) {
+    _scanProgress = progress;
+    notifyListeners();
+  }
+
+  /// 完成扫描
+  void finishScan() {
+    _isScanning = false;
+    _scanProgress = null;
     notifyListeners();
   }
 

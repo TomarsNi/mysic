@@ -238,38 +238,102 @@ class AppDrawer extends StatelessWidget {
   }
 
   Widget _buildScanButton(BuildContext context) {
-    return ListTile(
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: AppColors.accent.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: const Icon(
-          Icons.folder_open_rounded,
-          color: AppColors.accent,
-          size: 22,
-        ),
-      ),
-      title: const Text(
-        '本地音乐',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: AppColors.white,
-        ),
-      ),
-      subtitle: const Text(
-        '扫描设备中的音乐文件',
-        style: TextStyle(
-          fontSize: 12,
-          color: AppColors.muted,
-        ),
-      ),
-      onTap: () {
-        Navigator.of(context).pop();
-        onScanTap?.call();
+    return Consumer<PlayerProvider>(
+      builder: (context, playerProvider, child) {
+        // 从 Provider 获取扫描进度
+        final scanProgress = playerProvider.scanProgress ?? 0.0;
+        final isScanning = playerProvider.isScanning;
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isScanning ? null : () {
+              Navigator.of(context).pop();
+              onScanTap?.call();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Stack(
+                children: [
+                  // 进度条背景 - 设计稿: bg-accent/30
+                  if (isScanning)
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.30),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: scanProgress.clamp(0.0, 1.0),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.accent.withValues(alpha: 0.50),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // 按钮内容
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: isScanning
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.folder_open_rounded,
+                                color: AppColors.accent,
+                                size: 22,
+                              ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isScanning ? '扫描中...' : '本地音乐',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isScanning
+                                  ? '${(scanProgress * 100).toInt()}%'
+                                  : '扫描设备中的音乐文件',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
       },
     );
   }
@@ -412,7 +476,8 @@ class AppDrawer extends StatelessWidget {
 }
 
 /// 歌单列表项
-class _PlaylistListTile extends StatelessWidget {
+/// 设计稿规范：歌单图标 40px (w-10 h-10)，渐变背景，hover bg-white/5
+class _PlaylistListTile extends StatefulWidget {
   final Playlist playlist;
   final bool isSelected;
   final VoidCallback? onTap;
@@ -424,83 +489,124 @@ class _PlaylistListTile extends StatelessWidget {
   });
 
   @override
+  State<_PlaylistListTile> createState() => _PlaylistListTileState();
+}
+
+class _PlaylistListTileState extends State<_PlaylistListTile> {
+  bool _isHovering = false;
+
+  /// 根据歌单类型返回对应的渐变色
+  LinearGradient _getGradientForPlaylist(Playlist playlist) {
+    // 基于歌单 ID 或名称选择渐变色
+    final name = playlist.name.toLowerCase();
+
+    if (name.contains('喜欢') || name.contains('favorite')) {
+      return AppColors.roseGradient; // 红色渐变
+    } else if (name.contains('最近') || name.contains('recent')) {
+      return AppColors.blueGradient; // 蓝色渐变
+    } else if (name.contains('轻音乐') || name.contains('chill')) {
+      return AppColors.emeraldGradient; // 绿色渐变
+    } else if (name.contains('运动') || name.contains('workout')) {
+      return AppColors.orangeGradient; // 橙色渐变
+    } else if (name.contains('助眠') || name.contains('sleep')) {
+      return AppColors.violetGradient; // 紫色渐变
+    } else if (name.contains('全部') || name.contains('all')) {
+      return AppColors.accentGradient; // accent 渐变
+    }
+
+    // 默认使用 accent 渐变
+    return AppColors.accentGradient;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: isSelected
-          ? AppColors.accent.withValues(alpha: 0.15)
-          : Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: Material(
+        color: widget.isSelected
+            ? AppColors.accent.withValues(alpha: 0.15)
+            : _isHovering
+                ? Colors.white.withValues(alpha: 0.05) // 设计稿要求 hover bg-white/5
+                : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: [
-              // 歌单封面
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: playlist.coverPath != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          playlist.coverPath!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildDefaultIcon(),
-                        ),
-                      )
-                    : _buildDefaultIcon(),
-              ),
-
-              const SizedBox(width: 12),
-
-              // 歌单信息
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 歌单名称
-                    Text(
-                      playlist.name,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                        color: isSelected ? AppColors.accent : AppColors.white,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    const SizedBox(height: 2),
-
-                    // 歌曲数量
-                    Text(
-                      '${playlist.songCount} 首歌曲',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.muted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // 选中指示器
-              if (isSelected)
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: widget.onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                // 歌单封面 - 设计稿：w-10 h-10 (40px)，渐变背景
                 Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: AppColors.accent,
-                    shape: BoxShape.circle,
+                  width: 40, // 设计稿要求 40px
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: widget.playlist.coverPath == null
+                        ? _getGradientForPlaylist(widget.playlist)
+                        : null,
+                    color: widget.playlist.coverPath != null
+                        ? AppColors.card
+                        : null,
+                    borderRadius: BorderRadius.circular(8), // rounded-lg
+                  ),
+                  child: widget.playlist.coverPath != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            widget.playlist.coverPath!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _buildDefaultIcon(),
+                          ),
+                        )
+                      : _buildDefaultIcon(),
+                ),
+
+                const SizedBox(width: 12),
+
+                // 歌单信息
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 歌单名称
+                      Text(
+                        widget.playlist.name,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: widget.isSelected ? AppColors.accent : AppColors.white,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+
+                      const SizedBox(height: 2),
+
+                      // 歌曲数量
+                      Text(
+                        '${widget.playlist.songCount} 首歌曲',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-            ],
+
+                // 选中指示器
+                if (widget.isSelected)
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -510,8 +616,8 @@ class _PlaylistListTile extends StatelessWidget {
   Widget _buildDefaultIcon() {
     return const Icon(
       Icons.playlist_play_rounded,
-      color: AppColors.muted,
-      size: 24,
+      color: AppColors.white,
+      size: 20,
     );
   }
 }
