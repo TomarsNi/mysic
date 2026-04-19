@@ -1246,12 +1246,12 @@
             {
               "id": "step_11_5_3",
               "description": "对比差异，列出需要修复的问题",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_5_4",
               "description": "修复顶部圆角和拖拽指示条",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_5_5",
