@@ -86,6 +86,18 @@ abstract class PlatformMusicScanner {
   /// 扫描音乐
   Future<ScanResult> scanMusic();
 
+  /// 删除歌曲
+  Future<void> deleteSong(int songId);
+
+  /// 获取所有歌曲
+  Future<List<Song>> getAllSongs();
+
+  /// 获取歌曲数量
+  Future<int> getSongCount();
+
+  /// 清空所有歌曲
+  Future<void> clearAllSongs();
+
   /// 取消扫描
   void cancelScan() {
     _cancelled = true;
