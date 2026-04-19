@@ -15,6 +15,9 @@ import 'shared/widgets/app_drawer.dart';
 import 'shared/utils/music_scanner.dart';
 import 'features/playlist/data/playlist_repository.dart';
 import 'features/player/data/models/song.dart';
+import 'features/player/presentation/widgets/album_cover.dart';
+import 'features/player/presentation/widgets/play_controls.dart';
+import 'features/player/presentation/widgets/progress_bar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -122,386 +125,148 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             onCreatePlaylistTap: () => _createPlaylist(context),
           ),
           body: _buildBody(context, playerProvider),
-          floatingActionButton: playerProvider.hasCurrentSong
-              ? _buildMiniPlayer(context, playerProvider)
-              : null,
-          floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+          floatingActionButton: null,
         );
       },
     );
   }
 
   Widget _buildBody(BuildContext context, PlayerProvider playerProvider) {
-    return CustomScrollView(
-      slivers: [
-        // AppBar
-        SliverAppBar(
-          backgroundColor: const Color(0xFF1A1A2E),
-          elevation: 0,
-          floating: true,
-          leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.menu_rounded),
-              onPressed: () => Scaffold.of(context).openDrawer(),
+    final currentSong = playerProvider.currentSong;
+    final hasSong = currentSong != null;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+
+            // 专辑封面
+            Expanded(
+              flex: 3,
+              child: Center(
+                child: GestureDetector(
+                  onTap: hasSong ? null : _startScan,
+                  child: AlbumCover(
+                    song: currentSong,
+                    size: 260,
+                    isPlaying: playerProvider.isPlaying,
+                  ),
+                ),
+              ),
             ),
-          ),
-          title: const Text(
-            'Mysic',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+
+            const SizedBox(height: 32),
+
+            // 歌曲信息
+            _buildSongInfo(currentSong),
+
+            const SizedBox(height: 16),
+
+            // 歌词预览
+            if (hasSong) _buildLyricsPreview(context, playerProvider),
+
+            const SizedBox(height: 24),
+
+            // 进度条
+            ProgressBar(
+              position: playerProvider.position,
+              duration: playerProvider.duration,
+              enabled: playerProvider.hasCurrentSong,
+              onSeek: (progress) => playerProvider.seekToProgress(progress),
             ),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.search_rounded),
-              onPressed: () => _showSearch(context),
+
+            const SizedBox(height: 24),
+
+            // 播放控制
+            PlayControls(
+              isPlaying: playerProvider.isPlaying,
+              isLoading: playerProvider.isLoading,
+              hasPlaylist: playerProvider.hasPlaylist,
+              onPlayPause: () => playerProvider.togglePlayPause(),
+              onNext: () => playerProvider.next(),
+              onPrevious: () => playerProvider.previous(),
             ),
+
+            const SizedBox(height: 16),
+
+            // 扩展控制
+            ExtendedControls(
+              isShuffleMode: playerProvider.isShuffleMode,
+              loopMode: playerProvider.loopMode,
+              onToggleShuffle: () => playerProvider.toggleShuffleMode(),
+              onToggleLoop: () => playerProvider.toggleLoopMode(),
+            ),
+
+            const SizedBox(height: 24),
           ],
         ),
+      ),
+    );
+  }
 
-        // 内容区域
-        SliverToBoxAdapter(
-          child: _buildContent(context, playerProvider),
+  Widget _buildSongInfo(Song? song) {
+    return Column(
+      children: [
+        Text(
+          song?.title ?? '未选择歌曲',
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          song != null
+              ? '${song.displayArtist} · ${song.displayAlbum}'
+              : '扫描本地音乐开始播放',
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF9CA3AF),
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
         ),
       ],
     );
   }
 
-  Widget _buildContent(BuildContext context, PlayerProvider playerProvider) {
-    final currentSong = playerProvider.currentSong;
-
-    if (currentSong == null) {
-      return _buildEmptyState(context);
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          const SizedBox(height: 40),
-
-          // 专辑封面
-          GestureDetector(
-            onTap: () => _openPlayerPage(context),
-            child: Hero(
-              tag: 'album_cover',
-              child: Container(
-                width: 280,
-                height: 280,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF6366F1).withValues(alpha: 0.3),
-                      blurRadius: 30,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFF6366F1),
-                          Color(0xFF8B5CF6),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      Icons.music_note_rounded,
-                      size: 80,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          // 歌曲信息
-          Text(
-            currentSong.title,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-
-          const SizedBox(height: 8),
-
-          Text(
-            currentSong.displayArtist,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Color(0xFF9CA3AF),
-            ),
-          ),
-
-          const SizedBox(height: 48),
-
-          // 快捷操作
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildQuickAction(
-                icon: Icons.play_arrow_rounded,
-                label: '播放',
-                onTap: () => _openPlayerPage(context),
-              ),
-              _buildQuickAction(
-                icon: Icons.lyrics_rounded,
-                label: '歌词',
-                onTap: () => _openLyricsPage(context),
-              ),
-              _buildQuickAction(
-                icon: Icons.playlist_add_rounded,
-                label: '添加到歌单',
-                onTap: () => _showAddToPlaylist(context, currentSong),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    return SizedBox(
-      height: MediaQuery.of(context).size.height - 200,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 图标
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: const Color(0xFF16213E),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: const Icon(
-                Icons.music_note_rounded,
-                size: 60,
-                color: Color(0xFF6366F1),
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            const Text(
-              '欢迎使用 Mysic',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            const Text(
-              '扫描本地音乐开始播放',
-              style: TextStyle(
-                fontSize: 16,
-                color: Color(0xFF9CA3AF),
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // 扫描按钮和进度
-            if (_isScanning) ...[
-              // 进度条
-              SizedBox(
-                width: 280,
-                child: Column(
-                  children: [
-                    LinearProgressIndicator(
-                      value: _scanProgress > 0 ? _scanProgress : null,
-                      backgroundColor: const Color(0xFF16213E),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      '已发现 $_scanFound 首歌曲',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF9CA3AF),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _scanPath,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B7280),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton.icon(
-                      onPressed: _cancelScan,
-                      icon: const Icon(Icons.cancel_rounded, color: Colors.red),
-                      label: const Text('取消扫描', style: TextStyle(color: Colors.red)),
-                    ),
-                  ],
-                ),
-              ),
-            ] else ...[
-              ElevatedButton.icon(
-                onPressed: _startScan,
-                icon: const Icon(Icons.folder_open_rounded),
-                label: const Text('扫描本地音乐'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickAction({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildLyricsPreview(BuildContext context, PlayerProvider provider) {
     return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: const Color(0xFF16213E),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              icon,
-              size: 28,
-              color: const Color(0xFF6366F1),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF9CA3AF),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMiniPlayer(BuildContext context, PlayerProvider playerProvider) {
-    final currentSong = playerProvider.currentSong;
-
-    return GestureDetector(
-      onTap: () => _openPlayerPage(context),
+      onTap: () => _openLyricsPage(context),
       child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: const Color(0xFF16213E),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
+        child: Column(
           children: [
-            // 封面
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFF6366F1),
-                borderRadius: BorderRadius.circular(8),
+            const Text(
+              '为你弹奏肖邦的夜曲',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF9CA3AF),
               ),
-              child: const Icon(
-                Icons.music_note_rounded,
-                color: Colors.white,
-              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-
-            const SizedBox(width: 12),
-
-            // 歌曲信息
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    currentSong?.title ?? '未知歌曲',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    currentSong?.displayArtist ?? '未知艺术家',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF9CA3AF),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+            const SizedBox(height: 4),
+            const Text(
+              '纪念我死去的爱情',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF10B981),
               ),
-            ),
-
-            // 播放/暂停按钮
-            IconButton(
-              icon: Icon(
-                playerProvider.isPlaying
-                    ? Icons.pause_rounded
-                    : Icons.play_arrow_rounded,
-                color: Colors.white,
-              ),
-              onPressed: () => playerProvider.togglePlayPause(),
-            ),
-
-            // 下一首按钮
-            IconButton(
-              icon: const Icon(
-                Icons.skip_next_rounded,
-                color: Colors.white,
-              ),
-              onPressed: () => playerProvider.next(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
