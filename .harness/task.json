@@ -1040,13 +1040,13 @@
             {
               "id": "step_11_1_1",
               "description": "阅读 index.html 第 78-93 行 CSS 动画定义",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_1_2",
               "description": "阅读 Flutter AlbumCover 组件源码",
               "command": "读取 mysic_flutter/lib/features/player/presentation/widgets/album_cover.dart",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_1_3",
