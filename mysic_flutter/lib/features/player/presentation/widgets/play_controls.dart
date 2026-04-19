@@ -38,7 +38,7 @@ class PlayControls extends StatelessWidget {
           size: iconSize,
         ),
 
-        const SizedBox(width: 24),
+        const SizedBox(width: 32), // 设计稿：gap-8 (32px)
 
         // 播放/暂停按钮
         _PlayButton(
@@ -48,7 +48,7 @@ class PlayControls extends StatelessWidget {
           size: playButtonSize,
         ),
 
-        const SizedBox(width: 24),
+        const SizedBox(width: 32), // 设计稿：gap-8 (32px)
 
         // 下一首按钮
         _ControlButton(

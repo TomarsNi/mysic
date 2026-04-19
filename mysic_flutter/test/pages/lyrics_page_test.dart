@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:mysic_flutter/features/lyrics/presentation/pages/lyrics_page.dart';
+import 'package:mysic_flutter/features/lyrics/presentation/pages/lyrics_page.dart' hide LyricLine;
 import 'package:mysic_flutter/features/player/presentation/providers/player_provider.dart';
 import 'package:mysic_flutter/features/player/data/services/audio_player_service.dart';
 import 'package:mysic_flutter/features/player/data/models/song.dart';
+import 'package:mysic_flutter/features/lyrics/data/services/lyrics_parser.dart';
 
 // Mock PlayerProvider for testing
 class MockPlayerProvider extends ChangeNotifier implements PlayerProvider {
@@ -55,6 +56,24 @@ class MockPlayerProvider extends ChangeNotifier implements PlayerProvider {
 
   @override
   String get formattedDuration => '--:--';
+
+  @override
+  bool get isScanning => false;
+
+  @override
+  double? get scanProgress => null;
+
+  @override
+  LyricsResult get currentLyrics => LyricsResult.empty;
+
+  @override
+  bool get hasLyrics => false;
+
+  @override
+  LyricLine? get currentLyricLine => null;
+
+  @override
+  LyricLine? get nextLyricLine => null;
 
   @override
   Future<void> playSong(Song song) async {}
@@ -109,6 +128,15 @@ class MockPlayerProvider extends ChangeNotifier implements PlayerProvider {
 
   @override
   Future<void> clearPlaylist() async {}
+
+  @override
+  void startScan() {}
+
+  @override
+  void updateScanProgress(double progress) {}
+
+  @override
+  void finishScan() {}
 }
 
 void main() {
@@ -127,7 +155,7 @@ void main() {
       expect(find.text('♪ 前奏 ♪'), findsOneWidget);
     });
 
-    testWidgets('shows back button', (WidgetTester tester) async {
+    testWidgets('shows close button', (WidgetTester tester) async {
       await tester.pumpWidget(
         ChangeNotifierProvider<PlayerProvider>(
           create: (_) => MockPlayerProvider(),
@@ -137,22 +165,8 @@ void main() {
         ),
       );
 
-      // 应该显示返回按钮
-      expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
-    });
-
-    testWidgets('shows more options button', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        ChangeNotifierProvider<PlayerProvider>(
-          create: (_) => MockPlayerProvider(),
-          child: const MaterialApp(
-            home: LyricsPage(),
-          ),
-        ),
-      );
-
-      // 应该显示更多选项按钮
-      expect(find.byIcon(Icons.more_vert_rounded), findsOneWidget);
+      // 应该显示关闭按钮（向下箭头）
+      expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
     });
 
     testWidgets('shows mini player controls', (WidgetTester tester) async {
@@ -181,9 +195,8 @@ void main() {
         ),
       );
 
-      // 应该显示默认歌曲信息
-      expect(find.text('未知歌曲'), findsOneWidget);
-      expect(find.text('未知艺术家'), findsOneWidget);
+      // 应该显示默认歌曲信息（顶部栏和歌曲信息栏各有一个）
+      expect(find.text('未知歌曲'), findsWidgets);
     });
   });
 

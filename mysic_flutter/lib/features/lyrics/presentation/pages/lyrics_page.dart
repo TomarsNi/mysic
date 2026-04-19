@@ -155,7 +155,7 @@ class _LyricsPageState extends State<LyricsPage> {
               borderRadius: BorderRadius.circular(12), // rounded-xl
             ),
             child: IconButton(
-              icon: const Icon(Icons.keyboard_arrow_up_rounded), // 设计稿使用向上箭头
+              icon: const Icon(Icons.keyboard_arrow_down_rounded), // 设计稿使用向下箭头
               iconSize: 20,
               color: AppColors.white,
               padding: EdgeInsets.zero,

@@ -5,6 +5,8 @@ import 'package:mysic_flutter/features/player/presentation/pages/player_page.dar
 import 'package:mysic_flutter/features/player/presentation/providers/player_provider.dart';
 import 'package:mysic_flutter/features/player/data/services/audio_player_service.dart';
 import 'package:mysic_flutter/features/player/data/models/song.dart';
+import 'package:mysic_flutter/features/lyrics/data/services/lyrics_parser.dart';
+import 'package:mysic_flutter/features/lyrics/presentation/pages/lyrics_page.dart' hide LyricLine;
 
 // Mock PlayerProvider for testing
 class MockPlayerProvider extends ChangeNotifier implements PlayerProvider {
@@ -55,6 +57,24 @@ class MockPlayerProvider extends ChangeNotifier implements PlayerProvider {
 
   @override
   String get formattedDuration => '--:--';
+
+  @override
+  bool get isScanning => false;
+
+  @override
+  double? get scanProgress => null;
+
+  @override
+  LyricsResult get currentLyrics => LyricsResult.empty;
+
+  @override
+  bool get hasLyrics => false;
+
+  @override
+  LyricLine? get currentLyricLine => null;
+
+  @override
+  LyricLine? get nextLyricLine => null;
 
   @override
   Future<void> playSong(Song song) async {}
@@ -109,6 +129,15 @@ class MockPlayerProvider extends ChangeNotifier implements PlayerProvider {
 
   @override
   Future<void> clearPlaylist() async {}
+
+  @override
+  void startScan() {}
+
+  @override
+  void updateScanProgress(double progress) {}
+
+  @override
+  void finishScan() {}
 }
 
 void main() {
@@ -173,7 +202,7 @@ void main() {
       expect(find.byIcon(Icons.repeat_rounded), findsOneWidget);
     });
 
-    testWidgets('shows more options button', (WidgetTester tester) async {
+    testWidgets('shows add button', (WidgetTester tester) async {
       await tester.pumpWidget(
         ChangeNotifierProvider<PlayerProvider>(
           create: (_) => MockPlayerProvider(),
@@ -183,32 +212,38 @@ void main() {
         ),
       );
 
-      // 应该显示更多选项按钮
-      expect(find.byIcon(Icons.more_vert_rounded), findsOneWidget);
+      // 应该显示添加按钮
+      expect(find.byIcon(Icons.add_rounded), findsOneWidget);
     });
   });
 
   group('LyricsPage', () {
-    testWidgets('renders placeholder text', (WidgetTester tester) async {
+    testWidgets('renders lyrics content', (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: LyricsPage(),
+        ChangeNotifierProvider<PlayerProvider>(
+          create: (_) => MockPlayerProvider(),
+          child: const MaterialApp(
+            home: LyricsPage(),
+          ),
         ),
       );
 
-      // 应该显示占位文本
-      expect(find.text('歌词'), findsOneWidget);
+      // 应该显示歌词内容
+      expect(find.text('♪ 前奏 ♪'), findsOneWidget);
     });
 
-    testWidgets('shows back button', (WidgetTester tester) async {
+    testWidgets('shows close button', (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: LyricsPage(),
+        ChangeNotifierProvider<PlayerProvider>(
+          create: (_) => MockPlayerProvider(),
+          child: const MaterialApp(
+            home: LyricsPage(),
+          ),
         ),
       );
 
-      // 应该显示返回按钮
-      expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+      // 应该显示关闭按钮（向下箭头）
+      expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
     });
   });
 }

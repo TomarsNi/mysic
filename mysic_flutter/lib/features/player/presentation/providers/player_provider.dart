@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 import '../../data/models/song.dart';
 import '../../data/services/audio_player_service.dart';
+import '../../../lyrics/data/services/lyrics_parser.dart';
 
 /// 播放器状态管理 Provider
 /// 使用 ChangeNotifier 管理播放器状态，供 UI 层使用
 class PlayerProvider extends ChangeNotifier {
   final AudioPlayerService _audioPlayerService;
+  final LyricsParser _lyricsParser = LyricsParser();
 
   // 状态
   MysicPlayerState _playerState = MysicPlayerState.idle;
@@ -16,6 +18,9 @@ class PlayerProvider extends ChangeNotifier {
   int _currentIndex = -1;
   bool _isShuffleMode = false;
   MysicLoopMode _loopMode = MysicLoopMode.off;
+
+  // 歌词状态
+  LyricsResult _currentLyrics = LyricsResult.empty;
 
   // 扫描状态
   bool _isScanning = false;
@@ -51,8 +56,27 @@ class PlayerProvider extends ChangeNotifier {
     // 监听当前歌曲变化
     _audioPlayerService.currentSongStream.listen((song) {
       _currentSong = song;
+      // 加载歌词
+      _loadLyricsForSong(song);
       notifyListeners();
     });
+  }
+
+  /// 加载当前歌曲的歌词
+  Future<void> _loadLyricsForSong(Song? song) async {
+    if (song == null) {
+      _currentLyrics = LyricsResult.empty;
+      return;
+    }
+
+    // 尝试查找歌词文件
+    final lyricsPath = _lyricsParser.findLyricsFile(song.filePath);
+    if (lyricsPath != null) {
+      _currentLyrics = await _lyricsParser.parseFile(lyricsPath);
+    } else {
+      _currentLyrics = LyricsResult.empty;
+    }
+    notifyListeners();
   }
 
   // Getters
@@ -66,6 +90,7 @@ class PlayerProvider extends ChangeNotifier {
   MysicLoopMode get loopMode => _loopMode;
   bool get isScanning => _isScanning;
   double? get scanProgress => _scanProgress;
+  LyricsResult get currentLyrics => _currentLyrics;
 
   // 便捷 Getters
   bool get isPlaying => _playerState == MysicPlayerState.playing;
@@ -73,6 +98,21 @@ class PlayerProvider extends ChangeNotifier {
   bool get isLoading => _playerState == MysicPlayerState.loading;
   bool get hasCurrentSong => _currentSong != null;
   bool get hasPlaylist => _playlist.isNotEmpty;
+  bool get hasLyrics => _currentLyrics.isValid;
+
+  /// 获取当前歌词行
+  LyricLine? get currentLyricLine {
+    if (!_currentLyrics.isValid) return null;
+    return _currentLyrics.getCurrentLine(_position);
+  }
+
+  /// 获取下一行歌词
+  LyricLine? get nextLyricLine {
+    if (!_currentLyrics.isValid) return null;
+    final currentIndex = _currentLyrics.getCurrentLineIndex(_position);
+    if (currentIndex < 0 || currentIndex >= _currentLyrics.lines.length - 1) return null;
+    return _currentLyrics.lines[currentIndex + 1];
+  }
 
   /// 进度百分比 (0.0 - 1.0)
   double get progress {

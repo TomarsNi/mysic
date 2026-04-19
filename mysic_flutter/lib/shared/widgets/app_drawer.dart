@@ -43,45 +43,22 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.card, // 设计稿：bg-card
       child: SafeArea(
         child: Column(
           children: [
-            // 头部
+            // 头部 - 设计稿：p-6 mb-8
             _buildHeader(context),
-
-            const Divider(
-              color: AppColors.card,
-              height: 1,
-            ),
 
             // 播放模式选择区
             _buildPlayModeSection(context),
 
-            const Divider(
-              color: AppColors.card,
-              height: 1,
-            ),
-
-            // 扫描音乐按钮
-            _buildScanButton(context),
-
-            const Divider(
-              color: AppColors.card,
-              height: 1,
-            ),
-
-            // 歌单列表
+            // 歌单列表（可滚动）
             Expanded(
               child: _buildPlaylistSection(context),
             ),
 
-            const Divider(
-              color: AppColors.card,
-              height: 1,
-            ),
-
-            // 底部设置区域
+            // 底部区域：扫描按钮 + 关于按钮
             _buildFooter(context),
           ],
         ),
@@ -90,48 +67,39 @@ class AppDrawer extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    // 设计稿：flex items-center justify-between mb-8
+    // 左侧：h2 text-lg font-semibold "设置"
+    // 右侧：关闭按钮 p-2 rounded-lg hover:bg-white/10
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24), // p-6
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // 应用图标
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              gradient: AppColors.accentGradient,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.music_note_rounded,
+          // 设置标题 - 设计稿：text-lg font-semibold
+          const Text(
+            '设置',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
               color: AppColors.white,
-              size: 28,
             ),
           ),
 
-          const SizedBox(width: 16),
-
-          // 应用名称
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Mysic',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+          // 关闭按钮 - 设计稿：p-2 rounded-lg hover:bg-white/10
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => Navigator.of(context).pop(),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                child: const Icon(
+                  Icons.close_rounded,
+                  size: 20,
                   color: AppColors.white,
                 ),
               ),
-              SizedBox(height: 2),
-              Text(
-                '本地音乐播放器',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.muted,
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -244,18 +212,22 @@ class AppDrawer extends StatelessWidget {
         final scanProgress = playerProvider.scanProgress ?? 0.0;
         final isScanning = playerProvider.isScanning;
 
+        // 设计稿：w-full relative overflow-hidden px-4 py-3 rounded-xl bg-accent/20
         return Material(
-          color: Colors.transparent,
+          color: AppColors.accent.withValues(alpha: 0.20), // bg-accent/20
+          borderRadius: BorderRadius.circular(12),
           child: InkWell(
             onTap: isScanning ? null : () {
               Navigator.of(context).pop();
               onScanTap?.call();
             },
+            borderRadius: BorderRadius.circular(12),
             child: Container(
+              width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Stack(
                 children: [
-                  // 进度条背景 - 设计稿: bg-accent/30
+                  // 进度条背景 - 设计稿: absolute inset-0 bg-accent/30
                   if (isScanning)
                     Positioned.fill(
                       child: Container(
@@ -276,55 +248,33 @@ class AppDrawer extends StatelessWidget {
                       ),
                     ),
 
-                  // 按钮内容
+                  // 按钮内容 - 设计稿：flex items-center justify-center gap-2
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.accent.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: isScanning
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
-                                ),
-                              )
-                            : const Icon(
-                                Icons.folder_open_rounded,
-                                color: AppColors.accent,
-                                size: 22,
+                      // 图标 - 设计稿：w-5 h-5
+                      isScanning
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
                               ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isScanning ? '扫描中...' : '本地音乐',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.white,
-                              ),
+                            )
+                          : const Icon(
+                              Icons.refresh_rounded, // 设计稿使用刷新图标
+                              color: AppColors.accent,
+                              size: 20,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              isScanning
-                                  ? '${(scanProgress * 100).toInt()}%'
-                                  : '扫描设备中的音乐文件',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.muted,
-                              ),
-                            ),
-                          ],
+                      const SizedBox(width: 8),
+                      // 文字
+                      Text(
+                        isScanning ? '${(scanProgress * 100).toInt()}%' : '扫描全盘',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.accent,
                         ),
                       ),
                     ],
@@ -431,46 +381,59 @@ class AppDrawer extends StatelessWidget {
   }
 
   Widget _buildFooter(BuildContext context) {
-    return Column(
-      children: [
-        // 设置按钮
-        ListTile(
-          leading: const Icon(
-            Icons.settings_rounded,
-            color: AppColors.muted,
+    return Container(
+      padding: const EdgeInsets.all(16), // p-4
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: AppColors.white.withValues(alpha: 0.1), // border-white/10
+            width: 1,
           ),
-          title: const Text(
-            '设置',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.white,
-            ),
-          ),
-          onTap: () {
-            Navigator.of(context).pop();
-            onSettingsTap?.call();
-          },
         ),
+      ),
+      child: Column(
+        children: [
+          // 扫描全盘按钮 - 设计稿：w-full bg-accent/20 text-accent
+          _buildScanButton(context),
 
-        // 关于按钮
-        ListTile(
-          leading: const Icon(
-            Icons.info_outline_rounded,
-            color: AppColors.muted,
-          ),
-          title: const Text(
-            '关于',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.white,
+          const SizedBox(height: 8),
+
+          // 关于按钮 - 设计稿：w-full bg-white/5 text-white/70
+          Material(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context).pop();
+                onAboutTap?.call();
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 20,
+                      color: AppColors.white.withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '关于我们',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.white.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          onTap: () {
-            Navigator.of(context).pop();
-            onAboutTap?.call();
-          },
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

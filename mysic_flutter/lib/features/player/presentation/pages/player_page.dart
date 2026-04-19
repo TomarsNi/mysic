@@ -6,6 +6,7 @@ import '../providers/player_provider.dart';
 import '../widgets/album_cover.dart';
 import '../widgets/play_controls.dart';
 import '../widgets/progress_bar.dart';
+import '../../../lyrics/presentation/pages/lyrics_page.dart';
 
 /// 主播放页面
 /// 整合所有播放组件，包含歌词预览
@@ -30,8 +31,10 @@ class PlayerPage extends StatelessWidget {
       backgroundColor: AppColors.surface,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.keyboard_arrow_down_rounded),
-        onPressed: () => Navigator.of(context).pop(),
+        icon: const Icon(Icons.menu_rounded), // 设计稿：汉堡菜单
+        onPressed: () {
+          Scaffold.of(context).openDrawer();
+        },
       ),
       title: const Text(
         '正在播放',
@@ -43,9 +46,9 @@ class PlayerPage extends StatelessWidget {
       centerTitle: true,
       actions: [
         IconButton(
-          icon: const Icon(Icons.more_vert_rounded),
+          icon: const Icon(Icons.add_rounded), // 设计稿：添加按钮
           onPressed: () {
-            _showMoreOptions(context, provider);
+            _showAddToPlaylistSheet(context, provider);
           },
         ),
       ],
@@ -130,7 +133,7 @@ class PlayerPage extends StatelessWidget {
         Text(
           song?.title ?? '未选择歌曲',
           style: const TextStyle(
-            fontSize: 22,
+            fontSize: 24, // 设计稿：text-2xl (24px)
             fontWeight: FontWeight.bold,
             color: AppColors.white,
           ),
@@ -157,8 +160,6 @@ class PlayerPage extends StatelessWidget {
   }
 
   Widget _buildLyricsPreview(BuildContext context, PlayerProvider provider) {
-    // TODO: 实现真实歌词预览
-    // 目前显示占位文本
     // 设计稿规范：
     // - 两行歌词：当前行 lg font-medium white，下一行 muted
     // - hover:bg-white/5，圆角 rounded-xl
@@ -169,9 +170,18 @@ class PlayerPage extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // 获取真实歌词数据
+    final currentLyric = provider.currentLyricLine?.text;
+    final nextLyric = provider.nextLyricLine?.text;
+
+    // 如果没有歌词，显示占位文本
+    final displayCurrentLyric = currentLyric ?? '暂无歌词';
+    final displayNextLyric = nextLyric ?? '';
+
     return _LyricsPreviewWidget(
-      currentLyric: '这是当前播放的歌词行',
-      nextLyric: '这是下一句歌词',
+      currentLyric: displayCurrentLyric,
+      nextLyric: displayNextLyric,
+      hasLyrics: provider.hasLyrics,
       onTap: () => _navigateToLyricsPage(context, provider),
     );
   }
@@ -182,6 +192,17 @@ class PlayerPage extends StatelessWidget {
       MaterialPageRoute(
         builder: (context) => const LyricsPage(),
       ),
+    );
+  }
+
+  void _showAddToPlaylistSheet(BuildContext context, PlayerProvider provider) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _AddToPlaylistSheet(provider: provider),
     );
   }
 
@@ -197,38 +218,7 @@ class PlayerPage extends StatelessWidget {
   }
 }
 
-/// 歌词页面（占位）
-class LyricsPage extends StatelessWidget {
-  const LyricsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text('歌词'),
-      ),
-      body: const Center(
-        child: Text(
-          '歌词页面\n将在 task_3_5 中实现',
-          style: TextStyle(
-            fontSize: 16,
-            color: AppColors.muted,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
-}
-
-/// 歌词预览组件
+/// 添加到歌单底部面板
 /// 设计稿规范：
 /// - 当前行：text-lg (18px) font-medium white，mb-1
 /// - 下一行：text-sm muted
@@ -237,11 +227,13 @@ class LyricsPage extends StatelessWidget {
 class _LyricsPreviewWidget extends StatefulWidget {
   final String currentLyric;
   final String nextLyric;
+  final bool hasLyrics;
   final VoidCallback? onTap;
 
   const _LyricsPreviewWidget({
     required this.currentLyric,
     required this.nextLyric,
+    this.hasLyrics = false,
     this.onTap,
   });
 
@@ -392,6 +384,78 @@ class _MoreOptionsSheet extends StatelessWidget {
             );
           }).toList(),
         ),
+      ),
+    );
+  }
+}
+
+/// 添加到歌单底部面板
+/// 设计稿规范：rounded-t-3xl，拖拽指示条 w-10 h-1
+class _AddToPlaylistSheet extends StatelessWidget {
+  final PlayerProvider provider;
+
+  const _AddToPlaylistSheet({required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 8),
+
+          // 拖动指示器 - 设计稿：w-10 h-1 bg-white/20
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.muted.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // 标题
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '添加到歌单',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.white,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 歌单列表
+          // TODO: 从 PlaylistProvider 获取歌单列表
+          ListTile(
+            leading: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: AppColors.accentGradient,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.music_note_rounded, color: AppColors.white),
+            ),
+            title: const Text('全部歌曲'),
+            subtitle: Text('${provider.currentSong != null ? 1 : 0} 首'),
+            onTap: () {
+              Navigator.pop(context);
+              // TODO: 实现添加到歌单
+            },
+          ),
+
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
