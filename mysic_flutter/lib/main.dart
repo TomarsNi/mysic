@@ -148,99 +148,171 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final hasSong = currentSong != null;
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
+      child: Column(
+        children: [
+          // 顶部栏
+          _buildTopBar(context),
 
-            // 专辑封面
-            Expanded(
-              flex: 3,
-              child: Center(
-                child: GestureDetector(
-                  onTap: hasSong ? null : _startScan,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      AlbumCover(
-                        song: currentSong,
-                        size: 260,
-                        isPlaying: playerProvider.isPlaying,
-                      ),
-                      // 首次使用引导
-                      if (!hasSong && !_isScanning)
-                        Positioned(
-                          bottom: -40,
-                          child: ElevatedButton.icon(
-                            onPressed: _startScan,
-                            icon: const Icon(Icons.folder_open_rounded),
-                            label: const Text('扫描本地音乐'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF10B981),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
+          // 主内容区
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+
+                  // 专辑封面
+                  Expanded(
+                    flex: 3,
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: hasSong ? null : _startScan,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            AlbumCover(
+                              song: currentSong,
+                              size: 260,
+                              isPlaying: playerProvider.isPlaying,
                             ),
-                          ),
+                            // 首次使用引导
+                            if (!hasSong && !_isScanning)
+                              Positioned(
+                                bottom: -40,
+                                child: ElevatedButton.icon(
+                                  onPressed: _startScan,
+                                  icon: const Icon(Icons.folder_open_rounded),
+                                  label: const Text('扫描本地音乐'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF10B981),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                    ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // 歌曲信息
+                  _buildSongInfo(currentSong),
+
+                  const SizedBox(height: 16),
+
+                  // 歌词预览
+                  if (hasSong) _buildLyricsPreview(context, playerProvider),
+
+                  const SizedBox(height: 24),
+
+                  // 进度条
+                  ProgressBar(
+                    position: playerProvider.position,
+                    duration: playerProvider.duration,
+                    enabled: playerProvider.hasCurrentSong,
+                    onSeek: (progress) => playerProvider.seekToProgress(progress),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // 播放控制
+                  PlayControls(
+                    isPlaying: playerProvider.isPlaying,
+                    isLoading: playerProvider.isLoading,
+                    hasPlaylist: playerProvider.hasPlaylist,
+                    onPlayPause: () => playerProvider.togglePlayPause(),
+                    onNext: () => playerProvider.next(),
+                    onPrevious: () => playerProvider.previous(),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 扩展控制
+                  ExtendedControls(
+                    isShuffleMode: playerProvider.isShuffleMode,
+                    loopMode: playerProvider.loopMode,
+                    onToggleShuffle: () => playerProvider.toggleShuffleMode(),
+                    onToggleLoop: () => playerProvider.toggleLoopMode(),
+                  ),
+
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopBar(BuildContext context) {
+    return Consumer<PlayerProvider>(
+      builder: (context, playerProvider, child) {
+        final currentSong = playerProvider.currentSong;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Row(
+            children: [
+              // 抽屉按钮
+              IconButton(
+                icon: const Icon(Icons.menu_rounded, color: Colors.white),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFF27272A),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
               ),
-            ),
 
-            const SizedBox(height: 32),
+              const Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      '正在播放',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF71717A),
+                      ),
+                    ),
+                    Text(
+                      '全部歌曲',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
-            // 歌曲信息
-            _buildSongInfo(currentSong),
-
-            const SizedBox(height: 16),
-
-            // 歌词预览
-            if (hasSong) _buildLyricsPreview(context, playerProvider),
-
-            const SizedBox(height: 24),
-
-            // 进度条
-            ProgressBar(
-              position: playerProvider.position,
-              duration: playerProvider.duration,
-              enabled: playerProvider.hasCurrentSong,
-              onSeek: (progress) => playerProvider.seekToProgress(progress),
-            ),
-
-            const SizedBox(height: 24),
-
-            // 播放控制
-            PlayControls(
-              isPlaying: playerProvider.isPlaying,
-              isLoading: playerProvider.isLoading,
-              hasPlaylist: playerProvider.hasPlaylist,
-              onPlayPause: () => playerProvider.togglePlayPause(),
-              onNext: () => playerProvider.next(),
-              onPrevious: () => playerProvider.previous(),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 扩展控制
-            ExtendedControls(
-              isShuffleMode: playerProvider.isShuffleMode,
-              loopMode: playerProvider.loopMode,
-              onToggleShuffle: () => playerProvider.toggleShuffleMode(),
-              onToggleLoop: () => playerProvider.toggleLoopMode(),
-            ),
-
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
+              // 添加按钮
+              IconButton(
+                icon: const Icon(Icons.add_rounded, color: Colors.white),
+                onPressed: currentSong != null
+                    ? () => _showAddToPlaylist(context, currentSong)
+                    : null,
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFF27272A),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
