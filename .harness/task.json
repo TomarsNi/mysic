@@ -1236,12 +1236,12 @@
             {
               "id": "step_11_5_1",
               "description": "阅读 index.html 第 245-320 行底部面板结构",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_5_2",
               "description": "阅读 Flutter BottomSheet 组件源码",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_5_3",
