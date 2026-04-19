@@ -1185,12 +1185,12 @@
             {
               "id": "step_11_4_1",
               "description": "阅读 index.html 第 112-242 行抽屉结构",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_4_2",
               "description": "阅读 Flutter AppDrawer 组件源码",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_4_3",
