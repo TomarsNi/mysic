@@ -1138,12 +1138,12 @@
             {
               "id": "step_11_3_1",
               "description": "阅读 index.html 第 103-105 行和 546-565 行",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_3_2",
               "description": "阅读 Flutter PlayControls 组件源码",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_3_3",
