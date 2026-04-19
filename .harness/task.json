@@ -1016,17 +1016,524 @@
           "estimated_time": "60min"
         }
       ]
+    },
+    {
+      "id": "phase_11",
+      "name": "UI 验收与修复",
+      "status": "pending",
+      "description": "对比 index.html 设计稿，验收并修复 UI 偏差",
+      "tasks": [
+        {
+          "id": "task_11_1",
+          "name": "验收专辑封面组件",
+          "description": "对比设计稿验收 AlbumCover 组件，修复脉冲动画、vinyl-ring 效果",
+          "status": "completed",
+          "dependencies": [],
+          "reference": "F:\\opc\\mysic\\index.html (第 78-93 行 CSS，第 518 行 HTML)",
+          "acceptance_criteria": [
+            "圆形封面，尺寸 260px",
+            "播放时 pulse-glow 动画（3s 周期，box-shadow 变化）",
+            "播放时 scale(1.08)",
+            "vinyl-ring 效果（两层边框环）"
+          ],
+          "steps": [
+            {
+              "id": "step_11_1_1",
+              "description": "阅读 index.html 第 78-93 行 CSS 动画定义",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_1_2",
+              "description": "阅读 Flutter AlbumCover 组件源码",
+              "command": "读取 mysic_flutter/lib/features/player/presentation/widgets/album_cover.dart",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_1_3",
+              "description": "对比差异，列出需要修复的问题",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_1_4",
+              "description": "修复脉冲动画参数（动画时长 3s，box-shadow 变化）",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_1_5",
+              "description": "添加 vinyl-ring 效果（两层边框环）",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_1_6",
+              "description": "运行应用截图验证效果",
+              "status": "pending"
+            }
+          ],
+          "verification": {
+            "manual": "截图对比 index.html 设计稿第 518 行效果，确认 pulse-glow 动画和 vinyl-ring 效果一致"
+          },
+          "artifacts": ["lib/features/player/presentation/widgets/album_cover.dart"],
+          "estimated_time": "30min"
+        },
+        {
+          "id": "task_11_2",
+          "name": "验收进度条组件",
+          "description": "对比设计稿验收 ProgressBar 组件，修复拇指样式、发光效果",
+          "status": "pending",
+          "dependencies": [],
+          "reference": "F:\\opc\\mysic\\index.html (第 32-67 行 CSS，第 538 行 HTML)",
+          "acceptance_criteria": [
+            "轨道高度 8px，背景 #3f3f46",
+            "拇指 24px 圆形，accent 色",
+            "拇指带 box-shadow 发光效果",
+            "hover 时拇指 scale(1.1)"
+          ],
+          "steps": [
+            {
+              "id": "step_11_2_1",
+              "description": "阅读 index.html 第 32-67 行进度条 CSS",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_2_2",
+              "description": "阅读 Flutter ProgressBar 组件源码",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_2_3",
+              "description": "对比差异，列出需要修复的问题",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_2_4",
+              "description": "修复拇指尺寸和发光效果",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_2_5",
+              "description": "添加 hover scale 效果",
+              "status": "pending"
+            }
+          ],
+          "verification": {
+            "manual": "截图对比设计稿进度条效果"
+          },
+          "artifacts": ["lib/features/player/presentation/widgets/progress_bar.dart"],
+          "estimated_time": "25min"
+        },
+        {
+          "id": "task_11_3",
+          "name": "验收播放控制按钮",
+          "description": "对比设计稿验收 PlayControls 组件，修复按钮样式和阴影",
+          "status": "pending",
+          "dependencies": [],
+          "reference": "F:\\opc\\mysic\\index.html (第 103-105 行 CSS，第 546-565 行 HTML)",
+          "acceptance_criteria": [
+            "播放按钮圆形，accent 背景，padding 20px",
+            "播放按钮带 play-shadow（box-shadow 0 10px 40px accent/0.5）",
+            "hover 时 scale(1.05)",
+            "上一首/下一首按钮圆形，hover 时背景 white/10"
+          ],
+          "steps": [
+            {
+              "id": "step_11_3_1",
+              "description": "阅读 index.html 第 103-105 行和 546-565 行",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_3_2",
+              "description": "阅读 Flutter PlayControls 组件源码",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_3_3",
+              "description": "对比差异，列出需要修复的问题",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_3_4",
+              "description": "修复播放按钮阴影效果",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_3_5",
+              "description": "添加 hover scale 效果",
+              "status": "pending"
+            }
+          ],
+          "verification": {
+            "manual": "截图对比设计稿播放控制按钮效果"
+          },
+          "artifacts": ["lib/features/player/presentation/widgets/play_controls.dart"],
+          "estimated_time": "25min"
+        },
+        {
+          "id": "task_11_4",
+          "name": "验收抽屉菜单组件",
+          "description": "对比设计稿验收 AppDrawer 组件，修复播放模式选择器和歌单图标",
+          "status": "pending",
+          "dependencies": [],
+          "reference": "F:\\opc\\mysic\\index.html (第 112-242 行)",
+          "acceptance_criteria": [
+            "抽屉宽度 288px (w-72)",
+            "播放模式选择器：3 列网格，图标 + 文字",
+            "歌单图标：渐变色背景（6 种渐变）",
+            "歌单项 hover 时背景 white/5",
+            "扫描按钮带进度条动画"
+          ],
+          "steps": [
+            {
+              "id": "step_11_4_1",
+              "description": "阅读 index.html 第 112-242 行抽屉结构",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_4_2",
+              "description": "阅读 Flutter AppDrawer 组件源码",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_4_3",
+              "description": "对比差异，列出需要修复的问题",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_4_4",
+              "description": "修复播放模式选择器布局（3 列网格）",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_4_5",
+              "description": "修复歌单图标渐变色背景",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_4_6",
+              "description": "添加扫描按钮进度条动画",
+              "status": "pending"
+            }
+          ],
+          "verification": {
+            "manual": "截图对比设计稿抽屉菜单效果，确认渐变图标和布局一致"
+          },
+          "artifacts": ["lib/shared/widgets/app_drawer.dart"],
+          "estimated_time": "40min"
+        },
+        {
+          "id": "task_11_5",
+          "name": "验收底部面板组件",
+          "description": "对比设计稿验收 BottomSheet 组件，修复圆角和拖拽指示条",
+          "status": "pending",
+          "dependencies": [],
+          "reference": "F:\\opc\\mysic\\index.html (第 245-320 行)",
+          "acceptance_criteria": [
+            "顶部圆角 rounded-t-3xl (24px)",
+            "拖拽指示条：宽 40px，高 4px，white/20",
+            "歌单项图标 48px (w-12 h-12)，圆角 rounded-xl",
+            "背景色 card (#27272a)"
+          ],
+          "steps": [
+            {
+              "id": "step_11_5_1",
+              "description": "阅读 index.html 第 245-320 行底部面板结构",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_5_2",
+              "description": "阅读 Flutter BottomSheet 组件源码",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_5_3",
+              "description": "对比差异，列出需要修复的问题",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_5_4",
+              "description": "修复顶部圆角和拖拽指示条",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_5_5",
+              "description": "修复歌单项图标尺寸和渐变",
+              "status": "pending"
+            }
+          ],
+          "verification": {
+            "manual": "截图对比设计稿底部面板效果"
+          },
+          "artifacts": ["lib/shared/widgets/bottom_sheet.dart"],
+          "estimated_time": "30min"
+        },
+        {
+          "id": "task_11_6",
+          "name": "验收歌词页面",
+          "description": "对比设计稿验收 LyricsPage 组件，修复歌词样式和迷你播放器",
+          "status": "pending",
+          "dependencies": [],
+          "reference": "F:\\opc\\mysic\\index.html (第 323-417 行)",
+          "acceptance_criteria": [
+            "顶部栏：关闭按钮 + 标题 + 空位",
+            "歌曲信息栏：14px 封面 + 标题 + 艺术家",
+            "歌词内容：居中，每行 py-2，高亮行白色 + lg 字号",
+            "迷你播放器：进度条 + 时间 + 播放按钮",
+            "背景带 backdrop-blur-lg"
+          ],
+          "steps": [
+            {
+              "id": "step_11_6_1",
+              "description": "阅读 index.html 第 323-417 行歌词页面结构",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_6_2",
+              "description": "阅读 Flutter LyricsPage 组件源码",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_6_3",
+              "description": "对比差异，列出需要修复的问题",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_6_4",
+              "description": "修复歌词高亮样式（白色 + lg 字号）",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_6_5",
+              "description": "修复迷你播放器样式",
+              "status": "pending"
+            }
+          ],
+          "verification": {
+            "manual": "截图对比设计稿歌词页面效果"
+          },
+          "artifacts": ["lib/features/lyrics/presentation/pages/lyrics_page.dart"],
+          "estimated_time": "35min"
+        },
+        {
+          "id": "task_11_7",
+          "name": "验收歌词预览组件",
+          "description": "对比设计稿验收主页歌词预览区域",
+          "status": "pending",
+          "dependencies": [],
+          "reference": "F:\\opc\\mysic\\index.html (第 531-534 行)",
+          "acceptance_criteria": [
+            "两行歌词：当前行 lg font-medium white，下一行 muted",
+            "hover 时背景 white/5，圆角 rounded-xl",
+            "点击可进入歌词页面"
+          ],
+          "steps": [
+            {
+              "id": "step_11_7_1",
+              "description": "阅读 index.html 第 531-534 行歌词预览",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_7_2",
+              "description": "阅读 Flutter main.dart 歌词预览部分",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_7_3",
+              "description": "对比差异，修复样式",
+              "status": "pending"
+            }
+          ],
+          "verification": {
+            "manual": "截图对比设计稿歌词预览效果"
+          },
+          "artifacts": ["lib/main.dart"],
+          "estimated_time": "20min"
+        },
+        {
+          "id": "task_11_8",
+          "name": "验收关于页面",
+          "description": "对比设计稿验收 AboutPage 组件",
+          "status": "pending",
+          "dependencies": [],
+          "reference": "F:\\opc\\mysic\\index.html (第 420-492 行)",
+          "acceptance_criteria": [
+            "Logo：96px (w-24 h-24)，渐变背景，rounded-3xl",
+            "GitHub 卡片：图标 + 标题 + 描述 + 箭头",
+            "支持作者：两个二维码占位（112px）",
+            "版本信息居底部"
+          ],
+          "steps": [
+            {
+              "id": "step_11_8_1",
+              "description": "阅读 index.html 第 420-492 行关于页面结构",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_8_2",
+              "description": "阅读 Flutter AboutPage 组件源码",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_8_3",
+              "description": "对比差异，列出需要修复的问题",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_8_4",
+              "description": "修复 Logo 尺寸和渐变",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_8_5",
+              "description": "修复二维码占位样式",
+              "status": "pending"
+            }
+          ],
+          "verification": {
+            "manual": "截图对比设计稿关于页面效果"
+          },
+          "artifacts": ["lib/features/settings/presentation/pages/about_page.dart"],
+          "estimated_time": "25min"
+        },
+        {
+          "id": "task_11_9",
+          "name": "验收顶部栏布局",
+          "description": "对比设计稿验收主页顶部栏",
+          "status": "pending",
+          "dependencies": [],
+          "reference": "F:\\opc\\mysic\\index.html (第 497-512 行)",
+          "acceptance_criteria": [
+            "三栏布局：菜单按钮 + 标题 + 添加按钮",
+            "按钮：p-3 rounded-xl bg-card",
+            "标题：上方 muted xs 文字，下方 font-medium sm"
+          ],
+          "steps": [
+            {
+              "id": "step_11_9_1",
+              "description": "阅读 index.html 第 497-512 行顶部栏",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_9_2",
+              "description": "阅读 Flutter main.dart 顶部栏部分",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_9_3",
+              "description": "对比差异，修复布局",
+              "status": "pending"
+            }
+          ],
+          "verification": {
+            "manual": "截图对比设计稿顶部栏效果"
+          },
+          "artifacts": ["lib/main.dart"],
+          "estimated_time": "15min"
+        },
+        {
+          "id": "task_11_10",
+          "name": "验收主题颜色和字体",
+          "description": "对比设计稿验收 AppTheme 和 AppColors",
+          "status": "pending",
+          "dependencies": [],
+          "reference": "F:\\opc\\mysic\\index.html (第 14-27 行 Tailwind 配置)",
+          "acceptance_criteria": [
+            "surface: #18181b",
+            "card: #27272a",
+            "accent: #10b981",
+            "muted: #71717a",
+            "字体: Inter",
+            "背景色: #1A1A2E (实际使用)"
+          ],
+          "steps": [
+            {
+              "id": "step_11_10_1",
+              "description": "阅读 index.html 第 14-27 行颜色定义",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_10_2",
+              "description": "阅读 Flutter AppColors 和 AppTheme",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_10_3",
+              "description": "对比差异，确认颜色是否一致",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_10_4",
+              "description": "如不一致则调整颜色定义",
+              "status": "pending"
+            }
+          ],
+          "verification": {
+            "manual": "对比颜色值是否与设计稿一致"
+          },
+          "artifacts": ["lib/core/theme/app_colors.dart", "lib/core/theme/app_theme.dart"],
+          "estimated_time": "15min"
+        },
+        {
+          "id": "task_11_11",
+          "name": "综合验收与截图对比",
+          "description": "运行应用，截图对比设计稿整体效果",
+          "status": "pending",
+          "dependencies": ["task_11_1", "task_11_2", "task_11_3", "task_11_4", "task_11_5", "task_11_6", "task_11_7", "task_11_8", "task_11_9", "task_11_10"],
+          "reference": "F:\\opc\\mysic\\index.html (整体)",
+          "acceptance_criteria": [
+            "整体视觉效果与设计稿一致",
+            "动画流畅度符合设计稿定义",
+            "无明显视觉偏差"
+          ],
+          "steps": [
+            {
+              "id": "step_11_11_1",
+              "description": "启动应用 flutter run -d windows",
+              "command": "cd mysic_flutter && flutter run -d windows",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_11_2",
+              "description": "截图主页面对比 index.html 主播放页面",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_11_3",
+              "description": "截图抽屉菜单对比 index.html 抽屉",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_11_4",
+              "description": "截图歌词页面对比 index.html 歌词页面",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_11_5",
+              "description": "截图关于页面对比 index.html 关于页面",
+              "status": "pending"
+            },
+            {
+              "id": "step_11_11_6",
+              "description": "记录所有偏差并创建修复任务",
+              "status": "pending"
+            }
+          ],
+          "verification": {
+            "manual": "所有截图与设计稿对比，记录偏差报告"
+          },
+          "artifacts": ["验收报告"],
+          "estimated_time": "30min"
+        }
+      ]
     }
   ],
   "statistics": {
-    "total_tasks": 28,
+    "total_tasks": 39,
     "completed_tasks": 28,
-    "pending_tasks": 0,
+    "pending_tasks": 11,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
     "completed_phases": 10,
-    "pending_phases": 0,
-    "estimated_total_time": "14h",
+    "pending_phases": 1,
+    "estimated_total_time": "17h",
     "test_coverage": {
       "unit_tests": 15,
       "widget_tests": 15,

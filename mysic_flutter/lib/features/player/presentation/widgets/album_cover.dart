@@ -26,17 +26,18 @@ class AlbumCover extends StatefulWidget {
 class _AlbumCoverState extends State<AlbumCover>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  late Animation<double> _pulseAnimation;
+  late Animation<double> _glowAnimation;
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration: const Duration(milliseconds: 3000), // 设计稿要求 3s
     );
 
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+    // glow 动画用于 box-shadow 变化
+    _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
         curve: Curves.easeInOut,
@@ -69,50 +70,84 @@ class _AlbumCoverState extends State<AlbumCover>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _pulseAnimation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: widget.isPlaying ? _pulseAnimation.value : 1.0,
-          child: child,
-        );
-      },
-      child: _buildCover(),
+    // 设计稿：播放时静态 scale(1.08)
+    return Transform.scale(
+      scale: widget.isPlaying ? 1.08 : 1.0,
+      child: AnimatedBuilder(
+        animation: _glowAnimation,
+        builder: (context, child) {
+          return _buildCover(_glowAnimation.value);
+        },
+      ),
     );
   }
 
-  Widget _buildCover() {
+  Widget _buildCover(double glowValue) {
     final coverRadius = widget.size / 2;
 
-    return Container(
-      width: widget.size,
-      height: widget.size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: widget.showGlow && widget.isPlaying
-            ? [
-                BoxShadow(
-                  color: AppColors.accent.withValues(alpha: 0.4),
-                  blurRadius: 30,
-                  spreadRadius: 5,
-                ),
-                BoxShadow(
-                  color: AppColors.accent.withValues(alpha: 0.2),
-                  blurRadius: 60,
-                  spreadRadius: 10,
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  spreadRadius: 2,
-                ),
-              ],
-      ),
-      child: ClipOval(
-        child: _buildCoverImage(coverRadius),
-      ),
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // vinyl-ring 外层边框环 (设计稿 inset: -8px)
+        Container(
+          width: widget.size + 16,
+          height: widget.size + 16,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.05),
+              width: 2,
+            ),
+          ),
+        ),
+        // vinyl-ring 内层边框环 (设计稿 ::before inset: -4px)
+        Container(
+          width: widget.size + 8,
+          height: widget.size + 8,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.03),
+              width: 1,
+            ),
+          ),
+        ),
+        // 主封面
+        Container(
+          width: widget.size,
+          height: widget.size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: widget.showGlow && widget.isPlaying
+                ? [
+                    // 设计稿 pulse-glow 动画的 box-shadow
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      blurRadius: 50,
+                      spreadRadius: -12,
+                    ),
+                    // glow 效果随动画变化
+                    BoxShadow(
+                      color: AppColors.accent.withValues(
+                        alpha: 0.4 + glowValue * 0.1,
+                      ),
+                      blurRadius: 80 - glowValue * 15,
+                      spreadRadius: -15,
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+          ),
+          child: ClipOval(
+            child: _buildCoverImage(coverRadius),
+          ),
+        ),
+      ],
     );
   }
 
