@@ -955,22 +955,84 @@
           "estimated_time": "15min"
         }
       ]
+    },
+    {
+      "id": "phase_10",
+      "name": "自动化端到端测试",
+      "status": "completed",
+      "tasks": [
+        {
+          "id": "task_10_1",
+          "name": "实现自动化端到端测试",
+          "description": "模型启动应用并模拟用户操作进行测试",
+          "status": "completed",
+          "dependencies": ["task_8_2"],
+          "steps": [
+            {
+              "id": "step_10_1_1",
+              "description": "使用 Bash 工具运行 flutter run -d windows 启动应用",
+              "status": "completed"
+            },
+            {
+              "id": "step_10_1_2",
+              "description": "等待应用启动完成",
+              "status": "completed"
+            },
+            {
+              "id": "step_10_1_3",
+              "description": "模拟用户点击操作：播放/暂停、下一首、上一首、循环模式、随机播放",
+              "status": "completed"
+            },
+            {
+              "id": "step_10_1_4",
+              "description": "模拟用户滑动操作：进度条拖动、列表滚动",
+              "status": "completed"
+            },
+            {
+              "id": "step_10_1_5",
+              "description": "模拟用户导航操作：打开歌单页面、设置页面、关于页面",
+              "status": "completed"
+            },
+            {
+              "id": "step_10_1_6",
+              "description": "模拟用户输入操作：搜索歌曲、创建歌单名称输入",
+              "status": "completed"
+            },
+            {
+              "id": "step_10_1_7",
+              "description": "验证界面状态：播放状态变化、歌曲信息显示、进度条位置、歌单列表更新",
+              "status": "completed"
+            },
+            {
+              "id": "step_10_1_8",
+              "description": "收集测试结果：截图保存、输出测试报告、标记通过/失败",
+              "status": "completed"
+            }
+          ],
+          "verification": {
+            "manual": "验证能够自动启动应用、模拟至少10种用户操作、验证界面状态变化、生成测试报告"
+          },
+          "artifacts": ["integration_test/e2e_test.dart"],
+          "estimated_time": "60min"
+        }
+      ]
     }
   ],
   "statistics": {
-    "total_tasks": 27,
-    "completed_tasks": 27,
+    "total_tasks": 28,
+    "completed_tasks": 28,
     "pending_tasks": 0,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
-    "completed_phases": 9,
+    "completed_phases": 10,
     "pending_phases": 0,
-    "estimated_total_time": "13h",
+    "estimated_total_time": "14h",
     "test_coverage": {
       "unit_tests": 15,
       "widget_tests": 15,
       "integration_tests": 2,
-      "functional_tests": 5
+      "functional_tests": 5,
+      "e2e_tests": 1
     }
   }
 }
