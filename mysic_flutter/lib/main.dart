@@ -160,10 +160,36 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               child: Center(
                 child: GestureDetector(
                   onTap: hasSong ? null : _startScan,
-                  child: AlbumCover(
-                    song: currentSong,
-                    size: 260,
-                    isPlaying: playerProvider.isPlaying,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      AlbumCover(
+                        song: currentSong,
+                        size: 260,
+                        isPlaying: playerProvider.isPlaying,
+                      ),
+                      // 首次使用引导
+                      if (!hasSong && !_isScanning)
+                        Positioned(
+                          bottom: -40,
+                          child: ElevatedButton.icon(
+                            onPressed: _startScan,
+                            icon: const Icon(Icons.folder_open_rounded),
+                            label: const Text('扫描本地音乐'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
