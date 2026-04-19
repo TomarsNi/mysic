@@ -1298,12 +1298,12 @@
             {
               "id": "step_11_6_4",
               "description": "修复歌词高亮样式（白色 + lg 字号）",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_6_5",
               "description": "修复迷你播放器样式",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
