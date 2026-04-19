@@ -189,13 +189,22 @@ class AppDrawer extends StatelessWidget {
                       icon: Icons.repeat_rounded,
                       label: '循环',
                       isSelected: playerProvider.loopMode != MysicLoopMode.off,
-                      onTap: () => _setPlayMode(
-                        context,
-                        shuffle: false,
-                        loop: playerProvider.loopMode == MysicLoopMode.off
-                            ? MysicLoopMode.all
-                            : playerProvider.loopMode,
-                      ),
+                      onTap: () {
+                        final currentLoop = playerProvider.loopMode;
+                        MysicLoopMode nextLoop;
+                        switch (currentLoop) {
+                          case MysicLoopMode.off:
+                            nextLoop = MysicLoopMode.all;
+                            break;
+                          case MysicLoopMode.all:
+                            nextLoop = MysicLoopMode.one;
+                            break;
+                          case MysicLoopMode.one:
+                            nextLoop = MysicLoopMode.off;
+                            break;
+                        }
+                        _setPlayMode(context, shuffle: false, loop: nextLoop);
+                      },
                     ),
                   ),
                 ],
@@ -212,14 +221,19 @@ class AppDrawer extends StatelessWidget {
     required MysicLoopMode loop,
   }) {
     final playerProvider = context.read<PlayerProvider>();
-    if (shuffle) {
+
+    // Handle shuffle mode
+    if (shuffle && !playerProvider.isShuffleMode) {
       playerProvider.toggleShuffleMode();
-    } else if (playerProvider.isShuffleMode) {
+    } else if (!shuffle && playerProvider.isShuffleMode) {
       playerProvider.toggleShuffleMode();
     }
-    if (loop != MysicLoopMode.off) {
+
+    // Handle loop mode
+    if (loop != playerProvider.loopMode) {
       playerProvider.setLoopMode(loop);
     }
+
     Navigator.of(context).pop();
   }
 
