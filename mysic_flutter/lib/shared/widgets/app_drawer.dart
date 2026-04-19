@@ -623,7 +623,8 @@ class _PlaylistListTileState extends State<_PlaylistListTile> {
 }
 
 /// 播放模式按钮
-class _ModeButton extends StatelessWidget {
+/// 设计稿规范：grid-cols-3，border border-white/10，hover:border-accent/50 hover:bg-white/5
+class _ModeButton extends StatefulWidget {
   final IconData icon;
   final String label;
   final bool isSelected;
@@ -637,40 +638,74 @@ class _ModeButton extends StatelessWidget {
   });
 
   @override
+  State<_ModeButton> createState() => _ModeButtonState();
+}
+
+class _ModeButtonState extends State<_ModeButton> {
+  bool _isHovering = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: isSelected
-          ? AppColors.accent.withValues(alpha: 0.15)
-          : AppColors.card,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
+    // 设计稿：border border-white/10，选中或 hover 时 border-accent/50
+    final borderColor = widget.isSelected
+        ? AppColors.accent
+        : _isHovering
+            ? AppColors.accent.withValues(alpha: 0.5)
+            : Colors.white.withValues(alpha: 0.1); // border-white/10
+
+    // 设计稿：选中时 bg-accent/15，hover 时 bg-white/5
+    final bgColor = widget.isSelected
+        ? AppColors.accent.withValues(alpha: 0.15)
+        : _isHovering
+            ? Colors.white.withValues(alpha: 0.05) // hover:bg-white/5
+            : AppColors.card;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: Material(
+        color: bgColor,
         borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: isSelected ? AppColors.accent : Colors.transparent,
-              width: 1,
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            // 设计稿：p-3 (12px 全方向)
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: borderColor,
+                width: 1,
+              ),
+              borderRadius: BorderRadius.circular(12),
             ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                icon,
-                size: 24,
-                color: isSelected ? AppColors.accent : AppColors.muted,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isSelected ? AppColors.accent : AppColors.muted,
+            child: Column(
+              children: [
+                // 设计稿：w-6 h-6 (24px)
+                Icon(
+                  widget.icon,
+                  size: 24,
+                  color: widget.isSelected
+                      ? AppColors.accent
+                      : _isHovering
+                          ? AppColors.accent // hover 时图标变 accent
+                          : AppColors.muted,
                 ),
-              ),
-            ],
+                const SizedBox(height: 8), // 设计稿 gap-2 (8px)
+                // 设计稿：text-xs (12px)
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: widget.isSelected
+                        ? AppColors.accent
+                        : _isHovering
+                            ? AppColors.white // hover 时文字变 white
+                            : AppColors.muted,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

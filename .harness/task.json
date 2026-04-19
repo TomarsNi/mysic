@@ -1195,12 +1195,12 @@
             {
               "id": "step_11_4_3",
               "description": "对比差异，列出需要修复的问题",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_4_4",
               "description": "修复播放模式选择器布局（3 列网格）",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_4_5",
