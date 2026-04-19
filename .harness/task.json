@@ -1092,27 +1092,27 @@
             {
               "id": "step_11_2_1",
               "description": "阅读 index.html 第 32-67 行进度条 CSS",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_2_2",
               "description": "阅读 Flutter ProgressBar 组件源码",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_2_3",
               "description": "对比差异，列出需要修复的问题",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_2_4",
               "description": "修复拇指尺寸和发光效果",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_2_5",
               "description": "添加 hover scale 效果",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
