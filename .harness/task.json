@@ -1061,12 +1061,12 @@
             {
               "id": "step_11_1_5",
               "description": "添加 vinyl-ring 效果（两层边框环）",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_1_6",
               "description": "运行应用截图验证效果",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {

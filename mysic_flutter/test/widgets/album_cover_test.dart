@@ -40,28 +40,41 @@ void main() {
       expect(find.byIcon(Icons.music_note_rounded), findsOneWidget);
     });
 
-    testWidgets('shows correct size', (WidgetTester tester) async {
+    testWidgets('shows correct size with vinyl-ring', (WidgetTester tester) async {
+      const testSize = 150.0;
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
             body: AlbumCover(
               song: null,
-              size: 150,
+              size: testSize,
             ),
           ),
         ),
       );
 
-      // 查找 Container 并验证大小
-      final container = tester.widget<Container>(
-        find.descendant(
-          of: find.byType(AlbumCover),
-          matching: find.byType(Container).first,
-        ),
+      // vinyl-ring 效果包含三层容器
+      // 外层边框环：size + 16 (166)
+      // 内层边框环：size + 8 (158)
+      // 主封面：size (150)
+
+      // 验证所有容器都存在
+      final containers = find.descendant(
+        of: find.byType(AlbumCover),
+        matching: find.byType(Container),
       );
 
-      expect((container.constraints as BoxConstraints).maxWidth, 150);
-      expect((container.constraints as BoxConstraints).maxHeight, 150);
+      // 应该有多个容器（vinyl-ring + 主封面）
+      expect(containers, findsWidgets);
+
+      // 验证主封面容器的尺寸（第三个容器）
+      // 由于 vinyl-ring 使用 Stack，主封面是最后一个 Container
+      final allContainers = tester.widgetList<Container>(containers).toList();
+
+      // 验证存在 vinyl-ring 外层容器 (166x166)
+      final outerRing = allContainers.first;
+      expect(outerRing.constraints?.maxWidth, testSize + 16);
+      expect(outerRing.constraints?.maxHeight, testSize + 16);
     });
 
     testWidgets('animation controller is created', (WidgetTester tester) async {
