@@ -69,16 +69,8 @@ class _ScanButtonState extends State<ScanButton> with SingleTickerProviderStateM
     widget.scanner.progressStream.listen((progress) {
       if (mounted) {
         setState(() {
-          _progress = progress;
-        });
-      }
-    });
-
-    // 监听找到的歌曲数量
-    widget.scanner.foundStream.listen((count) {
-      if (mounted) {
-        setState(() {
-          _foundCount = count;
+          _progress = progress.progress;
+          _foundCount = progress.songsFound;
         });
       }
     });
@@ -99,11 +91,7 @@ class _ScanButtonState extends State<ScanButton> with SingleTickerProviderStateM
 
     widget.onScanStart?.call();
 
-    final result = await widget.scanner.scanMusic(
-      onProgress: (progress, found) {
-        // 进度更新已通过 stream 处理
-      },
-    );
+    final result = await widget.scanner.scanMusic();
 
     if (mounted) {
       setState(() {
@@ -420,15 +408,8 @@ class _ScanDialogState extends State<ScanDialog> {
     widget.scanner.progressStream.listen((progress) {
       if (mounted) {
         setState(() {
-          _progress = progress;
-        });
-      }
-    });
-
-    widget.scanner.foundStream.listen((count) {
-      if (mounted) {
-        setState(() {
-          _foundCount = count;
+          _progress = progress.progress;
+          _foundCount = progress.songsFound;
         });
       }
     });

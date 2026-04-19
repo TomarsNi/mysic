@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:sqflite/sqflite.dart';
 import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
 import 'platform_music_scanner.dart';

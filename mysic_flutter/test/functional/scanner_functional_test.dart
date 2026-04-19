@@ -82,7 +82,6 @@ void main() {
         final scanner = MusicScanner();
         expect(scanner.stateStream, isNotNull);
         expect(scanner.progressStream, isNotNull);
-        expect(scanner.foundStream, isNotNull);
       });
     });
 
