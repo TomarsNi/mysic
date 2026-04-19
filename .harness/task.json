@@ -764,20 +764,213 @@
         }
       ]
     }
+    {
+      "id": "phase_9",
+      "name": "功能测试",
+      "status": "completed",
+      "tasks": [
+        {
+          "id": "task_9_1",
+          "name": "播放功能测试",
+          "description": "测试音频播放核心功能",
+          "status": "completed",
+          "dependencies": ["task_8_2"],
+          "steps": [
+            {
+              "id": "step_9_1_1",
+              "description": "创建 test/functional/player_functional_test.dart",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_1_2",
+              "description": "测试播放/暂停/停止功能",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_1_3",
+              "description": "测试上一首/下一首切换",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_1_4",
+              "description": "测试进度条拖动",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_1_5",
+              "description": "测试播放模式切换（顺序/随机/单曲循环）",
+              "status": "completed"
+            }
+          ],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/functional/player_functional_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["test/functional/player_functional_test.dart"],
+          "estimated_time": "30min"
+        },
+        {
+          "id": "task_9_2",
+          "name": "歌单管理功能测试",
+          "description": "测试歌单 CRUD 操作",
+          "status": "completed",
+          "dependencies": ["task_9_1"],
+          "steps": [
+            {
+              "id": "step_9_2_1",
+              "description": "创建 test/functional/playlist_functional_test.dart",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_2_2",
+              "description": "测试创建歌单",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_2_3",
+              "description": "测试添加歌曲到歌单",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_2_4",
+              "description": "测试从歌单移除歌曲",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_2_5",
+              "description": "测试删除歌单",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_2_6",
+              "description": "测试歌单重命名",
+              "status": "completed"
+            }
+          ],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/functional/playlist_functional_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["test/functional/playlist_functional_test.dart"],
+          "estimated_time": "25min"
+        },
+        {
+          "id": "task_9_3",
+          "name": "歌词显示功能测试",
+          "description": "测试歌词解析和显示功能",
+          "status": "completed",
+          "dependencies": ["task_9_1"],
+          "steps": [
+            {
+              "id": "step_9_3_1",
+              "description": "创建 test/functional/lyrics_functional_test.dart",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_3_2",
+              "description": "测试 LRC 格式解析",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_3_3",
+              "description": "测试歌词时间同步",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_3_4",
+              "description": "测试歌词滚动和高亮",
+              "status": "completed"
+            }
+          ],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/functional/lyrics_functional_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["test/functional/lyrics_functional_test.dart"],
+          "estimated_time": "20min"
+        },
+        {
+          "id": "task_9_4",
+          "name": "本地扫描功能测试",
+          "description": "测试本地音乐扫描功能",
+          "status": "completed",
+          "dependencies": ["task_9_1"],
+          "steps": [
+            {
+              "id": "step_9_4_1",
+              "description": "创建 test/functional/scanner_functional_test.dart",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_4_2",
+              "description": "测试权限请求流程",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_4_3",
+              "description": "测试音乐文件扫描",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_4_4",
+              "description": "测试扫描结果持久化",
+              "status": "completed"
+            }
+          ],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/functional/scanner_functional_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["test/functional/scanner_functional_test.dart"],
+          "estimated_time": "25min"
+        },
+        {
+          "id": "task_9_5",
+          "name": "设置页面功能测试",
+          "description": "测试设置页面各项功能",
+          "status": "completed",
+          "dependencies": ["task_9_1"],
+          "steps": [
+            {
+              "id": "step_9_5_1",
+              "description": "创建 test/functional/settings_functional_test.dart",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_5_2",
+              "description": "测试关于页面显示",
+              "status": "completed"
+            },
+            {
+              "id": "step_9_5_3",
+              "description": "测试主题切换",
+              "status": "completed"
+            }
+          ],
+          "verification": {
+            "command": "cd mysic_flutter && flutter test test/functional/settings_functional_test.dart",
+            "expected": "All tests passed"
+          },
+          "artifacts": ["test/functional/settings_functional_test.dart"],
+          "estimated_time": "15min"
+        }
+      ]
+    }
   ],
   "statistics": {
-    "total_tasks": 22,
-    "completed_tasks": 22,
+    "total_tasks": 27,
+    "completed_tasks": 27,
     "pending_tasks": 0,
     "in_progress_tasks": 0,
     "failed_tasks": 0,
-    "completed_phases": 8,
+    "completed_phases": 9,
     "pending_phases": 0,
-    "estimated_total_time": "12h",
+    "estimated_total_time": "13h",
     "test_coverage": {
       "unit_tests": 15,
       "widget_tests": 15,
-      "integration_tests": 2
+      "integration_tests": 2,
+      "functional_tests": 5
     }
   }
 }
