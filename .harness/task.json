@@ -1288,12 +1288,12 @@
             {
               "id": "step_11_6_2",
               "description": "阅读 Flutter LyricsPage 组件源码",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_6_3",
               "description": "对比差异，列出需要修复的问题",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_6_4",
