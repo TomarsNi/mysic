@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../features/player/data/models/playlist.dart';
+import '../../features/player/presentation/providers/player_provider.dart';
+import '../../features/player/data/services/audio_player_service.dart';
 
 /// 抽屉菜单组件
 /// 左侧滑出的导航菜单，包含歌单列表和设置入口
@@ -46,6 +49,14 @@ class AppDrawer extends StatelessWidget {
           children: [
             // 头部
             _buildHeader(context),
+
+            const Divider(
+              color: AppColors.card,
+              height: 1,
+            ),
+
+            // 播放模式选择区
+            _buildPlayModeSection(context),
 
             const Divider(
               color: AppColors.card,
@@ -125,6 +136,91 @@ class AppDrawer extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildPlayModeSection(BuildContext context) {
+    return Consumer<PlayerProvider>(
+      builder: (context, playerProvider, child) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '播放模式',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.muted,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ModeButton(
+                      icon: Icons.play_arrow_rounded,
+                      label: '顺序',
+                      isSelected: !playerProvider.isShuffleMode &&
+                          playerProvider.loopMode == MysicLoopMode.off,
+                      onTap: () => _setPlayMode(
+                        context,
+                        shuffle: false,
+                        loop: MysicLoopMode.off,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ModeButton(
+                      icon: Icons.shuffle_rounded,
+                      label: '随机',
+                      isSelected: playerProvider.isShuffleMode,
+                      onTap: () => _setPlayMode(
+                        context,
+                        shuffle: true,
+                        loop: MysicLoopMode.off,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ModeButton(
+                      icon: Icons.repeat_rounded,
+                      label: '循环',
+                      isSelected: playerProvider.loopMode != MysicLoopMode.off,
+                      onTap: () => _setPlayMode(
+                        context,
+                        shuffle: false,
+                        loop: playerProvider.loopMode == MysicLoopMode.off
+                            ? MysicLoopMode.all
+                            : playerProvider.loopMode,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _setPlayMode(BuildContext context, {
+    required bool shuffle,
+    required MysicLoopMode loop,
+  }) {
+    final playerProvider = context.read<PlayerProvider>();
+    if (shuffle) {
+      playerProvider.toggleShuffleMode();
+    } else if (playerProvider.isShuffleMode) {
+      playerProvider.toggleShuffleMode();
+    }
+    if (loop != MysicLoopMode.off) {
+      playerProvider.setLoopMode(loop);
+    }
+    Navigator.of(context).pop();
   }
 
   Widget _buildScanButton(BuildContext context) {
@@ -402,6 +498,62 @@ class _PlaylistListTile extends StatelessWidget {
       Icons.playlist_play_rounded,
       color: AppColors.muted,
       size: 24,
+    );
+  }
+}
+
+/// 播放模式按钮
+class _ModeButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ModeButton({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: isSelected
+          ? AppColors.accent.withValues(alpha: 0.15)
+          : AppColors.card,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: isSelected ? AppColors.accent : Colors.transparent,
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                size: 24,
+                color: isSelected ? AppColors.accent : AppColors.muted,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isSelected ? AppColors.accent : AppColors.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
