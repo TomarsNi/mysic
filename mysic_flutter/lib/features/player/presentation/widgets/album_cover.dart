@@ -120,19 +120,23 @@ class _AlbumCoverState extends State<AlbumCover>
             shape: BoxShape.circle,
             boxShadow: widget.showGlow && widget.isPlaying
                 ? [
-                    // 设计稿 pulse-glow 动画的 box-shadow
+                    // 设计稿 pulse-glow 动画的 base shadow
+                    // CSS: 0 25px 50px -12px rgba(0, 0, 0, 0.5)
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.5),
-                      blurRadius: 50,
-                      spreadRadius: -12,
+                      offset: const Offset(0, 25), // 设计稿 offset-y: 25px
+                      blurRadius: 50, // 设计稿 blur: 50px
+                      spreadRadius: -12, // 设计稿 spread: -12px
                     ),
                     // glow 效果随动画变化
+                    // 设计稿: 0% 时 0 0 60px -20px rgba(accent, 0.2)
+                    //         50% 时 0 0 80px -15px rgba(accent, 0.4)
                     BoxShadow(
                       color: AppColors.accent.withValues(
-                        alpha: 0.4 + glowValue * 0.1,
+                        alpha: 0.2 + glowValue * 0.2, // 0.2 → 0.4
                       ),
-                      blurRadius: 80 - glowValue * 15,
-                      spreadRadius: -15,
+                      blurRadius: 60 + glowValue * 20, // 60 → 80
+                      spreadRadius: -20 + glowValue * 5, // -20 → -15
                     ),
                   ]
                 : [

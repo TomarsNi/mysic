@@ -1051,12 +1051,12 @@
             {
               "id": "step_11_1_3",
               "description": "对比差异，列出需要修复的问题",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_1_4",
               "description": "修复脉冲动画参数（动画时长 3s，box-shadow 变化）",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_1_5",
