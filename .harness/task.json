@@ -1148,17 +1148,17 @@
             {
               "id": "step_11_3_3",
               "description": "对比差异，列出需要修复的问题",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_3_4",
               "description": "修复播放按钮阴影效果",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_3_5",
               "description": "添加 hover scale 效果",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
