@@ -113,11 +113,23 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           drawer: AppDrawer(
             playlists: playlistProvider.playlists,
             selectedPlaylistId: playlistProvider.selectedPlaylist?.id,
-            onPlaylistTap: (playlist) {
+            onPlaylistTap: (playlist) async {
               final playlistId = playlist.id;
-              if (playlistId != null) {
-                playlistProvider.selectPlaylist(playlistId);
+              if (playlistId == null) return;
+
+              // 1. 选择歌单（加载歌曲）
+              await playlistProvider.selectPlaylist(playlistId);
+
+              // 2. 获取歌曲列表
+              final songs = playlistProvider.selectedPlaylistSongs;
+
+              if (songs.isNotEmpty) {
+                // 3. 设置播放列表并播放
+                await playerProvider.setPlaylist(songs);
+                await playerProvider.play();
               }
+
+              // 4. 抽屉会自动关闭（在 AppDrawer 中处理）
             },
             onScanTap: _startScan,
             onSettingsTap: () => _showSettings(context),
