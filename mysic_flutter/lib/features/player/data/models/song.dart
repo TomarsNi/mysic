@@ -28,6 +28,15 @@ class Song {
 
   /// 从数据库 Map 创建 Song 对象
   factory Song.fromMap(Map<String, dynamic> map) {
+    // 支持毫秒时间戳或 ISO8601 字符串
+    DateTime parseTimestamp(dynamic value) {
+      if (value == null) return DateTime.now();
+      if (value is int) {
+        return DateTime.fromMillisecondsSinceEpoch(value);
+      }
+      return DateTime.parse(value as String);
+    }
+
     return Song(
       id: map['id'] as int?,
       title: map['title'] as String,
@@ -37,8 +46,8 @@ class Song {
       filePath: map['file_path'] as String,
       albumArtPath: map['album_art_path'] as String?,
       dateAdded: map['date_added'] as int?,
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+      createdAt: parseTimestamp(map['created_at']),
+      updatedAt: parseTimestamp(map['updated_at']),
     );
   }
 
