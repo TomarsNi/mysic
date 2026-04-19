@@ -23,6 +23,7 @@ class ProgressBar extends StatefulWidget {
 
 class _ProgressBarState extends State<ProgressBar> {
   bool _isDragging = false;
+  bool _isHovering = false;
   double _dragValue = 0.0;
 
   double get _progress {
@@ -49,37 +50,45 @@ class _ProgressBarState extends State<ProgressBar> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 进度条
-        SliderTheme(
-          data: SliderThemeData(
-            activeTrackColor: AppColors.accent,
-            inactiveTrackColor: const Color(0xFF3F3F46),
-            thumbColor: AppColors.accent,
-            overlayColor: AppColors.accent.withValues(alpha: 0.2),
-            trackHeight: 4,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-            disabledActiveTrackColor: AppColors.muted,
-            disabledInactiveTrackColor: const Color(0xFF3F3F46),
-            disabledThumbColor: AppColors.muted,
-          ),
-          child: Slider(
-            value: _isDragging ? _dragValue : _progress.clamp(0.0, 1.0),
-            onChanged: widget.enabled
-                ? (value) {
-                    setState(() {
-                      _isDragging = true;
-                      _dragValue = value;
-                    });
-                  }
-                : null,
-            onChangeEnd: widget.enabled
-                ? (value) {
-                    setState(() {
-                      _isDragging = false;
-                    });
-                    widget.onSeek?.call(value);
-                  }
-                : null,
+        // 进度条 - 设计稿规范：轨道高度 8px，拇指 24px，带阴影和 hover scale
+        MouseRegion(
+          onEnter: (_) => setState(() => _isHovering = true),
+          onExit: (_) => setState(() => _isHovering = false),
+          child: SliderTheme(
+            data: SliderThemeData(
+              activeTrackColor: AppColors.accent,
+              inactiveTrackColor: const Color(0xFF3F3F46),
+              thumbColor: AppColors.accent,
+              overlayColor: AppColors.accent.withValues(alpha: 0.2),
+              trackHeight: 8, // 设计稿要求 8px
+              thumbShape: _GlowingThumbShape(
+                enabledThumbRadius: 12, // 24px 直径 = 12px 半径
+                elevation: _isHovering ? 8 : 4, // hover 时阴影增强
+                thumbScale: _isHovering ? 1.1 : 1.0, // hover 时 scale(1.1)
+              ),
+              disabledActiveTrackColor: AppColors.muted,
+              disabledInactiveTrackColor: const Color(0xFF3F3F46),
+              disabledThumbColor: AppColors.muted,
+            ),
+            child: Slider(
+              value: _isDragging ? _dragValue : _progress.clamp(0.0, 1.0),
+              onChanged: widget.enabled
+                  ? (value) {
+                      setState(() {
+                        _isDragging = true;
+                        _dragValue = value;
+                      });
+                    }
+                  : null,
+              onChangeEnd: widget.enabled
+                  ? (value) {
+                      setState(() {
+                        _isDragging = false;
+                      });
+                      widget.onSeek?.call(value);
+                    }
+                  : null,
+            ),
           ),
         ),
 
@@ -108,6 +117,52 @@ class _ProgressBarState extends State<ProgressBar> {
         ),
       ],
     );
+  }
+}
+
+/// 自定义拇指形状 - 带发光效果
+class _GlowingThumbShape extends RoundSliderThumbShape {
+  final double thumbScale;
+
+  const _GlowingThumbShape({
+    required super.enabledThumbRadius,
+    super.elevation,
+    this.thumbScale = 1.0,
+  });
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset center,
+    {required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required Animation<double> enableAnimation,
+    required Animation<double> activationAnimation,
+    required bool isDiscrete,
+    required TextPainter labelPainter,
+    required TextDirection textDirection,
+    required double textScaleFactor,
+    required Size sizeWithOverflow,
+    required double value,
+  }) {
+    final Canvas canvas = context.canvas;
+
+    // 应用 scale 变换
+    final scaledRadius = enabledThumbRadius * thumbScale;
+
+    // 绘制发光阴影 - 设计稿: box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4)
+    final Paint shadowPaint = Paint()
+      ..color = AppColors.accent.withValues(alpha: 0.4)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+
+    canvas.drawCircle(center, scaledRadius + 2, shadowPaint);
+
+    // 绘制拇指
+    final Paint thumbPaint = Paint()
+      ..color = sliderTheme.thumbColor ?? AppColors.accent
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(center, scaledRadius, thumbPaint);
   }
 }
 

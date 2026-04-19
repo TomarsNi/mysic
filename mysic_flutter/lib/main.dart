@@ -255,6 +255,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildTopBar(BuildContext context) {
+    // 设计稿规范：
+    // - 三栏布局：菜单按钮 + 标题 + 添加按钮
+    // - 按钮：p-3 rounded-xl bg-card
+    // - 标题：上方 muted xs 文字，下方 font-medium sm
     return Consumer<PlayerProvider>(
       builder: (context, playerProvider, child) {
         final currentSong = playerProvider.currentSong;
@@ -262,33 +266,37 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Row(
             children: [
-              // 抽屉按钮
-              IconButton(
-                icon: const Icon(Icons.menu_rounded, color: Colors.white),
-                onPressed: () => Scaffold.of(context).openDrawer(),
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFF27272A),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              // 抽屉按钮 - 设计稿：p-3 rounded-xl bg-card
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF27272A), // bg-card
+                  borderRadius: BorderRadius.circular(12), // rounded-xl
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.menu_rounded, color: Colors.white),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                  padding: const EdgeInsets.all(12), // p-3
                 ),
               ),
 
               const Expanded(
                 child: Column(
                   children: [
+                    // 上方 muted xs 文字
                     Text(
                       '正在播放',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF71717A),
+                        fontSize: 12, // xs = 12px
+                        color: Color(0xFF71717A), // muted
                       ),
                     ),
+                    SizedBox(height: 2),
+                    // 下方 font-medium sm (14px)
                     Text(
                       '全部歌曲',
                       style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 14, // sm = 14px
+                        fontWeight: FontWeight.w500, // font-medium
                         color: Colors.white,
                       ),
                     ),
@@ -296,17 +304,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ),
               ),
 
-              // 添加按钮
-              IconButton(
-                icon: const Icon(Icons.add_rounded, color: Colors.white),
-                onPressed: currentSong != null
-                    ? () => _showAddToPlaylist(context, currentSong)
-                    : null,
-                style: IconButton.styleFrom(
-                  backgroundColor: const Color(0xFF27272A),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              // 添加按钮 - 设计稿：p-3 rounded-xl bg-card
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF27272A), // bg-card
+                  borderRadius: BorderRadius.circular(12), // rounded-xl
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.add_rounded, color: Colors.white),
+                  onPressed: currentSong != null
+                      ? () => _showAddToPlaylist(context, currentSong)
+                      : null,
+                  padding: const EdgeInsets.all(12), // p-3
                 ),
               ),
             ],
@@ -348,37 +357,47 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildLyricsPreview(BuildContext context, PlayerProvider provider) {
+    // 设计稿规范：
+    // - 两行歌词：当前行 lg font-medium white，下一行 muted
+    // - hover 时背景 white/5，圆角 rounded-xl
+    // - 点击可进入歌词页面
     return GestureDetector(
       onTap: () => _openLyricsPage(context),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF16213E),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            const Text(
-              '为你弹奏肖邦的夜曲',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF9CA3AF),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF27272A), // bg-card
+            borderRadius: BorderRadius.circular(12), // rounded-xl
+          ),
+          child: Column(
+            children: [
+              // 当前行 - 设计稿要求 lg font-medium white
+              const Text(
+                '为你弹奏肖邦的夜曲',
+                style: TextStyle(
+                  fontSize: 18, // lg
+                  fontWeight: FontWeight.w500, // font-medium
+                  color: Colors.white,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              '纪念我死去的爱情',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF10B981),
+              const SizedBox(height: 4),
+              // 下一行 - muted 色
+              const Text(
+                '纪念我死去的爱情',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF71717A), // muted
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

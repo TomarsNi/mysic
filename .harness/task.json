@@ -1256,7 +1256,7 @@
             {
               "id": "step_11_5_5",
               "description": "修复歌单项图标尺寸和渐变",
-              "status": "pending"
+              "status": "completed"
             }
           ],
           "verification": {
@@ -1283,7 +1283,7 @@
             {
               "id": "step_11_6_1",
               "description": "阅读 index.html 第 323-417 行歌词页面结构",
-              "status": "pending"
+              "status": "completed"
             },
             {
               "id": "step_11_6_2",

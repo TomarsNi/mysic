@@ -62,7 +62,9 @@ class PlayControls extends StatelessWidget {
 }
 
 /// 播放/暂停按钮
-class _PlayButton extends StatelessWidget {
+/// 设计稿规范：圆形，accent 渐变背景，play-shadow: box-shadow 0 10px 40px -10px rgba(16, 185, 129, 0.5)
+/// hover 时 scale(1.05)
+class _PlayButton extends StatefulWidget {
   final bool isPlaying;
   final bool isLoading;
   final VoidCallback onPressed;
@@ -76,41 +78,59 @@ class _PlayButton extends StatelessWidget {
   });
 
   @override
+  State<_PlayButton> createState() => _PlayButtonState();
+}
+
+class _PlayButtonState extends State<_PlayButton> {
+  bool _isHovering = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: AppColors.accentGradient,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.accent.withValues(alpha: 0.3),
-            blurRadius: 12,
-            spreadRadius: 2,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: AnimatedScale(
+        scale: _isHovering ? 1.05 : 1.0, // 设计稿要求 hover scale(1.05)
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.ease,
+        child: Container(
+          width: widget.size,
+          height: widget.size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: AppColors.accentGradient,
+            boxShadow: [
+              // 设计稿 play-shadow: 0 10px 40px -10px rgba(16, 185, 129, 0.5)
+              BoxShadow(
+                color: AppColors.accent.withValues(alpha: 0.5),
+                blurRadius: 40,
+                spreadRadius: -10,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isLoading ? null : onPressed,
-          borderRadius: BorderRadius.circular(size / 2),
-          child: Center(
-            child: isLoading
-                ? SizedBox(
-                    width: size * 0.5,
-                    height: size * 0.5,
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
-                    ),
-                  )
-                : Icon(
-                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    size: size * 0.6,
-                    color: AppColors.white,
-                  ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.isLoading ? null : widget.onPressed,
+              borderRadius: BorderRadius.circular(widget.size / 2),
+              child: Center(
+                child: widget.isLoading
+                    ? SizedBox(
+                        width: widget.size * 0.5,
+                        height: widget.size * 0.5,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                        ),
+                      )
+                    : Icon(
+                        widget.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        size: widget.size * 0.6,
+                        color: AppColors.white,
+                      ),
+              ),
+            ),
           ),
         ),
       ),
@@ -119,7 +139,8 @@ class _PlayButton extends StatelessWidget {
 }
 
 /// 控制按钮
-class _ControlButton extends StatelessWidget {
+/// 设计稿规范：圆形，hover 时背景 white/10
+class _ControlButton extends StatefulWidget {
   final IconData icon;
   final VoidCallback? onPressed;
   final double size;
@@ -131,22 +152,41 @@ class _ControlButton extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final isEnabled = onPressed != null;
+  State<_ControlButton> createState() => _ControlButtonState();
+}
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(size),
-        child: Container(
-          width: size * 1.5,
-          height: size * 1.5,
-          alignment: Alignment.center,
-          child: Icon(
-            icon,
-            size: size,
-            color: isEnabled ? AppColors.white : AppColors.muted,
+class _ControlButtonState extends State<_ControlButton> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isEnabled = widget.onPressed != null;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: widget.size * 1.5,
+        height: widget.size * 1.5,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _isHovering && isEnabled
+              ? Colors.white.withValues(alpha: 0.1) // 设计稿要求 hover bg-white/10
+              : Colors.transparent,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onPressed,
+            borderRadius: BorderRadius.circular(widget.size * 0.75),
+            child: Center(
+              child: Icon(
+                widget.icon,
+                size: widget.size,
+                color: isEnabled ? AppColors.white : AppColors.muted,
+              ),
+            ),
           ),
         ),
       ),

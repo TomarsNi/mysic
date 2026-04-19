@@ -1,10 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../player/data/models/song.dart';
 import '../../../player/presentation/providers/player_provider.dart';
-import '../../../player/presentation/widgets/album_cover.dart';
-import '../../../player/presentation/widgets/progress_bar.dart';
 
 /// 歌词行数据模型
 class LyricLine {
@@ -122,6 +121,9 @@ class _LyricsPageState extends State<LyricsPage> {
                 // 顶部导航栏
                 _buildTopBar(context, currentSong),
 
+                // 歌曲信息栏 - 设计稿新增
+                _buildSongInfoBar(context, currentSong),
+
                 // 歌词列表
                 Expanded(
                   child: _buildLyricsList(),
@@ -137,37 +139,48 @@ class _LyricsPageState extends State<LyricsPage> {
     );
   }
 
+  /// 顶部栏
+  /// 设计稿规范：关闭按钮 + 标题 + 空位，关闭按钮样式 p-3 rounded-xl bg-card
   Widget _buildTopBar(BuildContext context, Song? currentSong) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.only(left: 24, right: 24, top: 48, bottom: 16), // 设计稿 px-6 pt-16 pb-4
       child: Row(
         children: [
-          // 返回按钮
-          IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () => Navigator.of(context).pop(),
+          // 关闭按钮 - 设计稿：p-3 rounded-xl bg-card
+          Container(
+            width: 44, // p-3 (12px) + icon 20px = 44px
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.card, // bg-card
+              borderRadius: BorderRadius.circular(12), // rounded-xl
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.keyboard_arrow_up_rounded), // 设计稿使用向上箭头
+              iconSize: 20,
+              color: AppColors.white,
+              padding: EdgeInsets.zero,
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ),
 
-          // 歌曲信息
+          // 标题区域 - 设计稿：上方 text-xs text-muted（正在播放），下方 text-sm font-medium
           Expanded(
             child: Column(
               children: [
                 Text(
-                  currentSong?.title ?? '未知歌曲',
+                  '正在播放',
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.white,
+                    fontSize: 12, // text-xs
+                    color: AppColors.muted,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  currentSong?.artist ?? '未知艺术家',
+                  currentSong?.title ?? '未知歌曲',
                   style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.muted,
+                    fontSize: 14, // text-sm
+                    fontWeight: FontWeight.w500, // font-medium
+                    color: AppColors.white,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -176,12 +189,89 @@ class _LyricsPageState extends State<LyricsPage> {
             ),
           ),
 
-          // 更多选项
-          IconButton(
-            icon: const Icon(Icons.more_vert_rounded),
-            onPressed: () {
-              // TODO: 显示更多选项
-            },
+          // 右侧空位 - 设计稿：空 div w-11 (44px)
+          const SizedBox(width: 44),
+        ],
+      ),
+    );
+  }
+
+  /// 歌曲信息栏
+  /// 设计稿规范：封面 w-14 h-14 (56px) rounded-xl，标题 + 艺术家，border-b border-white/5
+  Widget _buildSongInfoBar(BuildContext context, Song? currentSong) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16), // px-6 py-4
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.white.withValues(alpha: 0.05), // border-white/5
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          // 封面 - 设计稿：w-14 h-14 rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-800
+          Container(
+            width: 56, // w-14 = 56px
+            height: 56,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12), // rounded-xl
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF3F3F46), Color(0xFF27272A)], // zinc-700 to zinc-800
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: currentSong?.albumArtPath != null
+                  ? Image.network(
+                      currentSong!.albumArtPath!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.music_note_rounded,
+                        color: AppColors.muted,
+                        size: 24,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.music_note_rounded,
+                      color: AppColors.muted,
+                      size: 24,
+                    ),
+            ),
+          ),
+
+          const SizedBox(width: 16), // gap-4
+
+          // 歌曲信息
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  currentSong?.title ?? '未知歌曲',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600, // font-semibold
+                    color: AppColors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${currentSong?.artist ?? '未知艺术家'} · ${currentSong?.album ?? '未知专辑'}',
+                  style: const TextStyle(
+                    fontSize: 14, // text-sm
+                    color: AppColors.muted,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -237,82 +327,140 @@ class _LyricsPageState extends State<LyricsPage> {
   }
 
   Widget _buildMiniPlayer(BuildContext context, PlayerProvider provider) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 进度条
-          ProgressBar(
-            position: provider.position,
-            duration: provider.duration,
-            enabled: provider.hasCurrentSong,
-            onSeek: (progress) => provider.seekToProgress(progress),
-          ),
-
-          const SizedBox(height: 12),
-
-          // 控制按钮
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // 上一首
-              IconButton(
-                icon: const Icon(Icons.skip_previous_rounded),
-                iconSize: 32,
-                onPressed: provider.hasPlaylist ? () => provider.previous() : null,
-              ),
-
-              const SizedBox(width: 24),
-
-              // 播放/暂停
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: AppColors.accentGradient,
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    provider.isPlaying
-                        ? Icons.pause_rounded
-                        : Icons.play_arrow_rounded,
-                  ),
-                  iconSize: 32,
-                  color: AppColors.white,
-                  onPressed: () => provider.togglePlayPause(),
-                ),
-              ),
-
-              const SizedBox(width: 24),
-
-              // 下一首
-              IconButton(
-                icon: const Icon(Icons.skip_next_rounded),
-                iconSize: 32,
-                onPressed: provider.hasPlaylist ? () => provider.next() : null,
+    // 设计稿规范：底部迷你播放器带 backdrop-blur-lg，背景 bg-card/50
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15), // backdrop-blur-lg
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.card.withValues(alpha: 0.5), // bg-card/50
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 10,
+                spreadRadius: 2,
               ),
             ],
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 进度条 - 设计稿：h-1 高度
+              Container(
+                height: 4, // h-1 = 4px
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1), // bg-white/10
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: provider.duration != null && provider.duration!.inMilliseconds > 0
+                      ? (provider.position.inMilliseconds / provider.duration!.inMilliseconds).clamp(0.0, 1.0)
+                      : 0.0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.accent,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // 时间显示
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _formatDuration(provider.position),
+                      style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                    ),
+                    Text(
+                      provider.duration != null ? _formatDuration(provider.duration!) : '--:--',
+                      style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // 控制按钮
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 上一首
+                  IconButton(
+                    icon: const Icon(Icons.skip_previous_rounded),
+                    iconSize: 28,
+                    color: AppColors.white,
+                    onPressed: provider.hasPlaylist ? () => provider.previous() : null,
+                  ),
+
+                  const SizedBox(width: 24),
+
+                  // 播放/暂停 - 设计稿：圆形 accent 按钮
+                  Container(
+                    width: 48, // p-3 = 12px padding + icon size
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: AppColors.accentGradient,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.accent.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        provider.isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                      ),
+                      iconSize: 20, // w-5 h-5
+                      color: AppColors.white,
+                      onPressed: () => provider.togglePlayPause(),
+                    ),
+                  ),
+
+                  const SizedBox(width: 24),
+
+                  // 下一首
+                  IconButton(
+                    icon: const Icon(Icons.skip_next_rounded),
+                    iconSize: 28,
+                    color: AppColors.white,
+                    onPressed: provider.hasPlaylist ? () => provider.next() : null,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }
 
 /// 歌词行组件
+/// 设计稿规范：
+/// - 高亮行：白色 + lg 字号 (20px) + font-medium
+/// - 普通行：muted 色
+/// - 每行 py-2 (padding vertical 8px)
 class _LyricLineWidget extends StatelessWidget {
   final LyricLine line;
   final bool isActive;
@@ -332,14 +480,15 @@ class _LyricLineWidget extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8), // 设计稿 py-2
         child: Text(
           line.text,
           style: TextStyle(
-            fontSize: isActive ? 20 : 16,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            // 设计稿：高亮行 lg 字号 (约 18-20px)，font-medium，白色
+            fontSize: isActive ? 18 : 14,
+            fontWeight: isActive ? FontWeight.w500 : FontWeight.normal, // font-medium
             color: isActive
-                ? AppColors.accent
+                ? AppColors.white // 设计稿要求高亮行白色
                 : isPast
                     ? AppColors.muted.withValues(alpha: 0.5)
                     : AppColors.muted,
