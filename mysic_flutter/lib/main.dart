@@ -74,9 +74,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   late AnimationController _fabAnimationController;
   bool _isScanning = false;
-  String _scanPath = '';
-  int _scanFound = 0;
-  double _scanProgress = 0.0;
   MusicScanner? _currentScanner;
 
   @override
@@ -405,11 +402,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   // 操作方法
   Future<void> _startScan() async {
+    final playerProvider = context.read<PlayerProvider>();
+    playerProvider.startScan();
+
     setState(() {
       _isScanning = true;
-      _scanPath = '准备扫描...';
-      _scanFound = 0;
-      _scanProgress = 0.0;
     });
 
     try {
@@ -419,11 +416,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       // 监听进度
       scanner.progressStream.listen((progress) {
         if (mounted) {
-          setState(() {
-            _scanPath = progress.currentPath;
-            _scanFound = progress.songsFound;
-            _scanProgress = progress.progress;
-          });
+          // 同步到 Provider
+          playerProvider.updateScanProgress(progress.progress);
+          playerProvider.updateScanDetail(
+            path: progress.currentPath,
+            found: progress.songsFound,
+          );
         }
       });
 
@@ -455,6 +453,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       }
     } finally {
       if (mounted) {
+        playerProvider.finishScan();
         setState(() {
           _isScanning = false;
           _currentScanner = null;

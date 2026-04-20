@@ -65,6 +65,12 @@ class MockPlayerProvider extends ChangeNotifier implements PlayerProvider {
   double? get scanProgress => null;
 
   @override
+  String get scanPath => '';
+
+  @override
+  int get scanFound => 0;
+
+  @override
   LyricsResult get currentLyrics => LyricsResult.empty;
 
   @override
@@ -135,6 +141,9 @@ class MockPlayerProvider extends ChangeNotifier implements PlayerProvider {
 
   @override
   void updateScanProgress(double progress) {}
+
+  @override
+  void updateScanDetail({String? path, int? found}) {}
 
   @override
   void finishScan() {}

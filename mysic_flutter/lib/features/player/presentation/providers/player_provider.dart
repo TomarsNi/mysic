@@ -25,6 +25,8 @@ class PlayerProvider extends ChangeNotifier {
   // 扫描状态
   bool _isScanning = false;
   double? _scanProgress;
+  String _scanPath = '';
+  int _scanFound = 0;
 
   PlayerProvider({AudioPlayerService? audioPlayerService})
       : _audioPlayerService = audioPlayerService ?? AudioPlayerService() {
@@ -90,6 +92,8 @@ class PlayerProvider extends ChangeNotifier {
   MysicLoopMode get loopMode => _loopMode;
   bool get isScanning => _isScanning;
   double? get scanProgress => _scanProgress;
+  String get scanPath => _scanPath;
+  int get scanFound => _scanFound;
   LyricsResult get currentLyrics => _currentLyrics;
 
   // 便捷 Getters
@@ -286,6 +290,8 @@ class PlayerProvider extends ChangeNotifier {
   void startScan() {
     _isScanning = true;
     _scanProgress = 0.0;
+    _scanPath = '准备扫描...';
+    _scanFound = 0;
     notifyListeners();
   }
 
@@ -295,10 +301,19 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 更新扫描详情
+  void updateScanDetail({String? path, int? found}) {
+    if (path != null) _scanPath = path;
+    if (found != null) _scanFound = found;
+    notifyListeners();
+  }
+
   /// 完成扫描
   void finishScan() {
     _isScanning = false;
     _scanProgress = null;
+    _scanPath = '';
+    _scanFound = 0;
     notifyListeners();
   }
 
