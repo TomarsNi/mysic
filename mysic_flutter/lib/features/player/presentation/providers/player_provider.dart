@@ -145,12 +145,12 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   /// 设置播放列表
-  Future<void> setPlaylist(List<Song> songs, {int startIndex = 0}) async {
+  Future<void> setPlaylist(List<Song> songs, {int startIndex = 0, bool autoPlay = false}) async {
     _playlist = List.from(songs);
     _currentIndex = startIndex;
     notifyListeners();
 
-    await _audioPlayerService.setPlaylist(songs, startIndex: startIndex);
+    await _audioPlayerService.setPlaylist(songs, startIndex: startIndex, autoPlay: autoPlay);
   }
 
   /// 播放

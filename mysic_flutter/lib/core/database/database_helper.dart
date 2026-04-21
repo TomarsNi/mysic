@@ -16,7 +16,7 @@ class DatabaseHelper {
   static const String _databaseName = 'mysic.db';
 
   /// 数据库版本
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 2;
 
   /// 表名常量
   static const String tableSongs = 'songs';
@@ -64,8 +64,8 @@ class DatabaseHelper {
         file_path TEXT NOT NULL UNIQUE,
         album_art_path TEXT,
         date_added INTEGER,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     ''');
 
@@ -76,8 +76,8 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         description TEXT,
         cover_path TEXT,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     ''');
 
@@ -88,7 +88,7 @@ class DatabaseHelper {
         playlist_id INTEGER NOT NULL,
         song_id INTEGER NOT NULL,
         position INTEGER NOT NULL,
-        added_at INTEGER NOT NULL,
+        added_at TEXT NOT NULL,
         FOREIGN KEY (playlist_id) REFERENCES $tablePlaylists (id) ON DELETE CASCADE,
         FOREIGN KEY (song_id) REFERENCES $tableSongs (id) ON DELETE CASCADE,
         UNIQUE(playlist_id, song_id)
@@ -103,8 +103,8 @@ class DatabaseHelper {
         lrc_content TEXT,
         is_synced INTEGER NOT NULL DEFAULT 0,
         source TEXT,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
         FOREIGN KEY (song_id) REFERENCES $tableSongs (id) ON DELETE CASCADE
       )
     ''');
@@ -143,11 +143,106 @@ class DatabaseHelper {
 
   /// 数据库升级
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // 未来版本升级时在此添加迁移逻辑
-    // 例如：
-    // if (oldVersion < 2) {
-    //   await db.execute('ALTER TABLE $tableSongs ADD COLUMN new_column TEXT');
-    // }
+    // 版本 1 -> 2: 修复时间戳字段类型
+    if (oldVersion < 2) {
+      // 由于 SQLite 不支持直接修改列类型，需要重建表
+      // 重建 songs 表
+      await db.execute('''
+        CREATE TABLE songs_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          artist TEXT,
+          album TEXT,
+          duration INTEGER NOT NULL,
+          file_path TEXT NOT NULL UNIQUE,
+          album_art_path TEXT,
+          date_added INTEGER,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      ''');
+      await db.execute('''
+        INSERT INTO songs_new (id, title, artist, album, duration, file_path, album_art_path, date_added, created_at, updated_at)
+        SELECT id, title, artist, album, duration, file_path, album_art_path, date_added,
+               CASE WHEN typeof(created_at) = 'integer' THEN datetime(created_at / 1000, 'unixepoch') ELSE created_at END,
+               CASE WHEN typeof(updated_at) = 'integer' THEN datetime(updated_at / 1000, 'unixepoch') ELSE updated_at END
+        FROM songs
+      ''');
+      await db.execute('DROP TABLE songs');
+      await db.execute('ALTER TABLE songs_new RENAME TO songs');
+
+      // 重建 playlists 表
+      await db.execute('''
+        CREATE TABLE playlists_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          description TEXT,
+          cover_path TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      ''');
+      await db.execute('''
+        INSERT INTO playlists_new (id, name, description, cover_path, created_at, updated_at)
+        SELECT id, name, description, cover_path,
+               CASE WHEN typeof(created_at) = 'integer' THEN datetime(created_at / 1000, 'unixepoch') ELSE created_at END,
+               CASE WHEN typeof(updated_at) = 'integer' THEN datetime(updated_at / 1000, 'unixepoch') ELSE updated_at END
+        FROM playlists
+      ''');
+      await db.execute('DROP TABLE playlists');
+      await db.execute('ALTER TABLE playlists_new RENAME TO playlists');
+
+      // 重建 playlist_songs 表
+      await db.execute('''
+        CREATE TABLE playlist_songs_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          playlist_id INTEGER NOT NULL,
+          song_id INTEGER NOT NULL,
+          position INTEGER NOT NULL,
+          added_at TEXT NOT NULL,
+          FOREIGN KEY (playlist_id) REFERENCES playlists (id) ON DELETE CASCADE,
+          FOREIGN KEY (song_id) REFERENCES songs (id) ON DELETE CASCADE,
+          UNIQUE(playlist_id, song_id)
+        )
+      ''');
+      await db.execute('''
+        INSERT INTO playlist_songs_new (id, playlist_id, song_id, position, added_at)
+        SELECT id, playlist_id, song_id, position,
+               CASE WHEN typeof(added_at) = 'integer' THEN datetime(added_at / 1000, 'unixepoch') ELSE added_at END
+        FROM playlist_songs
+      ''');
+      await db.execute('DROP TABLE playlist_songs');
+      await db.execute('ALTER TABLE playlist_songs_new RENAME TO playlist_songs');
+
+      // 重建 lyrics 表
+      await db.execute('''
+        CREATE TABLE lyrics_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          song_id INTEGER NOT NULL UNIQUE,
+          lrc_content TEXT,
+          is_synced INTEGER NOT NULL DEFAULT 0,
+          source TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (song_id) REFERENCES songs (id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute('''
+        INSERT INTO lyrics_new (id, song_id, lrc_content, is_synced, source, created_at, updated_at)
+        SELECT id, song_id, lrc_content, is_synced, source,
+               CASE WHEN typeof(created_at) = 'integer' THEN datetime(created_at / 1000, 'unixepoch') ELSE created_at END,
+               CASE WHEN typeof(updated_at) = 'integer' THEN datetime(updated_at / 1000, 'unixepoch') ELSE updated_at END
+        FROM lyrics
+      ''');
+      await db.execute('DROP TABLE lyrics');
+      await db.execute('ALTER TABLE lyrics_new RENAME TO lyrics');
+
+      // 重建索引
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_songs_title ON songs (title)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_songs_artist ON songs (artist)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_songs_album ON songs (album)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_playlist_songs_playlist ON playlist_songs (playlist_id)');
+    }
   }
 
   /// 关闭数据库

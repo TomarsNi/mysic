@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
 import 'platform_music_scanner.dart';
@@ -116,6 +117,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
       updateState(ScanState.completed);
       stopwatch.stop();
+      print('Windows扫描完成: totalFound=$totalFound, newAdded=${result['newAdded']}, duplicates=${result['duplicates']}');
 
       updateProgress(ScanProgress(
         currentPath: '完成',
@@ -206,7 +208,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     int newAdded = 0;
     int duplicates = 0;
     final now = DateTime.now();
-    final nowTimestamp = now.millisecondsSinceEpoch;
+    final nowIso = now.toIso8601String();
 
     for (final file in songs) {
       if (isCancelled) break;
@@ -238,8 +240,8 @@ class WindowsMusicScanner extends PlatformMusicScanner {
             'file_path': filePath,
             'album_art_path': null,
             'date_added': null,
-            'created_at': nowTimestamp,
-            'updated_at': nowTimestamp,
+            'created_at': nowIso,
+            'updated_at': nowIso,
           },
         );
         newAdded++;

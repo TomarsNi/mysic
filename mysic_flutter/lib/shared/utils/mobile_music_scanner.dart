@@ -129,7 +129,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
     int newAdded = 0;
     int duplicates = 0;
     final now = DateTime.now();
-    final nowTimestamp = now.millisecondsSinceEpoch;
+    final nowIso = now.toIso8601String();
 
     for (int i = 0; i < songs.length; i++) {
       if (isCancelled) break;
@@ -157,8 +157,8 @@ class MobileMusicScanner extends PlatformMusicScanner {
             'file_path': songModel.data,
             'album_art_path': null,
             'date_added': songModel.dateAdded,
-            'created_at': nowTimestamp,
-            'updated_at': nowTimestamp,
+            'created_at': nowIso,
+            'updated_at': nowIso,
           },
         );
         newAdded++;

@@ -123,7 +123,7 @@ class AudioPlayerService {
   }
 
   /// 设置播放列表
-  Future<void> setPlaylist(List<Song> songs, {int startIndex = 0}) async {
+  Future<void> setPlaylist(List<Song> songs, {int startIndex = 0, bool autoPlay = false}) async {
     if (songs.isEmpty) return;
 
     _playlist = List.from(songs);
@@ -133,6 +133,8 @@ class AudioPlayerService {
     final sources = songs.map((song) => just_audio.AudioSource.file(song.filePath)).toList();
     final playlist = just_audio.ConcatenatingAudioSource(children: sources);
 
+    _updateState(MysicPlayerState.loading);
+
     await _player.setAudioSource(
       playlist,
       initialIndex: startIndex,
@@ -141,14 +143,17 @@ class AudioPlayerService {
 
     _currentSong = songs[startIndex];
     _currentSongController.add(_currentSong);
-    _updateState(MysicPlayerState.ready);
+
+    if (autoPlay) {
+      await _player.play();
+      _updateState(MysicPlayerState.playing);
+    } else {
+      _updateState(MysicPlayerState.ready);
+    }
   }
 
   /// 播放
   Future<void> play() async {
-    if (_currentSong == null && _playlist.isNotEmpty) {
-      await setPlaylist(_playlist);
-    }
     await _player.play();
   }
 

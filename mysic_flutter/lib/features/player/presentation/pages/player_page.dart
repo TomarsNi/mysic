@@ -7,6 +7,7 @@ import '../widgets/album_cover.dart';
 import '../widgets/play_controls.dart';
 import '../widgets/progress_bar.dart';
 import '../../../lyrics/presentation/pages/lyrics_page.dart';
+import '../../../playlist/presentation/providers/playlist_provider.dart';
 
 /// 主播放页面
 /// 整合所有播放组件，包含歌词预览
@@ -205,17 +206,6 @@ class PlayerPage extends StatelessWidget {
       builder: (context) => _AddToPlaylistSheet(provider: provider),
     );
   }
-
-  void _showMoreOptions(BuildContext context, PlayerProvider provider) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.card,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => _MoreOptionsSheet(provider: provider),
-    );
-  }
 }
 
 /// 添加到歌单底部面板
@@ -296,99 +286,6 @@ class _LyricsPreviewWidgetState extends State<_LyricsPreviewWidget> {
   }
 }
 
-/// 更多选项底部面板
-class _MoreOptionsSheet extends StatelessWidget {
-  final PlayerProvider provider;
-
-  const _MoreOptionsSheet({required this.provider});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 8),
-
-          // 拖动指示器
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.muted.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // 选项列表
-          ListTile(
-            leading: const Icon(Icons.playlist_add_rounded),
-            title: const Text('添加到歌单'),
-            onTap: () {
-              Navigator.pop(context);
-              // TODO: 实现添加到歌单功能
-            },
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.share_rounded),
-            title: const Text('分享'),
-            onTap: () {
-              Navigator.pop(context);
-              // TODO: 实现分享功能
-            },
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.timer_rounded),
-            title: const Text('定时关闭'),
-            onTap: () {
-              Navigator.pop(context);
-              // TODO: 实现定时关闭功能
-            },
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.speed_rounded),
-            title: const Text('播放速度'),
-            trailing: const Text('1.0x'),
-            onTap: () {
-              Navigator.pop(context);
-              _showSpeedDialog(context);
-            },
-          ),
-
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  void _showSpeedDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.card,
-        title: const Text('播放速度'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) {
-            return ListTile(
-              title: Text('${speed}x'),
-              onTap: () {
-                provider.setSpeed(speed);
-                Navigator.pop(context);
-              },
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-}
-
 /// 添加到歌单底部面板
 /// 设计稿规范：rounded-t-3xl，拖拽指示条 w-10 h-1
 class _AddToPlaylistSheet extends StatelessWidget {
@@ -398,64 +295,155 @@ class _AddToPlaylistSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 8),
+    final currentSong = provider.currentSong;
 
-          // 拖动指示器 - 设计稿：w-10 h-1 bg-white/20
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.muted.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+    return Consumer<PlaylistProvider>(
+      builder: (context, playlistProvider, child) {
+        final playlists = playlistProvider.playlists;
 
-          const SizedBox(height: 24),
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
 
-          // 标题
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '添加到歌单',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.white,
+              // 拖动指示器 - 设计稿：w-10 h-1 bg-white/20
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.muted.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-          ),
 
-          const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-          // 歌单列表
-          // TODO: 从 PlaylistProvider 获取歌单列表
-          ListTile(
-            leading: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: AppColors.accentGradient,
-                borderRadius: BorderRadius.circular(12),
+              // 标题
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      '添加到歌单',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    if (currentSong == null)
+                      const Text(
+                        '请先选择歌曲',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-              child: const Icon(Icons.music_note_rounded, color: AppColors.white),
-            ),
-            title: const Text('全部歌曲'),
-            subtitle: Text('${provider.currentSong != null ? 1 : 0} 首'),
-            onTap: () {
-              Navigator.pop(context);
-              // TODO: 实现添加到歌单
-            },
-          ),
 
-          const SizedBox(height: 16),
-        ],
+              const SizedBox(height: 16),
+
+              // 歌单列表
+              if (currentSong == null)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    '当前没有播放中的歌曲',
+                    style: TextStyle(color: AppColors.muted),
+                  ),
+                )
+              else if (playlists.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    '暂无歌单，请先创建歌单',
+                    style: TextStyle(color: AppColors.muted),
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: playlists.length,
+                  itemBuilder: (context, index) {
+                    final playlist = playlists[index];
+                    final songCount = playlist.songs?.length ?? 0;
+
+                    return ListTile(
+                      leading: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.accentGradient,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.music_note_rounded,
+                          color: AppColors.white,
+                        ),
+                      ),
+                      title: Text(playlist.name),
+                      subtitle: Text('$songCount 首'),
+                      onTap: () async {
+                        final playlistId = playlist.id;
+                        if (playlistId == null) return;
+
+                        Navigator.pop(context);
+                        await _addSongToPlaylist(
+                          context,
+                          playlistProvider,
+                          playlistId,
+                          currentSong,
+                        );
+                      },
+                    );
+                  },
+                ),
+
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _addSongToPlaylist(
+    BuildContext context,
+    PlaylistProvider playlistProvider,
+    int playlistId,
+    Song song,
+  ) async {
+    // 检查歌曲是否已在歌单中
+    final isInPlaylist = await playlistProvider.isSongInPlaylist(
+      playlistId,
+      song.id!,
+    );
+
+    if (!context.mounted) return;
+
+    if (isInPlaylist) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('歌曲已在该歌单中'),
+          backgroundColor: AppColors.muted,
+        ),
+      );
+      return;
+    }
+
+    final success = await playlistProvider.addSongToPlaylist(playlistId, song);
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success ? '已添加到歌单' : '添加失败'),
+        backgroundColor: success ? AppColors.accent : Colors.red,
       ),
     );
   }
