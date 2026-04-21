@@ -42,9 +42,8 @@ dependencies:
   go_router: ^13.0.0
 
   # 音频播放
-  just_audio: ^0.9.36
+  audioplayers: ^6.0.0
   audio_session: ^0.1.18
-  audio_service: ^0.18.12
 
   # 本地音乐
   on_audio_query: ^2.6.1

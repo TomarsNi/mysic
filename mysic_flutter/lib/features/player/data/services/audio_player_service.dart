@@ -1,6 +1,5 @@
 import 'dart:async';
-import 'package:just_audio/just_audio.dart' as just_audio;
-import 'package:audio_session/audio_session.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../models/song.dart';
 
 /// 播放器状态
@@ -22,9 +21,9 @@ enum MysicLoopMode {
 }
 
 /// 音频播放服务
-/// 使用 just_audio 实现音频播放核心功能
+/// 使用 audioplayers 实现音频播放核心功能
 class AudioPlayerService {
-  final just_audio.AudioPlayer _player = just_audio.AudioPlayer();
+  final AudioPlayer _player = AudioPlayer();
   MysicPlayerState _state = MysicPlayerState.idle;
   Song? _currentSong;
   List<Song> _playlist = [];
@@ -47,53 +46,59 @@ class AudioPlayerService {
   // 当前状态
   MysicPlayerState get state => _state;
   Song? get currentSong => _currentSong;
-  Duration get position => _player.position;
-  Duration? get duration => _player.duration;
-  bool get isPlaying => _player.playing;
+  Duration get position => _position;
+  Duration? get duration => _duration;
+  bool get isPlaying => _state == MysicPlayerState.playing;
   bool get isShuffleMode => _isShuffleMode;
   MysicLoopMode get loopMode => _loopMode;
   List<Song> get playlist => List.unmodifiable(_playlist);
   int get currentIndex => _currentIndex;
 
+  Duration _position = Duration.zero;
+  Duration? _duration;
+
   /// 初始化音频播放服务
   Future<void> initialize() async {
-    // 配置音频会话
-    final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.music());
-
     // 监听播放器状态
-    _player.playerStateStream.listen((playerState) {
-      _handlePlayerStateChange(playerState);
+    _player.onPlayerStateChanged.listen((state) {
+      _handlePlayerStateChange(state);
     });
 
     // 监听播放位置
-    _player.positionStream.listen((position) {
+    _player.onPositionChanged.listen((position) {
+      _position = position;
       _positionController.add(position);
     });
 
     // 监听歌曲时长
-    _player.durationStream.listen((duration) {
+    _player.onDurationChanged.listen((duration) {
+      _duration = duration;
       _durationController.add(duration);
     });
 
     // 监听播放完成
-    _player.processingStateStream.listen((state) {
-      if (state == just_audio.ProcessingState.completed) {
-        _onSongCompleted();
-      }
+    _player.onPlayerComplete.listen((_) {
+      _onSongCompleted();
     });
   }
 
   /// 处理播放器状态变化
-  void _handlePlayerStateChange(just_audio.PlayerState playerState) {
-    if (playerState.playing) {
-      _updateState(MysicPlayerState.playing);
-    } else if (playerState.processingState == just_audio.ProcessingState.ready) {
-      _updateState(MysicPlayerState.paused);
-    } else if (playerState.processingState == just_audio.ProcessingState.loading) {
-      _updateState(MysicPlayerState.loading);
-    } else if (playerState.processingState == just_audio.ProcessingState.idle) {
-      _updateState(MysicPlayerState.idle);
+  void _handlePlayerStateChange(PlayerState state) {
+    switch (state) {
+      case PlayerState.playing:
+        _updateState(MysicPlayerState.playing);
+        break;
+      case PlayerState.paused:
+        _updateState(MysicPlayerState.paused);
+        break;
+      case PlayerState.stopped:
+        _updateState(MysicPlayerState.idle);
+        break;
+      case PlayerState.completed:
+        _updateState(MysicPlayerState.completed);
+        break;
+      default:
+        break;
     }
   }
 
@@ -112,8 +117,7 @@ class AudioPlayerService {
       _currentSong = song;
       _currentSongController.add(_currentSong);
 
-      await _player.setFilePath(song.filePath);
-      await _player.play();
+      await _player.play(DeviceFileSource(song.filePath));
 
       _updateState(MysicPlayerState.playing);
     } catch (e) {
@@ -129,32 +133,23 @@ class AudioPlayerService {
     _playlist = List.from(songs);
     _currentIndex = startIndex;
 
-    // 创建音频源列表
-    final sources = songs.map((song) => just_audio.AudioSource.file(song.filePath)).toList();
-    final playlist = just_audio.ConcatenatingAudioSource(children: sources);
-
     _updateState(MysicPlayerState.loading);
-
-    await _player.setAudioSource(
-      playlist,
-      initialIndex: startIndex,
-      initialPosition: Duration.zero,
-    );
 
     _currentSong = songs[startIndex];
     _currentSongController.add(_currentSong);
 
     if (autoPlay) {
-      await _player.play();
+      await _player.play(DeviceFileSource(songs[startIndex].filePath));
       _updateState(MysicPlayerState.playing);
     } else {
+      await _player.setSource(DeviceFileSource(songs[startIndex].filePath));
       _updateState(MysicPlayerState.ready);
     }
   }
 
   /// 播放
   Future<void> play() async {
-    await _player.play();
+    await _player.resume();
   }
 
   /// 暂停
@@ -178,7 +173,6 @@ class AudioPlayerService {
     if (_isShuffleMode) {
       // 随机模式：随机选择下一首
       final randomIndex = _getRandomIndex();
-      await _player.seek(Duration.zero, index: randomIndex);
       _currentIndex = randomIndex;
     } else {
       // 顺序模式
@@ -189,12 +183,11 @@ class AudioPlayerService {
       } else {
         return; // 已是最后一首且未开启列表循环
       }
-      await _player.seekToNext();
     }
 
     _currentSong = _playlist[_currentIndex];
     _currentSongController.add(_currentSong);
-    await _player.play();
+    await _player.play(DeviceFileSource(_currentSong!.filePath));
   }
 
   /// 播放上一首
@@ -202,7 +195,7 @@ class AudioPlayerService {
     if (_playlist.isEmpty) return;
 
     // 如果当前播放超过3秒，重新播放当前歌曲
-    if (_player.position.inSeconds > 3) {
+    if (_position.inSeconds > 3) {
       await _player.seek(Duration.zero);
       return;
     }
@@ -216,10 +209,9 @@ class AudioPlayerService {
       return;
     }
 
-    await _player.seekToPrevious();
     _currentSong = _playlist[_currentIndex];
     _currentSongController.add(_currentSong);
-    await _player.play();
+    await _player.play(DeviceFileSource(_currentSong!.filePath));
   }
 
   /// 跳转到指定位置
@@ -232,40 +224,24 @@ class AudioPlayerService {
     if (index < 0 || index >= _playlist.length) return;
 
     _currentIndex = index;
-    await _player.seek(Duration.zero, index: index);
     _currentSong = _playlist[_currentIndex];
     _currentSongController.add(_currentSong);
-    await _player.play();
+    await _player.play(DeviceFileSource(_currentSong!.filePath));
   }
 
   /// 设置播放速度
   Future<void> setSpeed(double speed) async {
-    await _player.setSpeed(speed);
+    await _player.setPlaybackRate(speed);
   }
 
   /// 切换随机模式
   Future<void> toggleShuffleMode() async {
     _isShuffleMode = !_isShuffleMode;
-    await _player.setShuffleModeEnabled(_isShuffleMode);
   }
 
   /// 设置循环模式
   Future<void> setLoopMode(MysicLoopMode mode) async {
     _loopMode = mode;
-    // 转换为 just_audio 的 LoopMode
-    just_audio.LoopMode justAudioLoopMode;
-    switch (mode) {
-      case MysicLoopMode.off:
-        justAudioLoopMode = just_audio.LoopMode.off;
-        break;
-      case MysicLoopMode.one:
-        justAudioLoopMode = just_audio.LoopMode.one;
-        break;
-      case MysicLoopMode.all:
-        justAudioLoopMode = just_audio.LoopMode.all;
-        break;
-    }
-    await _player.setLoopMode(justAudioLoopMode);
   }
 
   /// 切换循环模式 (关闭 -> 单曲循环 -> 列表循环 -> 关闭)
@@ -288,7 +264,7 @@ class AudioPlayerService {
     if (_loopMode == MysicLoopMode.one) {
       // 单曲循环：重新播放
       _player.seek(Duration.zero);
-      _player.play();
+      _player.resume();
     } else if (_currentIndex < _playlist.length - 1 || _loopMode == MysicLoopMode.all) {
       // 自动播放下一首
       next();
