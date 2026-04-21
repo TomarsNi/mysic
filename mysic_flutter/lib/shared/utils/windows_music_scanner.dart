@@ -13,21 +13,85 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     '.mp3', '.flac', '.wav', '.m4a', '.aac', '.ogg', '.wma',
   };
 
-  /// 最小文件大小 (2MB)
-  static const int _minFileSizeBytes = 2 * 1024 * 1024;
+  /// 最小文件大小 (2.5MB)
+  static const int _minFileSizeBytes = 2500 * 1024;
 
   /// 跳过的目录名
   static const Set<String> _skipDirectories = {
+    // 系统目录
     '\$RECYCLE.BIN',
     'System Volume Information',
     'Windows',
     'Program Files',
     'Program Files (x86)',
     'ProgramData',
+    // 版本控制
     '.git',
     '.svn',
+    // 开发相关
     'node_modules',
+    // 游戏目录
+    'Games',
+    'Game',
+    'Steam',
+    'SteamLibrary',
+    'Epic Games',
+    'GOG Galaxy',
+    'Origin',
+    'Ubisoft',
+    'Battle.net',
+    // 应用资源目录
+    'AppData',
+    'Application Data',
+    '.cache',
+    'cache',
+    'Cache',
+    // 系统音效目录
+    'Media',
+    'Sounds',
+    'Sound',
+    // 临时目录
+    'Temp',
+    'tmp',
+    // 常见非音乐资源目录名
+    'assets',
+    'Assets',
+    'res',
+    'resources',
+    'Resources',
+    'data',
+    'Data',
   };
+
+  /// 非音乐文件名关键词
+  static const Set<String> _nonMusicKeywords = {
+    // 系统音效
+    'notification', 'alert', 'alarm', 'ringtone',
+    'message', 'startup', 'shutdown', 'logon', 'logoff',
+    'click', 'tap', 'button', 'menu', 'cursor',
+    'error', 'warning', 'critical', 'test',
+    // 游戏音效
+    'sfx', 'sound_fx', 'soundfx', 'fx_',
+    'footstep', 'explosion', 'gunshot', 'reload',
+    'hit', 'miss', 'damage', 'heal', 'death',
+    'jump', 'land', 'walk', 'attack',
+    'ui_', 'gui_', 'interface_',
+    'ambience', 'ambient', 'environment',
+    // 应用音效
+    'voiceover', 'voice_over', 'vo_',
+    'tts_', 'speech', 'prompt',
+  };
+
+  /// 检查文件名是否为非音乐文件
+  bool _isLikelyNonMusicFile(String filePath) {
+    final fileName = filePath.toLowerCase();
+    for (final keyword in _nonMusicKeywords) {
+      if (fileName.contains(keyword)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   @override
   Future<bool> requestPermission() async {
@@ -198,6 +262,10 @@ class WindowsMusicScanner extends PlatformMusicScanner {
           final extension = entity.path.toLowerCase();
           for (final ext in _audioExtensions) {
             if (extension.endsWith(ext)) {
+              // 检查文件名是否像非音乐文件
+              if (_isLikelyNonMusicFile(entity.path)) {
+                break;
+              }
               // 检查文件大小
               try {
                 final fileSize = await entity.length();

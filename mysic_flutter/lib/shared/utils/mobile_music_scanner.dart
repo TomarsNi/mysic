@@ -10,6 +10,39 @@ class MobileMusicScanner extends PlatformMusicScanner {
   final OnAudioQuery _audioQuery = OnAudioQuery();
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
+  /// 最小时长（毫秒）- 2分45秒 = 165秒 = 165000毫秒
+  static const int _minDurationMs = 165 * 1000;
+
+  /// 非音乐文件名关键词
+  static const Set<String> _nonMusicKeywords = {
+    // 系统音效
+    'notification', 'alert', 'alarm', 'ringtone',
+    'message', 'startup', 'shutdown', 'logon', 'logoff',
+    'click', 'tap', 'button', 'menu', 'cursor',
+    'error', 'warning', 'critical', 'test',
+    // 游戏音效
+    'sfx', 'sound_fx', 'soundfx', 'fx_',
+    'footstep', 'explosion', 'gunshot', 'reload',
+    'hit', 'miss', 'damage', 'heal', 'death',
+    'jump', 'land', 'walk', 'attack',
+    'ui_', 'gui_', 'interface_',
+    'ambience', 'ambient', 'environment',
+    // 应用音效
+    'voiceover', 'voice_over', 'vo_',
+    'tts_', 'speech', 'prompt',
+  };
+
+  /// 检查文件名是否为非音乐文件
+  bool _isLikelyNonMusicFile(String filePath) {
+    final fileName = filePath.toLowerCase();
+    for (final keyword in _nonMusicKeywords) {
+      if (fileName.contains(keyword)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @override
   Future<bool> requestPermission() async {
     final status = await Permission.storage.request();
@@ -128,6 +161,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
     final db = await _dbHelper.database;
     int newAdded = 0;
     int duplicates = 0;
+    int filtered = 0;
     final now = DateTime.now();
     final nowIso = now.toIso8601String();
 
@@ -135,6 +169,18 @@ class MobileMusicScanner extends PlatformMusicScanner {
       if (isCancelled) break;
 
       final songModel = songs[i];
+
+      // 过滤：时长不足 2分45秒
+      if (songModel.duration != null && songModel.duration! < _minDurationMs) {
+        filtered++;
+        continue;
+      }
+
+      // 过滤：文件名包含非音乐关键词
+      if (_isLikelyNonMusicFile(songModel.data)) {
+        filtered++;
+        continue;
+      }
 
       // 检查是否已存在
       final existing = await db.query(
@@ -153,7 +199,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
             'title': songModel.title ?? '未知歌曲',
             'artist': songModel.artist,
             'album': songModel.album,
-            'duration': songModel.duration ?? 0,
+            'duration': songModel.duration,
             'file_path': songModel.data,
             'album_art_path': null,
             'date_added': songModel.dateAdded,
@@ -173,6 +219,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
       ));
     }
 
+    print('Mobile扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered');
     return {'newAdded': newAdded, 'duplicates': duplicates};
   }
 
