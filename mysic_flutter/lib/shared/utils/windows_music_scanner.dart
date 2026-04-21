@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
 import 'platform_music_scanner.dart';
@@ -13,6 +12,9 @@ class WindowsMusicScanner extends PlatformMusicScanner {
   static const Set<String> _audioExtensions = {
     '.mp3', '.flac', '.wav', '.m4a', '.aac', '.ogg', '.wma',
   };
+
+  /// 最小文件大小 (2MB)
+  static const int _minFileSizeBytes = 2 * 1024 * 1024;
 
   /// 跳过的目录名
   static const Set<String> _skipDirectories = {
@@ -72,6 +74,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
       // 扫描所有驱动器
       final songs = <File>[];
       int filesScanned = 0;
+      int progressCounter = 0; // 进度更新计数器
 
       for (int i = 0; i < drives.length; i++) {
         if (isCancelled) break;
@@ -81,12 +84,17 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
         await _scanDirectory(drive, songs, (path, count) {
           filesScanned += count;
-          updateProgress(ScanProgress(
-            currentPath: path,
-            filesScanned: filesScanned,
-            songsFound: songs.length,
-            progress: driveProgress + (1 / drives.length) * 0.9,
-          ));
+          progressCounter++;
+
+          // 每 100 个文件更新一次进度，减少 UI 开销
+          if (progressCounter % 100 == 0 || songs.length % 50 == 0) {
+            updateProgress(ScanProgress(
+              currentPath: path,
+              filesScanned: filesScanned,
+              songsFound: songs.length,
+              progress: driveProgress + (1 / drives.length) * 0.9,
+            ));
+          }
         });
       }
 
@@ -190,8 +198,16 @@ class WindowsMusicScanner extends PlatformMusicScanner {
           final extension = entity.path.toLowerCase();
           for (final ext in _audioExtensions) {
             if (extension.endsWith(ext)) {
-              songs.add(entity);
-              onProgress(entity.path, 1);
+              // 检查文件大小
+              try {
+                final fileSize = await entity.length();
+                if (fileSize >= _minFileSizeBytes) {
+                  songs.add(entity);
+                  onProgress(entity.path, 1);
+                }
+              } catch (_) {
+                // 忽略无法读取的文件
+              }
               break;
             }
           }
@@ -202,7 +218,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     }
   }
 
-  /// 保存歌曲到数据库
+  /// 保存歌曲到数据库（批量操作优化）
   Future<Map<String, int>> _saveSongsToDatabase(List<File> songs) async {
     final db = await _dbHelper.database;
     int newAdded = 0;
@@ -210,43 +226,45 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     final now = DateTime.now();
     final nowIso = now.toIso8601String();
 
-    for (final file in songs) {
-      if (isCancelled) break;
+    // 1. 一次性查询所有已存在的路径
+    final allExisting = await db.query(
+      DatabaseHelper.tableSongs,
+      columns: ['file_path'],
+    );
+    final existingPaths = allExisting.map((row) => row['file_path'] as String).toSet();
 
-      final filePath = file.path;
+    // 2. 批量插入（使用事务）
+    await db.transaction((txn) async {
+      for (final file in songs) {
+        if (isCancelled) break;
 
-      // 检查是否已存在
-      final existing = await db.query(
-        DatabaseHelper.tableSongs,
-        where: 'file_path = ?',
-        whereArgs: [filePath],
-        limit: 1,
-      );
+        final filePath = file.path;
 
-      if (existing.isNotEmpty) {
-        duplicates++;
-      } else {
-        // 从文件名提取标题
-        final fileName = filePath.split(Platform.pathSeparator).last;
-        final title = fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
+        if (existingPaths.contains(filePath)) {
+          duplicates++;
+        } else {
+          // 从文件名提取标题
+          final fileName = filePath.split(Platform.pathSeparator).last;
+          final title = fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
 
-        await db.insert(
-          DatabaseHelper.tableSongs,
-          {
-            'title': title,
-            'artist': null,
-            'album': null,
-            'duration': 0,
-            'file_path': filePath,
-            'album_art_path': null,
-            'date_added': null,
-            'created_at': nowIso,
-            'updated_at': nowIso,
-          },
-        );
-        newAdded++;
+          await txn.insert(
+            DatabaseHelper.tableSongs,
+            {
+              'title': title,
+              'artist': null,
+              'album': null,
+              'duration': 0,
+              'file_path': filePath,
+              'album_art_path': null,
+              'date_added': null,
+              'created_at': nowIso,
+              'updated_at': nowIso,
+            },
+          );
+          newAdded++;
+        }
       }
-    }
+    });
 
     return {'newAdded': newAdded, 'duplicates': duplicates};
   }
