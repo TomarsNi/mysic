@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:audiotags/audiotags.dart';
 import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
 import 'platform_music_scanner.dart';
@@ -286,6 +287,45 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     }
   }
 
+  /// 从文件名智能提取标题（移除序号等前缀）
+  String _cleanTitleFromFileName(String fileName) {
+    // 移除扩展名
+    var title = fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
+    // 移除开头的数字序号 (01. 或 01- 或 01 或 1. 或 1- 等)
+    title = title.replaceFirst(RegExp(r'^\d+[\s.\-_]+'), '');
+    // 移除开头常见的艺术家前缀格式 (艺术家 - 歌名)
+    // 注意：这个可能不准确，所以只在元数据缺失时使用
+    return title.trim();
+  }
+
+  /// 从音频文件提取元数据
+  Future<_AudioMetadata> _extractMetadata(String filePath) async {
+    try {
+      final tag = await AudioTags.read(filePath);
+      if (tag != null) {
+        return _AudioMetadata(
+          title: tag.title,
+          artist: tag.trackArtist,
+          album: tag.album,
+          duration: tag.duration,
+        );
+      }
+    } catch (e) {
+      // 元数据读取失败，使用文件名
+      // ignore: avoid_print
+      print('读取元数据失败: $filePath, 错误: $e');
+    }
+
+    // 回退：从文件名提取
+    final fileName = filePath.split(Platform.pathSeparator).last;
+    return _AudioMetadata(
+      title: _cleanTitleFromFileName(fileName),
+      artist: null,
+      album: null,
+      duration: null,
+    );
+  }
+
   /// 保存歌曲到数据库（批量操作优化）
   Future<Map<String, int>> _saveSongsToDatabase(List<File> songs) async {
     final db = await _dbHelper.database;
@@ -311,17 +351,22 @@ class WindowsMusicScanner extends PlatformMusicScanner {
         if (existingPaths.contains(filePath)) {
           duplicates++;
         } else {
-          // 从文件名提取标题
+          // 提取音频元数据
+          final metadata = await _extractMetadata(filePath);
+
+          // 确定最终标题：优先使用元数据，回退到清理后的文件名
           final fileName = filePath.split(Platform.pathSeparator).last;
-          final title = fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
+          final title = metadata.title?.isNotEmpty == true
+              ? metadata.title
+              : _cleanTitleFromFileName(fileName);
 
           await txn.insert(
             DatabaseHelper.tableSongs,
             {
               'title': title,
-              'artist': null,
-              'album': null,
-              'duration': 0,
+              'artist': metadata.artist,
+              'album': metadata.album,
+              'duration': metadata.duration ?? 0,
               'file_path': filePath,
               'album_art_path': null,
               'date_added': null,
@@ -375,4 +420,19 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     final db = await _dbHelper.database;
     await db.delete(DatabaseHelper.tableSongs);
   }
+}
+
+/// 音频元数据辅助类
+class _AudioMetadata {
+  const _AudioMetadata({
+    this.title,
+    this.artist,
+    this.album,
+    this.duration,
+  });
+
+  final String? title;
+  final String? artist;
+  final String? album;
+  final int? duration;
 }

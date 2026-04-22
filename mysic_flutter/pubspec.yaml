@@ -68,6 +68,7 @@ dependencies:
 
   # 字体
   google_fonts: ^6.1.0
+  audiotags: ^1.4.5
 
 dev_dependencies:
   flutter_test:
