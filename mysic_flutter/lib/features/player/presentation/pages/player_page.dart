@@ -6,6 +6,7 @@ import '../providers/player_provider.dart';
 import '../widgets/album_cover.dart';
 import '../widgets/play_controls.dart';
 import '../widgets/progress_bar.dart';
+import '../widgets/song_edit_dialog.dart';
 import '../../../lyrics/presentation/pages/lyrics_page.dart';
 import '../../../playlist/presentation/providers/playlist_provider.dart';
 
@@ -46,6 +47,20 @@ class PlayerPage extends StatelessWidget {
       ),
       centerTitle: true,
       actions: [
+        // 编辑按钮
+        IconButton(
+          icon: const Icon(Icons.edit_rounded),
+          onPressed: () {
+            if (provider.currentSong == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('请先选择歌曲')),
+              );
+              return;
+            }
+            _showEditDialog(context, provider.currentSong!);
+          },
+        ),
+        // 添加按钮
         IconButton(
           icon: const Icon(Icons.add_rounded), // 设计稿：添加按钮
           onPressed: () {
@@ -53,6 +68,27 @@ class PlayerPage extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+
+  /// 显示编辑对话框
+  void _showEditDialog(BuildContext context, Song song) {
+    showSongEditDialog(
+      context: context,
+      song: song,
+      onSave: (updatedSong) async {
+        final provider = context.read<PlayerProvider>();
+        await provider.updateSong(updatedSong);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('歌曲信息已更新'),
+              backgroundColor: AppColors.accent,
+            ),
+          );
+        }
+      },
     );
   }
 

@@ -301,6 +301,29 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ),
               ),
 
+              // 编辑按钮 - 设计稿：p-3 rounded-xl bg-card
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF27272A), // bg-card
+                  borderRadius: BorderRadius.circular(12), // rounded-xl
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.edit_rounded, color: Colors.white),
+                  onPressed: () {
+                    if (currentSong == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('请先选择歌曲')),
+                      );
+                      return;
+                    }
+                    _showEditSongDialog(context, currentSong);
+                  },
+                  padding: const EdgeInsets.all(12), // p-3
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
               // 添加按钮 - 设计稿：p-3 rounded-xl bg-card
               Container(
                 decoration: BoxDecoration(
@@ -319,6 +342,29 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
         );
       },
+    );
+  }
+
+  /// 显示歌曲编辑对话框
+  void _showEditSongDialog(BuildContext context, Song song) {
+    showDialog(
+      context: context,
+      builder: (context) => _SongEditDialog(
+        song: song,
+        onSave: (updatedSong) async {
+          final playerProvider = context.read<PlayerProvider>();
+          await playerProvider.updateSong(updatedSong);
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('歌曲信息已更新'),
+                backgroundColor: Color(0xFF10B981),
+              ),
+            );
+          }
+        },
+      ),
     );
   }
 
@@ -947,6 +993,130 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
           const SizedBox(height: 20),
         ],
       ),
+    );
+  }
+}
+
+/// 歌曲编辑对话框
+class _SongEditDialog extends StatefulWidget {
+  final Song song;
+  final void Function(Song updatedSong) onSave;
+
+  const _SongEditDialog({
+    required this.song,
+    required this.onSave,
+  });
+
+  @override
+  State<_SongEditDialog> createState() => _SongEditDialogState();
+}
+
+class _SongEditDialogState extends State<_SongEditDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _artistController;
+  late final TextEditingController _albumController;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.song.title);
+    _artistController = TextEditingController(text: widget.song.artist ?? '');
+    _albumController = TextEditingController(text: widget.song.album ?? '');
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _artistController.dispose();
+    _albumController.dispose();
+    super.dispose();
+  }
+
+  void _handleSave() {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('歌曲名称不能为空')),
+      );
+      return;
+    }
+
+    final updatedSong = widget.song.copyWith(
+      title: title,
+      artist: _artistController.text.trim().isEmpty
+          ? null
+          : _artistController.text.trim(),
+      album: _albumController.text.trim().isEmpty
+          ? null
+          : _albumController.text.trim(),
+      updatedAt: DateTime.now(),
+    );
+
+    widget.onSave(updatedSong);
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF16213E),
+      title: const Text('编辑歌曲信息', style: TextStyle(color: Colors.white)),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _titleController,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: '歌曲名称',
+                labelStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF9CA3AF)),
+                ),
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _artistController,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: '艺术家',
+                labelStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF9CA3AF)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _albumController,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: '专辑',
+                labelStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF9CA3AF)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消', style: TextStyle(color: Color(0xFF9CA3AF))),
+        ),
+        ElevatedButton(
+          onPressed: _handleSave,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF10B981),
+          ),
+          child: const Text('保存'),
+        ),
+      ],
     );
   }
 }

@@ -1,12 +1,14 @@
 import 'package:flutter/foundation.dart';
 import '../../data/models/song.dart';
 import '../../data/services/audio_player_service.dart';
+import '../../data/repositories/song_repository.dart';
 import '../../../lyrics/data/services/lyrics_parser.dart';
 
 /// 播放器状态管理 Provider
 /// 使用 ChangeNotifier 管理播放器状态，供 UI 层使用
 class PlayerProvider extends ChangeNotifier {
   final AudioPlayerService _audioPlayerService;
+  final SongRepository _songRepository;
   final LyricsParser _lyricsParser = LyricsParser();
 
   // 状态
@@ -28,8 +30,11 @@ class PlayerProvider extends ChangeNotifier {
   String _scanPath = '';
   int _scanFound = 0;
 
-  PlayerProvider({AudioPlayerService? audioPlayerService})
-      : _audioPlayerService = audioPlayerService ?? AudioPlayerService() {
+  PlayerProvider({
+    AudioPlayerService? audioPlayerService,
+    SongRepository? songRepository,
+  })  : _audioPlayerService = audioPlayerService ?? AudioPlayerService(),
+        _songRepository = songRepository ?? SongRepository() {
     _init();
   }
 
@@ -314,6 +319,25 @@ class PlayerProvider extends ChangeNotifier {
     _scanProgress = null;
     _scanPath = '';
     _scanFound = 0;
+    notifyListeners();
+  }
+
+  /// 更新歌曲信息
+  Future<void> updateSong(Song updatedSong) async {
+    // 更新数据库
+    await _songRepository.updateSong(updatedSong);
+
+    // 更新播放列表中的歌曲引用
+    final playlistIndex = _playlist.indexWhere((s) => s.id == updatedSong.id);
+    if (playlistIndex != -1) {
+      _playlist[playlistIndex] = updatedSong;
+    }
+
+    // 如果是当前播放的歌曲，更新 currentSong
+    if (_currentSong?.id == updatedSong.id) {
+      _currentSong = updatedSong;
+    }
+
     notifyListeners();
   }
 
