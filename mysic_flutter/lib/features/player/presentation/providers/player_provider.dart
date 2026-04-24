@@ -338,6 +338,9 @@ class PlayerProvider extends ChangeNotifier {
       _currentSong = updatedSong;
     }
 
+    // 同步更新 AudioPlayerService 中的数据
+    _audioPlayerService.updateSongInPlaylist(updatedSong);
+
     notifyListeners();
   }
 

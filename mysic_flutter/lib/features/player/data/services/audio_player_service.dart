@@ -286,6 +286,18 @@ class AudioPlayerService {
     return randomIndex;
   }
 
+  /// 更新播放列表中的歌曲信息
+  void updateSongInPlaylist(Song updatedSong) {
+    final index = _playlist.indexWhere((s) => s.id == updatedSong.id);
+    if (index != -1) {
+      _playlist[index] = updatedSong;
+    }
+    if (_currentSong?.id == updatedSong.id) {
+      _currentSong = updatedSong;
+      _currentSongController.add(_currentSong);
+    }
+  }
+
   /// 释放资源
   Future<void> dispose() async {
     await _player.dispose();
