@@ -165,13 +165,30 @@ class MobileMusicScanner extends PlatformMusicScanner {
     int newAdded = 0;
     int duplicates = 0;
     int filtered = 0;
+    int skipped = 0;
     final now = DateTime.now();
     final nowIso = now.toIso8601String();
+
+    // 查询已删除的路径（软删除，需要跳过）
+    final deletedPaths = await db.query(
+      DatabaseHelper.tableSongs,
+      columns: ['file_path'],
+      where: 'is_deleted = ?',
+      whereArgs: [1],
+    );
+    final deletedPathSet =
+        deletedPaths.map((row) => row['file_path'] as String).toSet();
 
     for (int i = 0; i < songs.length; i++) {
       if (isCancelled) break;
 
       final songModel = songs[i];
+
+      // 跳过已删除的路径
+      if (deletedPathSet.contains(songModel.data)) {
+        skipped++;
+        continue;
+      }
 
       // 过滤：时长不在有效范围内（165秒 ~ 1500秒）
       if (songModel.duration != null) {
@@ -224,7 +241,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
       ));
     }
 
-    print('Mobile扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered');
+    print('Mobile扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered, skipped=$skipped');
     return {'newAdded': newAdded, 'duplicates': duplicates};
   }
 
