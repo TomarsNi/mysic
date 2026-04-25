@@ -345,32 +345,36 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 删除当前播放的歌曲
-  /// 返回 true 表示成功，false 表示失败
+  /// 删除当前播放的歌曲（乐观更新）
+  /// 立即从播放列表移除并切换到下一首，数据库操作异步执行
+  /// 返回 true 表示已从播放列表移除，false 表示无当前歌曲
   Future<bool> deleteCurrentSong() async {
     if (_currentSong == null || _currentSong!.id == null) return false;
 
     final songId = _currentSong!.id!;
+    final playlistIndex = _playlist.indexWhere((s) => s.id == songId);
 
-    try {
-      // 1. 标记为已删除
-      await _songRepository.markAsDeleted(songId);
-
-      // 2. 从所有歌单中移除
-      await _playlistRepository.removeFromAllPlaylists(songId);
-
-      // 3. 从播放列表中移除（会自动处理播放下一首或停止）
-      final playlistIndex = _playlist.indexWhere((s) => s.id == songId);
-      if (playlistIndex != -1) {
-        await removeFromPlaylist(playlistIndex);
-      }
-
-      notifyListeners();
-      return true;
-    } catch (e) {
-      debugPrint('删除歌曲失败: $e');
-      return false;
+    // 1. 立即从播放列表移除（UI 立即响应）
+    if (playlistIndex != -1) {
+      await removeFromPlaylist(playlistIndex);
     }
+
+    // 2. 异步执行数据库操作（不阻塞 UI）
+    _performDeleteAsync(songId);
+
+    return true;
+  }
+
+  /// 异步执行数据库删除操作
+  void _performDeleteAsync(int songId) {
+    () async {
+      try {
+        await _songRepository.markAsDeleted(songId);
+        await _playlistRepository.removeFromAllPlaylists(songId);
+      } catch (e) {
+        debugPrint('删除歌曲数据库操作失败: $e');
+      }
+    }();
   }
 
   @override
