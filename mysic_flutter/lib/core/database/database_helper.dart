@@ -16,7 +16,7 @@ class DatabaseHelper {
   static const String _databaseName = 'mysic.db';
 
   /// 数据库版本
-  static const int _databaseVersion = 3;
+  static const int _databaseVersion = 4;
 
   /// 表名常量
   static const String tableSongs = 'songs';
@@ -65,6 +65,7 @@ class DatabaseHelper {
         file_path TEXT NOT NULL UNIQUE,
         album_art_path TEXT,
         date_added INTEGER,
+        is_deleted INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )
@@ -261,6 +262,11 @@ class DatabaseHelper {
           value TEXT
         )
       ''');
+    }
+
+    // 版本 3 -> 4: 新增 is_deleted 字段
+    if (oldVersion < 4) {
+      await db.execute('ALTER TABLE songs ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0');
     }
   }
 
