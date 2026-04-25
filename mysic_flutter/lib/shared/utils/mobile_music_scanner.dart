@@ -13,6 +13,9 @@ class MobileMusicScanner extends PlatformMusicScanner {
   /// 最小时长（毫秒）- 2分45秒 = 165秒 = 165000毫秒
   static const int _minDurationMs = 165 * 1000;
 
+  /// 最大时长（毫秒）- 25分钟 = 1500秒 = 1500000毫秒
+  static const int _maxDurationMs = 25 * 60 * 1000;
+
   /// 非音乐文件名关键词
   static const Set<String> _nonMusicKeywords = {
     // 系统音效
@@ -170,10 +173,12 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
       final songModel = songs[i];
 
-      // 过滤：时长不足 2分45秒
-      if (songModel.duration != null && songModel.duration! < _minDurationMs) {
-        filtered++;
-        continue;
+      // 过滤：时长不在有效范围内（165秒 ~ 1500秒）
+      if (songModel.duration != null) {
+        if (songModel.duration! < _minDurationMs || songModel.duration! > _maxDurationMs) {
+          filtered++;
+          continue;
+        }
       }
 
       // 过滤：文件名包含非音乐关键词

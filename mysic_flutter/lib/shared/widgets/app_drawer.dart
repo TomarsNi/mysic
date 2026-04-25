@@ -217,10 +217,7 @@ class AppDrawer extends StatelessWidget {
           color: AppColors.accent.withValues(alpha: 0.20), // bg-accent/20
           borderRadius: BorderRadius.circular(12),
           child: InkWell(
-            onTap: isScanning ? null : () {
-              Navigator.of(context).pop();
-              onScanTap?.call();
-            },
+            onTap: isScanning ? null : onScanTap,
             borderRadius: BorderRadius.circular(12),
             child: Container(
               width: double.infinity,

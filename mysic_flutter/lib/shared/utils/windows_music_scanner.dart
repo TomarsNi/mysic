@@ -17,6 +17,12 @@ class WindowsMusicScanner extends PlatformMusicScanner {
   /// 最小文件大小 (2.5MB)
   static const int _minFileSizeBytes = 2500 * 1024;
 
+  /// 最小时长（秒）- 2分45秒 = 165秒
+  static const int _minDurationSec = 165;
+
+  /// 最大时长（秒）- 25分钟 = 1500秒
+  static const int _maxDurationSec = 25 * 60;
+
   /// 跳过的目录名
   static const Set<String> _skipDirectories = {
     // 系统目录
@@ -331,6 +337,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     final db = await _dbHelper.database;
     int newAdded = 0;
     int duplicates = 0;
+    int filtered = 0;
     final now = DateTime.now();
     final nowIso = now.toIso8601String();
 
@@ -353,6 +360,15 @@ class WindowsMusicScanner extends PlatformMusicScanner {
         } else {
           // 提取音频元数据
           final metadata = await _extractMetadata(filePath);
+
+          // 过滤：时长不在有效范围内（165秒 ~ 1500秒）
+          // audiotags 返回的 duration 单位是秒
+          if (metadata.duration != null) {
+            if (metadata.duration! < _minDurationSec || metadata.duration! > _maxDurationSec) {
+              filtered++;
+              continue;
+            }
+          }
 
           // 确定最终标题：优先使用元数据，回退到清理后的文件名
           final fileName = filePath.split(Platform.pathSeparator).last;
@@ -379,6 +395,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
       }
     });
 
+    print('Windows扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered');
     return {'newAdded': newAdded, 'duplicates': duplicates};
   }
 
