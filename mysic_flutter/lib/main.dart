@@ -730,7 +730,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         song: song,
         onConfirm: () async {
           final playerProvider = context.read<PlayerProvider>();
+          final playlistProvider = context.read<PlaylistProvider>();
+
+          // 删除歌曲
           await playerProvider.deleteCurrentSong();
+
+          // 刷新歌单数据
+          await playlistProvider.refresh();
+
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -1194,7 +1201,7 @@ class _DeleteConfirmSheet extends StatelessWidget {
                     ),
                   ),
                   child: const Text(
-                    '取消',
+                    '算了吧',
                     style: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ),
@@ -1214,7 +1221,7 @@ class _DeleteConfirmSheet extends StatelessWidget {
                     ),
                   ),
                   child: const Text(
-                    '删除',
+                    '删了吧',
                     style: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ),

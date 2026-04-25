@@ -264,24 +264,21 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   /// 从播放列表移除歌曲
-  void removeFromPlaylist(int index) {
+  Future<void> removeFromPlaylist(int index) async {
     if (index < 0 || index >= _playlist.length) return;
 
     _playlist.removeAt(index);
 
-    // 调整当前索引
-    if (index < _currentIndex) {
-      _currentIndex--;
-    } else if (index == _currentIndex) {
-      // 如果移除的是当前播放的歌曲，播放下一首
-      if (_playlist.isNotEmpty) {
-        if (_currentIndex >= _playlist.length) {
-          _currentIndex = _playlist.length - 1;
-        }
-        seekToIndex(_currentIndex);
-      } else {
-        stop();
-      }
+    // 同步更新 AudioPlayerService 的播放列表
+    await _audioPlayerService.removeFromPlaylist(index);
+
+    // 同步索引状态
+    _currentIndex = _audioPlayerService.currentIndex;
+    _currentSong = _audioPlayerService.currentSong;
+
+    // 如果播放列表为空，清理歌词
+    if (_playlist.isEmpty) {
+      _currentLyrics = LyricsResult.empty;
     }
 
     notifyListeners();
@@ -362,15 +359,11 @@ class PlayerProvider extends ChangeNotifier {
       // 2. 从所有歌单中移除
       await _playlistRepository.removeFromAllPlaylists(songId);
 
-      // 3. 从播放列表中移除
+      // 3. 从播放列表中移除（会自动处理播放下一首或停止）
       final playlistIndex = _playlist.indexWhere((s) => s.id == songId);
       if (playlistIndex != -1) {
-        removeFromPlaylist(playlistIndex);
+        await removeFromPlaylist(playlistIndex);
       }
-
-      // 4. 清除当前歌曲引用
-      _currentSong = null;
-      _currentLyrics = LyricsResult.empty;
 
       notifyListeners();
       return true;

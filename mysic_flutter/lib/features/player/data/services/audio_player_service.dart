@@ -298,6 +298,42 @@ class AudioPlayerService {
     }
   }
 
+  /// 从播放列表移除歌曲
+  /// 返回移除后的播放列表是否为空
+  Future<bool> removeFromPlaylist(int index) async {
+    if (index < 0 || index >= _playlist.length) return false;
+
+    final wasPlayingCurrent = index == _currentIndex;
+    _playlist.removeAt(index);
+
+    // 调整当前索引
+    if (index < _currentIndex) {
+      _currentIndex--;
+    } else if (wasPlayingCurrent) {
+      // 如果移除的是当前播放的歌曲
+      if (_playlist.isNotEmpty) {
+        if (_currentIndex >= _playlist.length) {
+          _currentIndex = _playlist.length - 1;
+        }
+        // 先更新状态和歌曲信息，让 UI 立即响应
+        _updateState(MysicPlayerState.loading);
+        _currentSong = _playlist[_currentIndex];
+        _currentSongController.add(_currentSong);
+        // 异步播放，不阻塞
+        _player.play(DeviceFileSource(_currentSong!.filePath));
+      } else {
+        // 播放列表为空，停止播放
+        _currentIndex = -1;
+        _currentSong = null;
+        _currentSongController.add(null);
+        await _player.stop();
+        _updateState(MysicPlayerState.idle);
+      }
+    }
+
+    return _playlist.isEmpty;
+  }
+
   /// 释放资源
   Future<void> dispose() async {
     await _player.dispose();
