@@ -74,11 +74,11 @@ class SongRepository {
     return maps.map((map) => map['file_path'] as String).toSet();
   }
 
-  /// 获取歌曲数量
+  /// 获取歌曲数量（排除已删除）
   Future<int> getSongCount() async {
     final db = await _dbHelper.database;
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM ${DatabaseHelper.tableSongs}',
+      'SELECT COUNT(*) as count FROM ${DatabaseHelper.tableSongs} WHERE is_deleted = 0 OR is_deleted IS NULL',
     );
     if (result.isEmpty) return 0;
     return result.first['count'] as int? ?? 0;
