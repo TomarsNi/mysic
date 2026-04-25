@@ -3,12 +3,14 @@ import '../../data/models/song.dart';
 import '../../data/services/audio_player_service.dart';
 import '../../data/repositories/song_repository.dart';
 import '../../../lyrics/data/services/lyrics_parser.dart';
+import '../../../playlist/data/playlist_repository.dart';
 
 /// 播放器状态管理 Provider
 /// 使用 ChangeNotifier 管理播放器状态，供 UI 层使用
 class PlayerProvider extends ChangeNotifier {
   final AudioPlayerService _audioPlayerService;
   final SongRepository _songRepository;
+  final PlaylistRepository _playlistRepository;
   final LyricsParser _lyricsParser = LyricsParser();
 
   // 状态
@@ -33,8 +35,10 @@ class PlayerProvider extends ChangeNotifier {
   PlayerProvider({
     AudioPlayerService? audioPlayerService,
     SongRepository? songRepository,
+    PlaylistRepository? playlistRepository,
   })  : _audioPlayerService = audioPlayerService ?? AudioPlayerService(),
-        _songRepository = songRepository ?? SongRepository() {
+        _songRepository = songRepository ?? SongRepository(),
+        _playlistRepository = playlistRepository ?? PlaylistRepository() {
     _init();
   }
 
@@ -342,6 +346,38 @@ class PlayerProvider extends ChangeNotifier {
     _audioPlayerService.updateSongInPlaylist(updatedSong);
 
     notifyListeners();
+  }
+
+  /// 删除当前播放的歌曲
+  /// 返回 true 表示成功，false 表示失败
+  Future<bool> deleteCurrentSong() async {
+    if (_currentSong == null || _currentSong!.id == null) return false;
+
+    final songId = _currentSong!.id!;
+
+    try {
+      // 1. 标记为已删除
+      await _songRepository.markAsDeleted(songId);
+
+      // 2. 从所有歌单中移除
+      await _playlistRepository.removeFromAllPlaylists(songId);
+
+      // 3. 从播放列表中移除
+      final playlistIndex = _playlist.indexWhere((s) => s.id == songId);
+      if (playlistIndex != -1) {
+        removeFromPlaylist(playlistIndex);
+      }
+
+      // 4. 清除当前歌曲引用
+      _currentSong = null;
+      _currentLyrics = LyricsResult.empty;
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print('删除歌曲失败: $e');
+      return false;
+    }
   }
 
   @override
