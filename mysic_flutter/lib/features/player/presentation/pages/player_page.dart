@@ -33,7 +33,7 @@ class PlayerPage extends StatelessWidget {
       backgroundColor: AppColors.surface,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.menu_rounded), // 设计稿：汉堡菜单
+        icon: const Icon(Icons.menu_rounded),
         onPressed: () {
           Scaffold.of(context).openDrawer();
         },
@@ -47,28 +47,90 @@ class PlayerPage extends StatelessWidget {
       ),
       centerTitle: true,
       actions: [
-        // 编辑按钮
-        IconButton(
-          icon: const Icon(Icons.edit_rounded),
-          onPressed: () {
-            if (provider.currentSong == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('请先选择歌曲')),
-              );
-              return;
-            }
-            _showEditDialog(context, provider.currentSong!);
-          },
+        _buildPopupMenu(context, provider),
+      ],
+    );
+  }
+
+  Widget _buildPopupMenu(BuildContext context, PlayerProvider provider) {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.add_rounded),
+      color: AppColors.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      offset: const Offset(0, 48),
+      onSelected: (value) => _handleMenuAction(context, provider, value),
+      itemBuilder: (context) => [
+        PopupMenuItem<String>(
+          value: 'add_to_playlist',
+          child: Row(
+            children: [
+              Icon(Icons.playlist_add, color: AppColors.white, size: 20),
+              const SizedBox(width: 12),
+              const Text('添加到歌单', style: TextStyle(color: AppColors.white)),
+            ],
+          ),
         ),
-        // 添加按钮
-        IconButton(
-          icon: const Icon(Icons.add_rounded), // 设计稿：添加按钮
-          onPressed: () {
-            _showAddToPlaylistSheet(context, provider);
-          },
+        PopupMenuItem<String>(
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(Icons.edit_rounded, color: AppColors.white, size: 20),
+              const SizedBox(width: 12),
+              const Text('编辑', style: TextStyle(color: AppColors.white)),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_rounded, color: const Color(0xFFEF4444), size: 20),
+              const SizedBox(width: 12),
+              const Text('删除', style: TextStyle(color: Color(0xFFEF4444))),
+            ],
+          ),
         ),
       ],
     );
+  }
+
+  void _handleMenuAction(
+    BuildContext context,
+    PlayerProvider provider,
+    String action,
+  ) {
+    switch (action) {
+      case 'add_to_playlist':
+        if (provider.currentSong == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('请先选择歌曲')),
+          );
+          return;
+        }
+        _showAddToPlaylistSheet(context, provider);
+        break;
+      case 'edit':
+        if (provider.currentSong == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('请先选择歌曲')),
+          );
+          return;
+        }
+        _showEditDialog(context, provider.currentSong!);
+        break;
+      case 'delete':
+        if (provider.currentSong == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('请先选择歌曲')),
+          );
+          return;
+        }
+        _showDeleteConfirmSheet(context, provider);
+        break;
+    }
   }
 
   /// 显示编辑对话框
