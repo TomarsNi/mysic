@@ -8,7 +8,6 @@ import 'core/theme/app_theme.dart';
 import 'core/database/database_helper.dart';
 import 'features/player/presentation/providers/player_provider.dart';
 import 'features/playlist/presentation/providers/playlist_provider.dart';
-import 'features/player/presentation/pages/player_page.dart' show PlayerPage;
 import 'features/lyrics/presentation/pages/lyrics_page.dart' show LyricsPage;
 import 'features/settings/presentation/pages/about_page.dart';
 import 'shared/widgets/app_drawer.dart';
@@ -460,6 +459,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     // - 两行歌词：当前行 lg font-medium white，下一行 muted
     // - hover 时背景 white/5，圆角 rounded-xl
     // - 点击可进入歌词页面
+    final currentLyric = provider.currentLyricLine?.text;
+    final nextLyric = provider.nextLyricLine?.text;
+
+    // 如果没有歌词，显示占位文本
+    final displayCurrentLyric = currentLyric ?? '暂无歌词';
+    final displayNextLyric = nextLyric ?? '';
+
     return GestureDetector(
       onTap: () => _openLyricsPage(context),
       child: MouseRegion(
@@ -474,27 +480,31 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           child: Column(
             children: [
               // 当前行 - 设计稿要求 lg font-medium white
-              const Text(
-                '为你弹奏肖邦的夜曲',
-                style: TextStyle(
+              Text(
+                displayCurrentLyric,
+                style: const TextStyle(
                   fontSize: 18, // lg
                   fontWeight: FontWeight.w500, // font-medium
                   color: Colors.white,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 4),
-              // 下一行 - muted 色
-              const Text(
-                '纪念我死去的爱情',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF71717A), // muted
+              if (displayNextLyric.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                // 下一行 - muted 色
+                Text(
+                  displayNextLyric,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF71717A), // muted
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              ],
             ],
           ),
         ),
@@ -649,14 +659,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       final count = await playlistProvider.addSongsToPlaylist(playlistId, allSongs);
       print('成功添加 $count 首歌曲到歌单');
     }
-  }
-
-  void _openPlayerPage(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const PlayerPage(),
-      ),
-    );
   }
 
   void _openLyricsPage(BuildContext context) {
