@@ -547,4 +547,29 @@ class PlaylistRepository {
     );
     return Sqflite.firstIntValue(result) ?? 0;
   }
+
+  // ==================== 应用状态操作 ====================
+
+  /// 获取应用状态
+  Future<String?> getAppState(String key) async {
+    final db = await _db;
+    final result = await db.query(
+      DatabaseHelper.tableAppState,
+      where: 'key = ?',
+      whereArgs: [key],
+      limit: 1,
+    );
+    if (result.isEmpty) return null;
+    return result.first['value'] as String?;
+  }
+
+  /// 设置应用状态
+  Future<void> setAppState(String key, String value) async {
+    final db = await _db;
+    await db.insert(
+      DatabaseHelper.tableAppState,
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
 }
