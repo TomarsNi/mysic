@@ -461,9 +461,10 @@ class PlaylistRepository {
       whereArgs: [songId],
     );
 
-    // 更新相关歌单的时间戳
+    // 更新相关歌单的时间戳并重新排序位置
     for (final playlistId in playlistIds) {
       await _updatePlaylistTimestamp(playlistId);
+      await _reorderPlaylistPositions(playlistId);
     }
 
     return count;

@@ -375,7 +375,7 @@ class PlayerProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      print('删除歌曲失败: $e');
+      debugPrint('删除歌曲失败: $e');
       return false;
     }
   }
