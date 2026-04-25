@@ -85,15 +85,52 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       duration: const Duration(milliseconds: 300),
     );
 
-    // 加载歌单 - 延迟到 build 完成后执行
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadPlaylists();
+    // 加载歌单并恢复播放 - 延迟到 build 完成后执行
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadPlaylists();
+      // 恢复上次播放的歌单
+      await _restoreLastPlaylist();
     });
   }
 
   Future<void> _loadPlaylists() async {
     final playlistProvider = context.read<PlaylistProvider>();
     await playlistProvider.refresh();
+  }
+
+  /// 恢复上次播放的歌单
+  Future<void> _restoreLastPlaylist() async {
+    final playerProvider = context.read<PlayerProvider>();
+    final playlistProvider = context.read<PlaylistProvider>();
+    final repository = PlaylistRepository();
+
+    // 1. 尝试获取上次播放的歌单 ID
+    final lastPlaylistIdStr = await repository.getAppState('last_playlist_id');
+    int? playlistId = lastPlaylistIdStr != null ? int.tryParse(lastPlaylistIdStr) : null;
+
+    // 2. 如果歌单不存在，回退到"本地音乐"歌单
+    if (playlistId == null) {
+      final localPlaylist = playlistProvider.playlists.where((p) => p.name == '本地音乐').firstOrNull;
+      playlistId = localPlaylist?.id;
+    } else {
+      // 验证歌单是否还存在
+      final playlist = await repository.getPlaylistById(playlistId);
+      if (playlist == null) {
+        // 歌单已删除，回退到"本地音乐"
+        final localPlaylist = playlistProvider.playlists.where((p) => p.name == '本地音乐').firstOrNull;
+        playlistId = localPlaylist?.id;
+      }
+    }
+
+    if (playlistId == null) return;
+
+    // 3. 加载歌单歌曲
+    await playlistProvider.selectPlaylist(playlistId);
+    final songs = playlistProvider.selectedPlaylistSongs;
+    if (songs.isEmpty) return;
+
+    // 4. 播放歌单（与用户点击歌单逻辑一致）
+    await playerProvider.setPlaylist(songs, autoPlay: true);
   }
 
   @override
@@ -115,18 +152,22 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               final playlistId = playlist.id;
               if (playlistId == null) return;
 
-              // 1. 选择歌单（加载歌曲）
+              // 1. 记录最后播放的歌单
+              final repository = PlaylistRepository();
+              await repository.setAppState('last_playlist_id', playlistId.toString());
+
+              // 2. 选择歌单（加载歌曲）
               await playlistProvider.selectPlaylist(playlistId);
 
-              // 2. 获取歌曲列表
+              // 3. 获取歌曲列表
               final songs = playlistProvider.selectedPlaylistSongs;
 
               if (songs.isNotEmpty) {
-                // 3. 设置播放列表并自动播放
+                // 4. 设置播放列表并自动播放
                 await playerProvider.setPlaylist(songs, autoPlay: true);
               }
 
-              // 4. 抽屉会自动关闭（在 AppDrawer 中处理）
+              // 5. 抽屉会自动关闭（在 AppDrawer 中处理）
             },
             onScanTap: _startScan,
             onSettingsTap: () => _showSettings(context),
