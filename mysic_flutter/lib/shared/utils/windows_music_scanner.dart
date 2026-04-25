@@ -338,6 +338,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     int newAdded = 0;
     int duplicates = 0;
     int filtered = 0;
+    int skipped = 0;
     final now = DateTime.now();
     final nowIso = now.toIso8601String();
 
@@ -348,12 +349,29 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     );
     final existingPaths = allExisting.map((row) => row['file_path'] as String).toSet();
 
-    // 2. 批量插入（使用事务）
+    // 2. 查询已删除的路径（软删除标记）
+    final deletedPathsResult = await db.query(
+      DatabaseHelper.tableSongs,
+      columns: ['file_path'],
+      where: 'is_deleted = ?',
+      whereArgs: [1],
+    );
+    final deletedPaths = deletedPathsResult
+        .map((row) => row['file_path'] as String)
+        .toSet();
+
+    // 3. 批量插入（使用事务）
     await db.transaction((txn) async {
       for (final file in songs) {
         if (isCancelled) break;
 
         final filePath = file.path;
+
+        // 跳过已删除的路径
+        if (deletedPaths.contains(filePath)) {
+          skipped++;
+          continue;
+        }
 
         if (existingPaths.contains(filePath)) {
           duplicates++;
@@ -395,7 +413,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
       }
     });
 
-    print('Windows扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered');
+    print('Windows扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered, skipped=$skipped');
     return {'newAdded': newAdded, 'duplicates': duplicates};
   }
 
