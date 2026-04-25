@@ -154,6 +154,32 @@ class PlayerPage extends StatelessWidget {
     );
   }
 
+  /// 显示删除确认底部面板
+  void _showDeleteConfirmSheet(BuildContext context, PlayerProvider provider) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _DeleteConfirmSheet(
+        song: provider.currentSong!,
+        onConfirm: () async {
+          Navigator.pop(context);
+          final success = await provider.deleteCurrentSong();
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(success ? '已删除' : '删除失败'),
+                backgroundColor: success ? AppColors.accent : Colors.red,
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
   Widget _buildBody(BuildContext context, PlayerProvider provider) {
     final currentSong = provider.currentSong;
 
@@ -542,6 +568,123 @@ class _AddToPlaylistSheet extends StatelessWidget {
       SnackBar(
         content: Text(success ? '已添加到歌单' : '添加失败'),
         backgroundColor: success ? AppColors.accent : Colors.red,
+      ),
+    );
+  }
+}
+
+/// 删除确认底部面板
+class _DeleteConfirmSheet extends StatelessWidget {
+  final Song song;
+  final VoidCallback onConfirm;
+
+  const _DeleteConfirmSheet({
+    required this.song,
+    required this.onConfirm,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            // 拖动指示器
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.muted.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // 警告图标
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.warning_rounded,
+                color: Color(0xFFEF4444),
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // 标题
+            const Text(
+              '确认删除',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // 歌曲名称
+            Text(
+              song.title,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.muted,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+            // 警告文字
+            const Text(
+              '删除后歌曲将从所有歌单中移除，且再次扫描不会添加进来',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.muted,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            // 按钮行
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.muted,
+                      side: const BorderSide(color: AppColors.muted),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('取消'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onConfirm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF4444),
+                      foregroundColor: AppColors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('删除'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
