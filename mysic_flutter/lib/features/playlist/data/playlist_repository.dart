@@ -439,6 +439,36 @@ class PlaylistRepository {
     return result.isNotEmpty;
   }
 
+  /// 从所有歌单中移除指定歌曲
+  Future<int> removeFromAllPlaylists(int songId) async {
+    final db = await _db;
+
+    // 获取包含该歌曲的所有歌单 ID
+    final playlistSongs = await db.query(
+      DatabaseHelper.tablePlaylistSongs,
+      columns: ['playlist_id'],
+      where: 'song_id = ?',
+      whereArgs: [songId],
+    );
+
+    final playlistIds =
+        playlistSongs.map((ps) => ps['playlist_id'] as int).toSet();
+
+    // 删除所有关联
+    final count = await db.delete(
+      DatabaseHelper.tablePlaylistSongs,
+      where: 'song_id = ?',
+      whereArgs: [songId],
+    );
+
+    // 更新相关歌单的时间戳
+    for (final playlistId in playlistIds) {
+      await _updatePlaylistTimestamp(playlistId);
+    }
+
+    return count;
+  }
+
   // ==================== 辅助方法 ====================
 
   /// 获取歌单最大位置
