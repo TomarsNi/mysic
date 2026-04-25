@@ -16,7 +16,7 @@ class DatabaseHelper {
   static const String _databaseName = 'mysic.db';
 
   /// 数据库版本
-  static const int _databaseVersion = 2;
+  static const int _databaseVersion = 3;
 
   /// 表名常量
   static const String tableSongs = 'songs';
@@ -24,6 +24,7 @@ class DatabaseHelper {
   static const String tablePlaylistSongs = 'playlist_songs';
   static const String tableLyrics = 'lyrics';
   static const String tablePlayHistory = 'play_history';
+  static const String tableAppState = 'app_state';
 
   /// 获取数据库实例
   Future<Database> get database async {
@@ -117,6 +118,14 @@ class DatabaseHelper {
         played_at INTEGER NOT NULL,
         play_duration INTEGER,
         FOREIGN KEY (song_id) REFERENCES $tableSongs (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // 创建应用状态表
+    await db.execute('''
+      CREATE TABLE $tableAppState (
+        key TEXT PRIMARY KEY,
+        value TEXT
       )
     ''');
 
@@ -242,6 +251,16 @@ class DatabaseHelper {
       await db.execute('CREATE INDEX IF NOT EXISTS idx_songs_artist ON songs (artist)');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_songs_album ON songs (album)');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_playlist_songs_playlist ON playlist_songs (playlist_id)');
+    }
+
+    // 版本 2 -> 3: 新增 app_state 表
+    if (oldVersion < 3) {
+      await db.execute('''
+        CREATE TABLE $tableAppState (
+          key TEXT PRIMARY KEY,
+          value TEXT
+        )
+      ''');
     }
   }
 
