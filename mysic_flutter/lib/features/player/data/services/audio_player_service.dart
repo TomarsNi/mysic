@@ -304,6 +304,7 @@ class AudioPlayerService {
     if (index < 0 || index >= _playlist.length) return false;
 
     final wasPlayingCurrent = index == _currentIndex;
+    final wasPlaying = _state == MysicPlayerState.playing;
     _playlist.removeAt(index);
 
     // 调整当前索引
@@ -315,12 +316,18 @@ class AudioPlayerService {
         if (_currentIndex >= _playlist.length) {
           _currentIndex = _playlist.length - 1;
         }
-        // 先更新状态和歌曲信息，让 UI 立即响应
-        _updateState(MysicPlayerState.loading);
         _currentSong = _playlist[_currentIndex];
         _currentSongController.add(_currentSong);
-        // 异步播放，不阻塞
-        _player.play(DeviceFileSource(_currentSong!.filePath));
+
+        if (wasPlaying) {
+          // 之前在播放，继续播放下一首
+          _updateState(MysicPlayerState.loading);
+          _player.play(DeviceFileSource(_currentSong!.filePath));
+        } else {
+          // 之前未播放，只加载不播放
+          _player.setSource(DeviceFileSource(_currentSong!.filePath));
+          _updateState(MysicPlayerState.ready);
+        }
       } else {
         // 播放列表为空，停止播放
         _currentIndex = -1;

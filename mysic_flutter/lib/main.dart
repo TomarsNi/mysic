@@ -467,7 +467,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final displayNextLyric = nextLyric ?? '';
 
     return GestureDetector(
-      onTap: () => _openLyricsPage(context),
+      onTap: currentLyric != null ? () => _openLyricsPage(context) : null,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: AnimatedContainer(
