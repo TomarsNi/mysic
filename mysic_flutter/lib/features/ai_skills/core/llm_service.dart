@@ -1,4 +1,5 @@
 // lib/features/ai_skills/core/llm_service.dart
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:mysic_flutter/features/settings/data/models/api_config.dart';
@@ -20,6 +21,11 @@ class LlmService {
     required String prompt,
     bool enableWebSearch = false,
   }) async {
+    // 验证 API Key
+    if (config.apiKey.isEmpty) {
+      throw LlmServiceException('API Key 未配置');
+    }
+
     final url = Uri.parse(buildUrl(config));
     final body = buildRequestBody(
       config: config,
@@ -27,27 +33,31 @@ class LlmService {
       enableWebSearch: enableWebSearch,
     );
 
-    final response = await _client
-        .post(
-          url,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ${config.apiKey}',
-          },
-          body: jsonEncode(body),
-        )
-        .timeout(timeout);
+    try {
+      final response = await _client
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${config.apiKey}',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(timeout);
 
-    if (response.statusCode != 200) {
-      throw LlmServiceException(
-        'API 请求失败: ${response.statusCode}',
-        statusCode: response.statusCode,
-        body: response.body,
-      );
+      if (response.statusCode != 200) {
+        throw LlmServiceException(
+          'API 请求失败: ${response.statusCode}',
+          statusCode: response.statusCode,
+          body: response.body,
+        );
+      }
+
+      final jsonResponse = jsonDecode(response.body) as Map<String, dynamic>;
+      return parseResponse(config: config, response: jsonResponse);
+    } on TimeoutException {
+      throw LlmServiceException('API 请求超时');
     }
-
-    final jsonResponse = jsonDecode(response.body) as Map<String, dynamic>;
-    return parseResponse(config: config, response: jsonResponse);
   }
 
   /// 构建请求 URL（根据服务商）
