@@ -330,6 +330,45 @@ class DatabaseHelper {
     await db.delete(tableSongs);
   }
 
+  /// 更新或插入歌词内容
+  /// 如果歌词记录存在则更新，不存在则插入
+  Future<void> updateLyricsContent(int songId, String lrcContent) async {
+    final db = await database;
+    final now = DateTime.now().toIso8601String();
+
+    // 检查是否已存在记录
+    final existing = await db.query(
+      tableLyrics,
+      where: 'song_id = ?',
+      whereArgs: [songId],
+    );
+
+    if (existing.isNotEmpty) {
+      // 更新现有记录
+      await db.update(
+        tableLyrics,
+        {
+          'lrc_content': lrcContent,
+          'is_synced': 1,
+          'source': 'manual',
+          'updated_at': now,
+        },
+        where: 'song_id = ?',
+        whereArgs: [songId],
+      );
+    } else {
+      // 插入新记录
+      await db.insert(tableLyrics, {
+        'song_id': songId,
+        'lrc_content': lrcContent,
+        'is_synced': 1,
+        'source': 'manual',
+        'created_at': now,
+        'updated_at': now,
+      });
+    }
+  }
+
   /// 获取当前时间戳（毫秒）
   static int currentTimestamp() {
     return DateTime.now().millisecondsSinceEpoch;
