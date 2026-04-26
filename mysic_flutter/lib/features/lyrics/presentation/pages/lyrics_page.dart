@@ -88,8 +88,11 @@ class _LyricsPageState extends State<LyricsPage> {
                   child: _buildLyricsList(lyrics),
                 ),
 
-                // 底部迷你播放器
-                _buildMiniPlayer(context, playerProvider),
+                // 时间调整工具栏（编辑模式下显示）
+                if (_isEditMode) _buildAdjustmentToolbar(context, playerProvider),
+
+                // 底部迷你播放器（非编辑模式下显示）
+                if (!_isEditMode) _buildMiniPlayer(context, playerProvider),
               ],
             ),
           ),
@@ -309,6 +312,241 @@ class _LyricsPageState extends State<LyricsPage> {
         );
       },
     );
+  }
+
+  /// 时间调整工具栏
+  Widget _buildAdjustmentToolbar(BuildContext context, PlayerProvider provider) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(
+          top: BorderSide(
+            color: AppColors.white.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 标题
+          Row(
+            children: [
+              const Icon(
+                Icons.music_note_rounded,
+                size: 20,
+                color: AppColors.accent,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                '时间调整',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 整体偏移
+          _buildGlobalOffsetControl(),
+          const SizedBox(height: 16),
+
+          // 按钮行
+          Row(
+            children: [
+              // 逐行调整按钮
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _isLineEditMode = !_isLineEditMode;
+                    });
+                  },
+                  icon: Icon(
+                    _isLineEditMode ? Icons.list_rounded : Icons.tune_rounded,
+                    size: 18,
+                  ),
+                  label: Text(_isLineEditMode ? '完成调整' : '逐行调整'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.white,
+                    side: BorderSide(
+                      color: AppColors.white.withValues(alpha: 0.3),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 保存按钮
+              ElevatedButton(
+                onPressed:
+                    _hasChanges() ? () => _saveAdjustment(provider) : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: AppColors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('保存'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 整体偏移控件
+  Widget _buildGlobalOffsetControl() {
+    final offsetSeconds = _globalOffset.inMilliseconds / 1000.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '整体偏移',
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.muted,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            // 减少按钮
+            _buildOffsetButton(
+              icon: Icons.remove_rounded,
+              onPressed: () {
+                setState(() {
+                  _globalOffset = Duration(
+                    milliseconds:
+                        (_globalOffset.inMilliseconds - 100).clamp(-5000, 5000),
+                  );
+                });
+              },
+            ),
+            // 滑块
+            Expanded(
+              child: SliderTheme(
+                data: SliderThemeData(
+                  activeTrackColor: AppColors.accent,
+                  inactiveTrackColor: AppColors.white.withValues(alpha: 0.1),
+                  thumbColor: AppColors.accent,
+                  overlayColor: AppColors.accent.withValues(alpha: 0.2),
+                  trackHeight: 4,
+                ),
+                child: Slider(
+                  value: offsetSeconds.clamp(-5.0, 5.0),
+                  min: -5.0,
+                  max: 5.0,
+                  divisions: 100,
+                  onChanged: (value) {
+                    setState(() {
+                      _globalOffset = Duration(
+                        milliseconds: (value * 1000).round(),
+                      );
+                    });
+                  },
+                ),
+              ),
+            ),
+            // 增加按钮
+            _buildOffsetButton(
+              icon: Icons.add_rounded,
+              onPressed: () {
+                setState(() {
+                  _globalOffset = Duration(
+                    milliseconds:
+                        (_globalOffset.inMilliseconds + 100).clamp(-5000, 5000),
+                  );
+                });
+              },
+            ),
+          ],
+        ),
+        // 当前值和重置按钮
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '当前: ${offsetSeconds >= 0 ? '+' : ''}${offsetSeconds.toStringAsFixed(1)}s',
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.white,
+              ),
+            ),
+            TextButton(
+              onPressed: _globalOffset != Duration.zero
+                  ? () {
+                      setState(() {
+                        _globalOffset = Duration.zero;
+                      });
+                    }
+                  : null,
+              child: const Text('重置'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// 偏移按钮
+  Widget _buildOffsetButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: IconButton(
+        icon: Icon(icon, size: 20),
+        color: AppColors.white,
+        padding: EdgeInsets.zero,
+        onPressed: onPressed,
+      ),
+    );
+  }
+
+  /// 检查是否有更改
+  bool _hasChanges() {
+    return _globalOffset != Duration.zero || _lineOffsets.isNotEmpty;
+  }
+
+  /// 保存调整
+  Future<void> _saveAdjustment(PlayerProvider provider) async {
+    final success = await provider.saveLyricsAdjustment(
+      globalOffset: _globalOffset,
+      lineOffsets: _lineOffsets,
+    );
+
+    if (success && mounted) {
+      setState(() {
+        _isEditMode = false;
+        _isLineEditMode = false;
+        _globalOffset = Duration.zero;
+        _lineOffsets = {};
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('歌词时间已保存'),
+          backgroundColor: AppColors.accent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Widget _buildMiniPlayer(BuildContext context, PlayerProvider provider) {
