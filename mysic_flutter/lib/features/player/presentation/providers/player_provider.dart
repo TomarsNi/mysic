@@ -4,6 +4,7 @@ import '../../data/services/audio_player_service.dart';
 import '../../data/repositories/song_repository.dart';
 import '../../../lyrics/data/services/lyrics_parser.dart';
 import '../../../playlist/data/playlist_repository.dart';
+import '../../../../core/database/database_helper.dart';
 
 /// 播放器状态管理 Provider
 /// 使用 ChangeNotifier 管理播放器状态，供 UI 层使用
@@ -80,7 +81,24 @@ class PlayerProvider extends ChangeNotifier {
       return;
     }
 
-    // 尝试查找歌词文件
+    // 1. 优先从数据库加载
+    final db = await DatabaseHelper().database;
+    final dbResult = await db.query(
+      DatabaseHelper.tableLyrics,
+      where: 'song_id = ?',
+      whereArgs: [song.id],
+    );
+
+    if (dbResult.isNotEmpty) {
+      final lrcContent = dbResult.first['lrc_content'] as String?;
+      if (lrcContent != null && lrcContent.isNotEmpty) {
+        _currentLyrics = _lyricsParser.parse(lrcContent);
+        notifyListeners();
+        return;
+      }
+    }
+
+    // 2. 再从文件系统查找
     final lyricsPath = _lyricsParser.findLyricsFile(song.filePath);
     if (lyricsPath != null) {
       _currentLyrics = await _lyricsParser.parseFile(lyricsPath);
@@ -88,6 +106,11 @@ class PlayerProvider extends ChangeNotifier {
       _currentLyrics = LyricsResult.empty;
     }
     notifyListeners();
+  }
+
+  /// 重新加载当前歌曲的歌词（供外部调用）
+  Future<void> reloadLyrics() async {
+    await _loadLyricsForSong(_currentSong);
   }
 
   // Getters
