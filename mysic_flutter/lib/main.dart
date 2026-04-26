@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
 import 'dart:io';
 
 import 'core/theme/app_theme.dart';
@@ -12,6 +13,12 @@ import 'features/lyrics/presentation/pages/lyrics_page.dart' show LyricsPage;
 import 'features/settings/presentation/pages/about_page.dart';
 import 'features/settings/presentation/pages/api_settings_page.dart';
 import 'features/settings/presentation/providers/api_config_provider.dart';
+import 'features/ai_skills/presentation/providers/ai_skills_provider.dart';
+import 'features/ai_skills/presentation/widgets/magic_wand_button.dart';
+import 'features/ai_skills/presentation/widgets/skill_selection_sheet.dart';
+import 'features/ai_skills/presentation/widgets/result_preview_sheet.dart';
+import 'features/ai_skills/core/ai_skill.dart';
+import 'features/ai_skills/core/skill_result.dart';
 import 'shared/widgets/app_drawer.dart';
 import 'shared/utils/music_scanner.dart';
 import 'features/playlist/data/playlist_repository.dart';
@@ -55,6 +62,7 @@ class MysicApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PlayerProvider()),
         ChangeNotifierProvider(create: (_) => PlaylistProvider()),
         ChangeNotifierProvider(create: (_) => ApiConfigProvider()..load()),
+        ChangeNotifierProvider(create: (_) => AiSkillsProvider()),
       ],
       child: MaterialApp(
         title: 'Mysic',
@@ -290,9 +298,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     // - 三栏布局：菜单按钮 + 标题 + 添加按钮
     // - 按钮：p-3 rounded-xl bg-card
     // - 标题：上方 muted xs 文字，下方 font-medium sm
-    return Consumer<PlayerProvider>(
-      builder: (context, playerProvider, child) {
+    return Consumer2<PlayerProvider, ApiConfigProvider>(
+      builder: (context, playerProvider, apiConfigProvider, child) {
         final currentSong = playerProvider.currentSong;
+        final hasEnabledApi = apiConfigProvider.enabledConfig != null;
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           child: Row(
@@ -334,6 +343,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   ],
                 ),
               ),
+
+              // 魔法棒按钮（AI 功能）
+              if (hasEnabledApi) ...[
+                MagicWandButton(
+                  visible: currentSong != null,
+                  onTap: () => _showSkillSelection(context, currentSong!),
+                ),
+                const SizedBox(width: 12),
+              ],
 
               // 弹出菜单按钮 - 设计稿：p-3 rounded-xl bg-card
               Container(
@@ -762,6 +780,160 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       ),
       builder: (context) => AddToPlaylistSheet(song: song),
     );
+  }
+
+  // AI Skills 相关方法
+
+  /// 显示 Skill 选择菜单
+  void _showSkillSelection(BuildContext context, Song song) {
+    final aiSkillsProvider = context.read<AiSkillsProvider>();
+    final apiConfigProvider = context.read<ApiConfigProvider>();
+    final config = apiConfigProvider.enabledConfig;
+
+    if (config == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => SkillSelectionSheet(
+        skills: aiSkillsProvider.skills,
+        onSkillSelected: (skill) {
+          Navigator.pop(context);
+          _executeSkill(context, skill, song, config);
+        },
+      ),
+    );
+  }
+
+  /// 执行 Skill
+  void _executeSkill(
+    BuildContext context,
+    AiSkill skill,
+    Song song,
+    dynamic config,
+  ) {
+    final aiSkillsProvider = context.read<AiSkillsProvider>();
+
+    // 构建输入
+    final input = skill.id == 'song_recognition'
+        ? {
+            'filePath': song.filePath,
+            'currentTitle': song.title,
+            'currentArtist': song.artist,
+            'currentAlbum': song.album,
+          }
+        : {
+            'title': song.title,
+            'artist': song.artist,
+            'album': song.album,
+          };
+
+    // 显示结果预览
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      isDismissible: false,
+      builder: (context) => ListenableBuilder(
+        listenable: aiSkillsProvider,
+        builder: (context, _) {
+          return ResultPreviewSheet(
+            skill: skill,
+            status: aiSkillsProvider.status,
+            result: aiSkillsProvider.result,
+            song: song,
+            onConfirm: () {
+              _applyResult(context, skill, aiSkillsProvider.result, song);
+              Navigator.pop(context);
+            },
+            onCancel: () {
+              aiSkillsProvider.reset();
+              Navigator.pop(context);
+            },
+            onRetry: () {
+              aiSkillsProvider.executeSkill(
+                skill: skill,
+                config: config,
+                input: input,
+              );
+            },
+          );
+        },
+      ),
+    );
+
+    // 执行 Skill
+    aiSkillsProvider.executeSkill(
+      skill: skill,
+      config: config,
+      input: input,
+    );
+  }
+
+  /// 应用 Skill 结果
+  Future<void> _applyResult(
+    BuildContext context,
+    AiSkill skill,
+    SkillResult? result,
+    Song song,
+  ) async {
+    if (result is! SkillSuccess) return;
+
+    final data = result.data;
+    final playerProvider = context.read<PlayerProvider>();
+    final playlistProvider = context.read<PlaylistProvider>();
+
+    if (skill.id == 'song_recognition') {
+      // 更新歌曲信息
+      final updatedSong = song.copyWith(
+        title: data['title'] as String,
+        artist: data['artist'] as String,
+        album: data['album'] as String,
+        updatedAt: DateTime.now(),
+      );
+
+      await playerProvider.updateSong(updatedSong);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('歌曲信息已更新'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      }
+    } else if (skill.id == 'lyrics_search') {
+      // 保存歌词
+      final db = await DatabaseHelper().database;
+      await db.insert(
+        DatabaseHelper.tableLyrics,
+        {
+          'song_id': song.id,
+          'lrc_content': data['lyrics'] as String,
+          'is_synced': 1,
+          'source': data['source'] as String?,
+          'created_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      // 刷新播放器状态
+      await playlistProvider.refresh();
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('歌词已保存'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      }
+    }
+
+    // 重置状态
+    context.read<AiSkillsProvider>().reset();
   }
 }
 
