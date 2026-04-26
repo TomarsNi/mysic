@@ -20,6 +20,9 @@ class _LyricsPageState extends State<LyricsPage> {
   int _currentLineIndex = 0;
   bool _needsScroll = true; // 是否需要滚动（初始为 true 确保首次加载时居中）
 
+  // 歌词行的 GlobalKey 列表，用于精确定位
+  final Map<int, GlobalKey> _lineKeys = {};
+
   // 编辑模式状态
   bool _isEditMode = false;
   bool _isLineEditMode = false;
@@ -32,20 +35,13 @@ class _LyricsPageState extends State<LyricsPage> {
     super.dispose();
   }
 
-  void _scrollToCurrentLine(int index, List<LyricLine> lyrics) {
-    if (!_scrollController.hasClients || lyrics.isEmpty) return;
+  void _scrollToCurrentLine(int index) {
+    final key = _lineKeys[index];
+    if (key == null || key.currentContext == null) return;
 
-    // 使用 ScrollController 的 viewport 高度，更可靠
-    final viewportHeight = _scrollController.position.viewportDimension;
-    if (viewportHeight == 0) return;
-
-    // 计算目标位置，使当前行居中
-    const itemHeight = 60.0;
-    // 居中：当前行位置 - viewport高度的一半 + 行高的一半
-    final targetOffset = (index * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
-
-    _scrollController.animateTo(
-      targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
+    Scrollable.ensureVisible(
+      key.currentContext!,
+      alignment: 0.5, // 0.5 = 居中
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
@@ -294,19 +290,13 @@ class _LyricsPageState extends State<LyricsPage> {
       );
     }
 
-    const itemHeight = 60.0;
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 使用歌词列表的实际高度计算居中
-        final listHeight = constraints.maxHeight;
-        final centerPadding = listHeight / 2 - itemHeight / 2;
-
         // 如果需要滚动，在布局完成后执行
         if (_needsScroll) {
           _needsScroll = false;
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _scrollToCurrentLine(_currentLineIndex, lyrics);
+            _scrollToCurrentLine(_currentLineIndex);
           });
         }
 
@@ -314,14 +304,18 @@ class _LyricsPageState extends State<LyricsPage> {
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: ListView.builder(
             controller: _scrollController,
-            padding: EdgeInsets.symmetric(vertical: centerPadding),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             itemCount: lyrics.length,
             itemBuilder: (context, index) {
               final line = lyrics[index];
               final isCurrentLine = index == _currentLineIndex;
               final isPastLine = index < _currentLineIndex;
 
+              // 确保 key 存在
+              _lineKeys.putIfAbsent(index, () => GlobalKey());
+
               return _LyricLineWidget(
+                key: _lineKeys[index],
                 line: line,
                 isActive: isCurrentLine,
                 isPast: isPastLine,
@@ -744,6 +738,7 @@ class _LyricLineWidget extends StatelessWidget {
   final ValueChanged<Duration>? onOffsetChanged;
 
   const _LyricLineWidget({
+    super.key,
     required this.line,
     this.isActive = false,
     this.isPast = false,

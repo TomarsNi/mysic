@@ -304,40 +304,26 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         final hasEnabledApi = apiConfigProvider.enabledConfig != null;
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Row(
+          child: Stack(
             children: [
-              // 抽屉按钮 - 设计稿：p-3 rounded-xl bg-card
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF27272A), // bg-card
-                  borderRadius: BorderRadius.circular(12), // rounded-xl
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.menu_rounded, color: Colors.white),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                  padding: const EdgeInsets.all(12), // p-3
-                ),
-              ),
-
-              const Expanded(
+              // 文字层 - 绝对居中于屏幕
+              const Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 上方 muted xs 文字
                     Text(
                       '正在播放',
                       style: TextStyle(
-                        fontSize: 12, // xs = 12px
-                        color: Color(0xFF71717A), // muted
+                        fontSize: 12,
+                        color: Color(0xFF71717A),
                       ),
                     ),
                     SizedBox(height: 2),
-                    // 下方 font-medium sm (14px)
                     Text(
                       '全部歌曲',
                       style: TextStyle(
-                        fontSize: 14, // sm = 14px
-                        fontWeight: FontWeight.w500, // font-medium
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                         color: Colors.white,
                       ),
                     ),
@@ -345,66 +331,87 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ),
               ),
 
-              // 魔法棒按钮（AI 功能）
-              if (hasEnabledApi) ...[
-                MagicWandButton(
-                  visible: currentSong != null,
-                  onTap: () => _showSkillSelection(context, currentSong!),
-                ),
-                const SizedBox(width: 12),
-              ],
-
-              // 弹出菜单按钮 - 设计稿：p-3 rounded-xl bg-card
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF27272A), // bg-card
-                  borderRadius: BorderRadius.circular(12), // rounded-xl
-                ),
-                child: PopupMenuButton<String>(
-                  icon: const Icon(Icons.add_rounded, color: Colors.white),
-                  color: const Color(0xFF27272A),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              // 按钮层 - 左右分布
+              Row(
+                children: [
+                  // 抽屉按钮
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF27272A),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.menu_rounded, color: Colors.white),
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                      padding: const EdgeInsets.all(12),
+                    ),
                   ),
-                  offset: const Offset(0, 48),
-                  onSelected: (value) {
-                    if (currentSong == null) return;
-                    _handleMiniPlayerMenuAction(context, currentSong, value);
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem<String>(
-                      value: 'add_to_playlist',
-                      child: Row(
-                        children: [
-                          Icon(Icons.playlist_add, color: Colors.white, size: 20),
-                          const SizedBox(width: 12),
-                          const Text('添加到歌单', style: TextStyle(color: Colors.white)),
-                        ],
-                      ),
+
+                  const Spacer(),
+
+                  // 魔法棒按钮
+                  if (hasEnabledApi) ...[
+                    MagicWandButton(
+                      visible: currentSong != null,
+                      onTap: () => _showSkillSelection(context, currentSong!),
                     ),
-                    PopupMenuItem<String>(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_rounded, color: Colors.white, size: 20),
-                          const SizedBox(width: 12),
-                          const Text('编辑', style: TextStyle(color: Colors.white)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    PopupMenuItem<String>(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_rounded, color: const Color(0xFFEF4444), size: 20),
-                          const SizedBox(width: 12),
-                          const Text('删除', style: TextStyle(color: Color(0xFFEF4444))),
-                        ],
-                      ),
-                    ),
+                    const SizedBox(width: 12),
                   ],
-                ),
+
+                  // 加号按钮
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF27272A),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: PopupMenuButton<String>(
+                      icon: const Icon(Icons.add_rounded, color: Colors.white),
+                      padding: const EdgeInsets.all(12),
+                      color: const Color(0xFF27272A),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      offset: const Offset(0, 48),
+                      onSelected: (value) {
+                        if (currentSong == null) return;
+                        _handleMiniPlayerMenuAction(context, currentSong, value);
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem<String>(
+                          value: 'add_to_playlist',
+                          child: Row(
+                            children: [
+                              Icon(Icons.playlist_add, color: Colors.white, size: 20),
+                              const SizedBox(width: 12),
+                              const Text('添加到歌单', style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_rounded, color: Colors.white, size: 20),
+                              const SizedBox(width: 12),
+                              const Text('编辑', style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_rounded, color: const Color(0xFFEF4444), size: 20),
+                              const SizedBox(width: 12),
+                              const Text('删除', style: TextStyle(color: Color(0xFFEF4444))),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
