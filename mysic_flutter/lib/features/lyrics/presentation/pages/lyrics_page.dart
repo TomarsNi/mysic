@@ -18,6 +18,7 @@ class LyricsPage extends StatefulWidget {
 class _LyricsPageState extends State<LyricsPage> {
   final ScrollController _scrollController = ScrollController();
   int _currentLineIndex = 0;
+  bool _needsScroll = true; // 是否需要滚动（初始为 true 确保首次加载时居中）
 
   // 编辑模式状态
   bool _isEditMode = false;
@@ -34,9 +35,14 @@ class _LyricsPageState extends State<LyricsPage> {
   void _scrollToCurrentLine(int index, List<LyricLine> lyrics) {
     if (!_scrollController.hasClients || lyrics.isEmpty) return;
 
+    // 使用 ScrollController 的 viewport 高度，更可靠
+    final viewportHeight = _scrollController.position.viewportDimension;
+    if (viewportHeight == 0) return;
+
     // 计算目标位置，使当前行居中
     const itemHeight = 60.0;
-    final targetOffset = (index * itemHeight) - (200 - itemHeight / 2);
+    // 居中：当前行位置 - viewport高度的一半 + 行高的一半
+    final targetOffset = (index * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
 
     _scrollController.animateTo(
       targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
@@ -67,9 +73,7 @@ class _LyricsPageState extends State<LyricsPage> {
         final newLineIndex = _getCurrentLineIndex(position, lyrics);
         if (newLineIndex != _currentLineIndex) {
           _currentLineIndex = newLineIndex;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _scrollToCurrentLine(_currentLineIndex, lyrics);
-          });
+          _needsScroll = true;
         }
 
         return Scaffold(
@@ -290,40 +294,61 @@ class _LyricsPageState extends State<LyricsPage> {
       );
     }
 
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.symmetric(vertical: 200),
-      itemCount: lyrics.length,
-      itemBuilder: (context, index) {
-        final line = lyrics[index];
-        final isCurrentLine = index == _currentLineIndex;
-        final isPastLine = index < _currentLineIndex;
+    const itemHeight = 60.0;
 
-        return _LyricLineWidget(
-          line: line,
-          isActive: isCurrentLine,
-          isPast: isPastLine,
-          isEditMode: _isLineEditMode,
-          lineOffset: _lineOffsets[index],
-          onOffsetChanged: (offset) {
-            setState(() {
-              if (offset == Duration.zero) {
-                _lineOffsets.remove(index);
-              } else {
-                _lineOffsets[index] = offset;
-              }
-            });
-          },
-          onTap: () {
-            // 点击歌词行跳转到对应时间
-            final playerProvider =
-                Provider.of<PlayerProvider>(context, listen: false);
-            // 计算调整后的时间
-            final adjustedTime = line.timestamp +
-                _globalOffset +
-                (_lineOffsets[index] ?? Duration.zero);
-            playerProvider.seek(adjustedTime);
-          },
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 使用歌词列表的实际高度计算居中
+        final listHeight = constraints.maxHeight;
+        final centerPadding = listHeight / 2 - itemHeight / 2;
+
+        // 如果需要滚动，在布局完成后执行
+        if (_needsScroll) {
+          _needsScroll = false;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToCurrentLine(_currentLineIndex, lyrics);
+          });
+        }
+
+        return ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          child: ListView.builder(
+            controller: _scrollController,
+            padding: EdgeInsets.symmetric(vertical: centerPadding),
+            itemCount: lyrics.length,
+            itemBuilder: (context, index) {
+              final line = lyrics[index];
+              final isCurrentLine = index == _currentLineIndex;
+              final isPastLine = index < _currentLineIndex;
+
+              return _LyricLineWidget(
+                line: line,
+                isActive: isCurrentLine,
+                isPast: isPastLine,
+                isEditMode: _isLineEditMode,
+                lineOffset: _lineOffsets[index],
+                onOffsetChanged: (offset) {
+                  setState(() {
+                    if (offset == Duration.zero) {
+                      _lineOffsets.remove(index);
+                    } else {
+                      _lineOffsets[index] = offset;
+                    }
+                  });
+                },
+                onTap: () {
+                  // 点击歌词行跳转到对应时间
+                  final playerProvider =
+                      Provider.of<PlayerProvider>(context, listen: false);
+                  // 计算调整后的时间
+                  final adjustedTime = line.timestamp +
+                      _globalOffset +
+                      (_lineOffsets[index] ?? Duration.zero);
+                  playerProvider.seek(adjustedTime);
+                },
+              );
+            },
+          ),
         );
       },
     );

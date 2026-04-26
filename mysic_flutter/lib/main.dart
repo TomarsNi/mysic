@@ -321,6 +321,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
               const Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // 上方 muted xs 文字
                     Text(
