@@ -303,11 +303,26 @@ class _LyricsPageState extends State<LyricsPage> {
           line: line,
           isActive: isCurrentLine,
           isPast: isPastLine,
+          isEditMode: _isLineEditMode,
+          lineOffset: _lineOffsets[index],
+          onOffsetChanged: (offset) {
+            setState(() {
+              if (offset == Duration.zero) {
+                _lineOffsets.remove(index);
+              } else {
+                _lineOffsets[index] = offset;
+              }
+            });
+          },
           onTap: () {
             // 点击歌词行跳转到对应时间
             final playerProvider =
                 Provider.of<PlayerProvider>(context, listen: false);
-            playerProvider.seek(line.timestamp);
+            // 计算调整后的时间
+            final adjustedTime = line.timestamp +
+                _globalOffset +
+                (_lineOffsets[index] ?? Duration.zero);
+            playerProvider.seek(adjustedTime);
           },
         );
       },
@@ -699,37 +714,114 @@ class _LyricLineWidget extends StatelessWidget {
   final bool isActive;
   final bool isPast;
   final VoidCallback? onTap;
+  final bool isEditMode;
+  final Duration? lineOffset;
+  final ValueChanged<Duration>? onOffsetChanged;
 
   const _LyricLineWidget({
     required this.line,
     this.isActive = false,
     this.isPast = false,
     this.onTap,
+    this.isEditMode = false,
+    this.lineOffset,
+    this.onOffsetChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveOffset = lineOffset ?? Duration.zero;
+    final offsetSeconds = effectiveOffset.inMilliseconds / 1000.0;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8), // 设计稿 py-2
-        child: Text(
-          line.text,
-          style: TextStyle(
-            // 设计稿：高亮行 lg 字号 (约 18-20px)，font-medium，白色
-            fontSize: isActive ? 18 : 14,
-            fontWeight: isActive ? FontWeight.w500 : FontWeight.normal, // font-medium
-            color: isActive
-                ? AppColors.white // 设计稿要求高亮行白色
-                : isPast
-                    ? AppColors.muted.withValues(alpha: 0.5)
-                    : AppColors.muted,
-          ),
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        child: Row(
+          children: [
+            // 逐行调整按钮（编辑模式下显示）
+            if (isEditMode) ...[
+              _buildLineAdjustButton(
+                icon: Icons.remove_rounded,
+                onPressed: () {
+                  final newOffset = Duration(
+                    milliseconds:
+                        (effectiveOffset.inMilliseconds - 100).clamp(-5000, 5000),
+                  );
+                  onOffsetChanged?.call(newOffset);
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
+
+            // 歌词文本
+            Expanded(
+              child: Text(
+                line.text,
+                style: TextStyle(
+                  fontSize: isActive ? 18 : 14,
+                  fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
+                  color: isActive
+                      ? AppColors.white
+                      : isPast
+                          ? AppColors.muted.withValues(alpha: 0.5)
+                          : AppColors.muted,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+
+            // 逐行调整按钮（编辑模式下显示）
+            if (isEditMode) ...[
+              const SizedBox(width: 8),
+              _buildLineAdjustButton(
+                icon: Icons.add_rounded,
+                onPressed: () {
+                  final newOffset = Duration(
+                    milliseconds:
+                        (effectiveOffset.inMilliseconds + 100).clamp(-5000, 5000),
+                  );
+                  onOffsetChanged?.call(newOffset);
+                },
+              ),
+              // 显示当前偏移值
+              if (effectiveOffset != Duration.zero)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Text(
+                    '${offsetSeconds >= 0 ? '+' : ''}${offsetSeconds.toStringAsFixed(1)}s',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                ),
+            ],
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLineAdjustButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: IconButton(
+        icon: Icon(icon, size: 16),
+        color: AppColors.white,
+        padding: EdgeInsets.zero,
+        onPressed: onPressed,
       ),
     );
   }
