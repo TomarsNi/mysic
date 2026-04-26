@@ -26,6 +26,9 @@ class AppDrawer extends StatelessWidget {
   /// 关于点击回调
   final VoidCallback? onAboutTap;
 
+  /// API 设置点击回调
+  final VoidCallback? onApiSettingsTap;
+
   /// 新建歌单点击回调
   final VoidCallback? onCreatePlaylistTap;
 
@@ -37,6 +40,7 @@ class AppDrawer extends StatelessWidget {
     this.onScanTap,
     this.onSettingsTap,
     this.onAboutTap,
+    this.onApiSettingsTap,
     this.onCreatePlaylistTap,
   });
 
@@ -392,6 +396,43 @@ class AppDrawer extends StatelessWidget {
         children: [
           // 扫描全盘按钮 - 设计稿：w-full bg-accent/20 text-accent
           _buildScanButton(context),
+
+          const SizedBox(height: 8),
+
+          // API 设置按钮 - 设计稿：w-full bg-white/5 text-white/70
+          Material(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              onTap: () {
+                Navigator.of(context).pop();
+                onApiSettingsTap?.call();
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.api_rounded,
+                      size: 20,
+                      color: AppColors.white.withValues(alpha: 0.7),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'API 设置',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.white.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
 
           const SizedBox(height: 8),
 

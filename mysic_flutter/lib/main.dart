@@ -10,6 +10,8 @@ import 'features/player/presentation/providers/player_provider.dart';
 import 'features/playlist/presentation/providers/playlist_provider.dart';
 import 'features/lyrics/presentation/pages/lyrics_page.dart' show LyricsPage;
 import 'features/settings/presentation/pages/about_page.dart';
+import 'features/settings/presentation/pages/api_settings_page.dart';
+import 'features/settings/presentation/providers/api_config_provider.dart';
 import 'shared/widgets/app_drawer.dart';
 import 'shared/utils/music_scanner.dart';
 import 'features/playlist/data/playlist_repository.dart';
@@ -52,6 +54,7 @@ class MysicApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => PlayerProvider()),
         ChangeNotifierProvider(create: (_) => PlaylistProvider()),
+        ChangeNotifierProvider(create: (_) => ApiConfigProvider()..load()),
       ],
       child: MaterialApp(
         title: 'Mysic',
@@ -171,6 +174,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             onScanTap: _startScan,
             onSettingsTap: () => _showSettings(context),
             onAboutTap: () => _showAbout(context),
+            onApiSettingsTap: () => _showApiSettings(context),
             onCreatePlaylistTap: () => _createPlaylist(context),
           ),
           body: _buildBody(context, playerProvider),
@@ -686,6 +690,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const AboutPage(),
+      ),
+    );
+  }
+
+  void _showApiSettings(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const ApiSettingsPage(),
       ),
     );
   }

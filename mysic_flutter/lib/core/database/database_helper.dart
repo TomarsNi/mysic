@@ -16,7 +16,7 @@ class DatabaseHelper {
   static const String _databaseName = 'mysic.db';
 
   /// 数据库版本
-  static const int _databaseVersion = 4;
+  static const int _databaseVersion = 5;
 
   /// 表名常量
   static const String tableSongs = 'songs';
@@ -25,6 +25,7 @@ class DatabaseHelper {
   static const String tableLyrics = 'lyrics';
   static const String tablePlayHistory = 'play_history';
   static const String tableAppState = 'app_state';
+  static const String tableApiConfigs = 'api_configs';
 
   /// 获取数据库实例
   Future<Database> get database async {
@@ -149,6 +150,23 @@ class DatabaseHelper {
     await db.execute('''
       CREATE INDEX idx_play_history_time ON $tablePlayHistory (played_at)
     ''');
+
+    // 创建 API 配置表
+    await db.execute('''
+      CREATE TABLE $tableApiConfigs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider TEXT NOT NULL UNIQUE,
+        api_url TEXT,
+        api_key TEXT,
+        model_name TEXT,
+        is_enabled INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+
+    // 创建 API 配置表索引
+    await db.execute('''
+      CREATE INDEX idx_api_configs_provider ON $tableApiConfigs (provider)
+    ''');
   }
 
   /// 数据库升级
@@ -267,6 +285,23 @@ class DatabaseHelper {
     // 版本 3 -> 4: 新增 is_deleted 字段
     if (oldVersion < 4) {
       await db.execute('ALTER TABLE songs ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0');
+    }
+
+    // 版本 4 -> 5: 新增 api_configs 表
+    if (oldVersion < 5) {
+      await db.execute('''
+        CREATE TABLE $tableApiConfigs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          provider TEXT NOT NULL UNIQUE,
+          api_url TEXT,
+          api_key TEXT,
+          model_name TEXT,
+          is_enabled INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+      await db.execute('''
+        CREATE INDEX idx_api_configs_provider ON $tableApiConfigs (provider)
+      ''');
     }
   }
 
