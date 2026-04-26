@@ -920,6 +920,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
 
+      // 重新加载歌词到播放器
+      await playerProvider.reloadLyrics();
+
       // 刷新播放器状态
       await playlistProvider.refresh();
 
