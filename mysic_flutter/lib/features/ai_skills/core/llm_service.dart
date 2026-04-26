@@ -11,7 +11,7 @@ class LlmService {
   final http.Client _client;
 
   /// 请求超时时间
-  static const Duration timeout = Duration(seconds: 120);
+  static const Duration timeout = Duration(seconds: 360);
 
   LlmService({http.Client? client}) : _client = client ?? http.Client();
 
