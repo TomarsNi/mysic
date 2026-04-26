@@ -835,6 +835,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       isDismissible: false,
+      enableDrag: false, // 禁止下拉手势关闭
       builder: (context) => ListenableBuilder(
         listenable: aiSkillsProvider,
         builder: (context, _) {
