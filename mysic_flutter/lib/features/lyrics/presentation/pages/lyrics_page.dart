@@ -532,7 +532,9 @@ class _LyricsPageState extends State<LyricsPage> {
       lineOffsets: _lineOffsets,
     );
 
-    if (success && mounted) {
+    if (!mounted) return;
+
+    if (success) {
       setState(() {
         _isEditMode = false;
         _isLineEditMode = false;
@@ -543,6 +545,14 @@ class _LyricsPageState extends State<LyricsPage> {
         const SnackBar(
           content: Text('歌词时间已保存'),
           backgroundColor: AppColors.accent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('保存失败，请重试'),
+          backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
       );
