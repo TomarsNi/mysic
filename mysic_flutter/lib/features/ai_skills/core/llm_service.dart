@@ -70,6 +70,16 @@ class LlmService {
 
   /// 构建请求 URL（根据服务商）
   String buildUrl(ApiConfig config) {
+    // 如果用户配置了自定义 URL，优先使用
+    if (config.apiUrl.isNotEmpty) {
+      // 确保路径正确
+      final baseUrl = config.apiUrl.endsWith('/')
+          ? config.apiUrl.substring(0, config.apiUrl.length - 1)
+          : config.apiUrl;
+      return '$baseUrl/chat/completions';
+    }
+
+    // 默认 URL
     return switch (config.provider) {
       ApiProvider.aliyun =>
         'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation',
@@ -80,7 +90,7 @@ class LlmService {
       ApiProvider.tencent =>
         'https://api.hunyuan.cloud.tencent.com/v1/chat/completions',
       ApiProvider.openai =>
-        '${config.apiUrl}/chat/completions',
+        'https://api.openai.com/v1/chat/completions',
     };
   }
 
@@ -90,6 +100,16 @@ class LlmService {
     required String prompt,
     required bool enableWebSearch,
   }) {
+    // 如果用户配置了自定义 URL，使用 OpenAI 兼容格式
+    if (config.apiUrl.isNotEmpty) {
+      return {
+        'model': config.modelName,
+        'messages': [
+          {'role': 'user', 'content': prompt},
+        ],
+      };
+    }
+
     return switch (config.provider) {
       ApiProvider.aliyun => {
         'model': config.modelName,
@@ -144,6 +164,20 @@ class LlmService {
     required ApiConfig config,
     required Map<String, dynamic> response,
   }) {
+    // 如果用户配置了自定义 URL，使用 OpenAI 兼容格式解析
+    if (config.apiUrl.isNotEmpty) {
+      final choices = response['choices'] as List<dynamic>?;
+      if (choices == null || choices.isEmpty) {
+        throw LlmServiceException('无法解析响应: 缺少 choices 字段');
+      }
+      final message =
+          (choices.first as Map<String, dynamic>)['message'] as Map<String, dynamic>?;
+      if (message == null) {
+        throw LlmServiceException('无法解析响应: 缺少 message 字段');
+      }
+      return message['content'] as String;
+    }
+
     switch (config.provider) {
       case ApiProvider.aliyun:
         final output = response['output'] as Map<String, dynamic>?;
