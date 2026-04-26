@@ -706,6 +706,149 @@
     </div>
   </div>
 
+  <!-- 魔法棒面板 -->
+  <div id="magicWandOverlay" class="bottom-sheet-overlay fixed inset-0 bg-black/70 z-40 opacity-0 pointer-events-none"></div>
+  <div id="magicWandSheet" class="bottom-sheet fixed bottom-0 left-0 right-0 bg-card rounded-t-3xl z-50 translate-y-full max-h-[80vh]">
+    <div class="p-6">
+      <!-- 拖拽指示 -->
+      <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6"></div>
+
+      <!-- 标题 -->
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-teal-600 flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-semibold">AI 补全歌曲信息</h3>
+            <p class="text-xs text-muted">使用大模型获取缺失的歌曲信息</p>
+          </div>
+        </div>
+        <button id="closeMagicWand" class="p-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- 当前歌曲信息 -->
+      <div class="bg-surface rounded-2xl p-4 mb-4">
+        <div class="flex items-center gap-4">
+          <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-800 overflow-hidden flex-shrink-0">
+            <img src="https://picsum.photos/seed/music1/100/100" alt="Album" class="w-full h-full object-cover">
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-medium truncate">夜曲</h4>
+            <p class="text-sm text-muted truncate">周杰伦</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 缺失信息列表 -->
+      <div class="space-y-3 mb-6">
+        <h4 class="text-sm text-muted">缺失信息</h4>
+
+        <!-- 专辑名称 -->
+        <div class="magic-item bg-surface rounded-xl p-4 flex items-center justify-between" data-field="album">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+              <svg class="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-sm font-medium">专辑名称</div>
+              <div class="text-xs text-muted magic-status">缺失</div>
+            </div>
+          </div>
+          <div class="magic-value text-sm text-accent hidden">十一月的肖邦</div>
+        </div>
+
+        <!-- 专辑封面 -->
+        <div class="magic-item bg-surface rounded-xl p-4 flex items-center justify-between" data-field="cover">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+              <svg class="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-sm font-medium">专辑封面</div>
+              <div class="text-xs text-muted magic-status">缺失</div>
+            </div>
+          </div>
+          <div class="magic-cover w-10 h-10 rounded-lg overflow-hidden hidden">
+            <img src="" alt="Cover" class="w-full h-full object-cover">
+          </div>
+        </div>
+
+        <!-- 歌词 -->
+        <div class="magic-item bg-surface rounded-xl p-4 flex items-center justify-between" data-field="lyrics">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+              <svg class="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-sm font-medium">歌词</div>
+              <div class="text-xs text-muted magic-status">缺失</div>
+            </div>
+          </div>
+          <div class="magic-value text-sm text-accent hidden">已获取</div>
+        </div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="space-y-3">
+        <button id="magicFetchAll" class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-accent hover:bg-accent/90 transition-colors cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          <span>一键补全全部信息</span>
+        </button>
+
+        <!-- 加载状态 -->
+        <div id="magicLoading" class="hidden">
+          <div class="flex items-center justify-center gap-3 py-3">
+            <svg class="w-5 h-5 animate-spin text-accent" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-sm text-muted">正在调用 AI 获取信息...</span>
+          </div>
+          <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+            <div id="magicProgress" class="h-full bg-accent rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- API 未配置提示 -->
+        <div id="magicNoApi" class="hidden">
+          <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+            <div class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <div>
+                <p class="text-sm text-amber-500 font-medium">未配置 API</p>
+                <p class="text-xs text-muted mt-1">请先在设置中配置大模型 API</p>
+              </div>
+            </div>
+          </div>
+          <button id="magicGoToApiSettings" class="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span>前往 API 设置</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 主播放页面 -->
   <main class="min-h-screen flex flex-col px-6 pt-16 pb-8 relative">
     <!-- 顶部栏 -->
@@ -719,11 +862,20 @@
         <div class="text-xs text-muted">正在播放</div>
         <div class="text-sm font-medium" id="currentPlaylist">全部歌曲</div>
       </div>
-      <button id="openAddSheet" class="p-3 rounded-xl bg-card hover:bg-card/80 transition-colors cursor-pointer">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-        </svg>
-      </button>
+      <div class="flex items-center gap-2">
+        <!-- 魔法棒按钮 -->
+        <button id="openMagicWand" class="p-3 rounded-xl bg-card hover:bg-card/80 transition-colors cursor-pointer group" title="AI 补全歌曲信息">
+          <svg class="w-5 h-5 text-muted group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+          </svg>
+        </button>
+        <!-- 添加按钮 -->
+        <button id="openAddSheet" class="p-3 rounded-xl bg-card hover:bg-card/80 transition-colors cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- 专辑封面区域 -->
@@ -1093,6 +1245,100 @@
           }
         });
       });
+    });
+
+    // 魔法棒面板
+    const magicWandOverlay = document.getElementById('magicWandOverlay');
+    const magicWandSheet = document.getElementById('magicWandSheet');
+    const openMagicWandBtn = document.getElementById('openMagicWand');
+    const closeMagicWandBtn = document.getElementById('closeMagicWand');
+    const magicFetchAllBtn = document.getElementById('magicFetchAll');
+    const magicLoading = document.getElementById('magicLoading');
+    const magicProgress = document.getElementById('magicProgress');
+    const magicNoApi = document.getElementById('magicNoApi');
+    const magicGoToApiSettingsBtn = document.getElementById('magicGoToApiSettings');
+
+    function openMagicWand() {
+      magicWandSheet.classList.remove('translate-y-full');
+      magicWandOverlay.classList.remove('opacity-0', 'pointer-events-none');
+      // 检查是否有启用的 API
+      const hasEnabledApi = Array.from(apiToggles).some(t => t.dataset.enabled === 'true');
+      if (hasEnabledApi) {
+        magicNoApi.classList.add('hidden');
+        magicFetchAllBtn.classList.remove('hidden');
+      } else {
+        magicNoApi.classList.remove('hidden');
+        magicFetchAllBtn.classList.add('hidden');
+      }
+    }
+
+    function closeMagicWand() {
+      magicWandSheet.classList.add('translate-y-full');
+      magicWandOverlay.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    openMagicWandBtn.addEventListener('click', openMagicWand);
+    closeMagicWandBtn.addEventListener('click', closeMagicWand);
+    magicWandOverlay.addEventListener('click', closeMagicWand);
+
+    // 前往 API 设置
+    magicGoToApiSettingsBtn?.addEventListener('click', () => {
+      closeMagicWand();
+      apiSettingsPage.classList.remove('translate-x-full');
+    });
+
+    // 一键补全
+    let isMagicFetching = false;
+
+    magicFetchAllBtn.addEventListener('click', () => {
+      if (isMagicFetching) return;
+      isMagicFetching = true;
+
+      magicFetchAllBtn.classList.add('hidden');
+      magicLoading.classList.remove('hidden');
+
+      // 模拟 AI 调用进度
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 15 + 5;
+        if (progress >= 100) {
+          progress = 100;
+          clearInterval(interval);
+          isMagicFetching = false;
+
+          setTimeout(() => {
+            magicLoading.classList.add('hidden');
+            magicFetchAllBtn.classList.remove('hidden');
+            magicProgress.style.width = '0%';
+
+            // 更新缺失信息状态
+            document.querySelectorAll('.magic-item').forEach(item => {
+              const status = item.querySelector('.magic-status');
+              const value = item.querySelector('.magic-value');
+              const cover = item.querySelector('.magic-cover');
+
+              if (status) {
+                status.textContent = '已获取';
+                status.classList.remove('text-muted');
+                status.classList.add('text-accent');
+              }
+
+              if (value) {
+                value.classList.remove('hidden');
+              }
+
+              if (cover) {
+                cover.classList.remove('hidden');
+                cover.querySelector('img').src = 'https://picsum.photos/seed/album1/100/100';
+              }
+            });
+
+            showToast('歌曲信息已补全');
+          }, 300);
+        }
+
+        magicProgress.style.width = progress + '%';
+      }, 200);
     });
   </script>
 </body>
