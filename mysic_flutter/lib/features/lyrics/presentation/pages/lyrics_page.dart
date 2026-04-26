@@ -19,6 +19,12 @@ class _LyricsPageState extends State<LyricsPage> {
   final ScrollController _scrollController = ScrollController();
   int _currentLineIndex = 0;
 
+  // 编辑模式状态
+  bool _isEditMode = false;
+  bool _isLineEditMode = false;
+  Duration _globalOffset = Duration.zero;
+  Map<int, Duration> _lineOffsets = {};
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -142,8 +148,34 @@ class _LyricsPageState extends State<LyricsPage> {
             ),
           ),
 
-          // 右侧空位 - 设计稿：空 div w-11 (44px)
-          const SizedBox(width: 44),
+          // 右侧编辑按钮
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: _isEditMode ? AppColors.accent : AppColors.card,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(
+                _isEditMode ? Icons.close_rounded : Icons.edit_rounded,
+              ),
+              iconSize: 20,
+              color: AppColors.white,
+              padding: EdgeInsets.zero,
+              onPressed: () {
+                setState(() {
+                  _isEditMode = !_isEditMode;
+                  if (!_isEditMode) {
+                    // 退出编辑模式时重置状态
+                    _isLineEditMode = false;
+                    _globalOffset = Duration.zero;
+                    _lineOffsets = {};
+                  }
+                });
+              },
+            ),
+          ),
         ],
       ),
     );
