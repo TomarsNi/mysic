@@ -437,8 +437,13 @@ class PlayerProvider extends ChangeNotifier {
     final lrcContent = _lyricsParser.toLrc(adjustedLyrics);
 
     // 保存到数据库
-    final db = DatabaseHelper();
-    await db.updateLyricsContent(_currentSong!.id!, lrcContent);
+    try {
+      final db = DatabaseHelper();
+      await db.updateLyricsContent(_currentSong!.id!, lrcContent);
+    } catch (e) {
+      debugPrint('保存歌词调整失败: $e');
+      return false;
+    }
 
     // 更新当前歌词
     _currentLyrics = adjustedLyrics;
