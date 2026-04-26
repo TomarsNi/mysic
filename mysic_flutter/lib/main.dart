@@ -271,16 +271,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     onPrevious: () => playerProvider.previous(),
                   ),
 
-                  const SizedBox(height: 16),
-
-                  // 扩展控制
-                  ExtendedControls(
-                    isShuffleMode: playerProvider.isShuffleMode,
-                    loopMode: playerProvider.loopMode,
-                    onToggleShuffle: () => playerProvider.toggleShuffleMode(),
-                    onToggleLoop: () => playerProvider.toggleLoopMode(),
-                  ),
-
                   const SizedBox(height: 24),
                 ],
               ),

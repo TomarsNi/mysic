@@ -237,6 +237,13 @@
           </svg>
           <span>关于我们</span>
         </button>
+        <button id="openApiSettings" class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 text-white/70 hover:bg-white/10 transition-colors cursor-pointer mt-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span>API 设置</span>
+        </button>
       </div>
     </div>
   </aside>
@@ -411,6 +418,214 @@
               <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
             </svg>
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- API 设置页面 -->
+  <div id="apiSettingsPage" class="fixed inset-0 bg-surface z-50 translate-x-full transition-transform duration-300">
+    <div class="min-h-screen flex flex-col">
+      <!-- 顶部栏 -->
+      <div class="flex items-center justify-between px-6 pt-16 pb-4">
+        <button id="closeApiSettings" class="p-3 rounded-xl bg-card hover:bg-card/80 transition-colors cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <div class="text-center">
+          <div class="text-xs text-muted">设置</div>
+          <div class="text-sm font-medium">API 配置</div>
+        </div>
+        <div class="w-11"></div>
+      </div>
+
+      <!-- 提示信息 -->
+      <div class="px-6 mb-4">
+        <div class="px-4 py-3 rounded-xl bg-accent/10 border border-accent/20">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-sm text-accent/90">配置大模型 API 后，可使用 AI 功能（如智能歌词翻译、音乐推荐等）。只能启用一个服务商。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- API 配置列表 -->
+      <div class="flex-1 overflow-y-auto px-6 pb-8 space-y-4">
+        <!-- 阿里云 -->
+        <div class="api-card bg-card rounded-2xl overflow-hidden" data-provider="aliyun">
+          <!-- 头部 -->
+          <div class="api-header flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                <span class="text-white font-bold text-sm">阿里</span>
+              </div>
+              <div>
+                <div class="font-medium">阿里云百炼</div>
+                <div class="text-xs text-muted">通义千问系列模型</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="api-status text-xs text-muted">未配置</span>
+              <svg class="api-arrow w-5 h-5 text-muted transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+          <!-- 展开内容 -->
+          <div class="api-content hidden border-t border-white/5">
+            <div class="p-4 space-y-4">
+              <div>
+                <label class="text-xs text-muted block mb-2">API URL</label>
+                <input type="text" placeholder="https://dashscope.aliyuncs.com/api/v1" class="w-full px-4 py-3 rounded-xl bg-surface border border-white/10 focus:border-accent/50 focus:outline-none text-sm transition-colors placeholder:text-muted/50">
+              </div>
+              <div>
+                <label class="text-xs text-muted block mb-2">API Key</label>
+                <input type="password" placeholder="sk-xxxxxxxxxxxxxxxx" class="w-full px-4 py-3 rounded-xl bg-surface border border-white/10 focus:border-accent/50 focus:outline-none text-sm transition-colors placeholder:text-muted/50">
+              </div>
+              <div>
+                <label class="text-xs text-muted block mb-2">模型名称</label>
+                <input type="text" placeholder="qwen-plus" class="w-full px-4 py-3 rounded-xl bg-surface border border-white/10 focus:border-accent/50 focus:outline-none text-sm transition-colors placeholder:text-muted/50">
+              </div>
+              <div class="flex items-center justify-between pt-2">
+                <span class="text-sm text-muted">启用此配置</span>
+                <button class="api-toggle w-12 h-7 rounded-full bg-white/10 relative transition-colors cursor-pointer" data-enabled="false">
+                  <div class="toggle-dot w-5 h-5 rounded-full bg-muted absolute top-1 left-1 transition-all duration-200"></div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 智谱 AI -->
+        <div class="api-card bg-card rounded-2xl overflow-hidden" data-provider="zhipu">
+          <div class="api-header flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
+                <span class="text-white font-bold text-sm">智谱</span>
+              </div>
+              <div>
+                <div class="font-medium">智谱 AI</div>
+                <div class="text-xs text-muted">GLM 系列模型</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="api-status text-xs text-muted">未配置</span>
+              <svg class="api-arrow w-5 h-5 text-muted transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="api-content hidden border-t border-white/5">
+            <div class="p-4 space-y-4">
+              <div>
+                <label class="text-xs text-muted block mb-2">API URL</label>
+                <input type="text" placeholder="https://open.bigmodel.cn/api/paas/v4" class="w-full px-4 py-3 rounded-xl bg-surface border border-white/10 focus:border-accent/50 focus:outline-none text-sm transition-colors placeholder:text-muted/50">
+              </div>
+              <div>
+                <label class="text-xs text-muted block mb-2">API Key</label>
+                <input type="password" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" class="w-full px-4 py-3 rounded-xl bg-surface border border-white/10 focus:border-accent/50 focus:outline-none text-sm transition-colors placeholder:text-muted/50">
+              </div>
+              <div>
+                <label class="text-xs text-muted block mb-2">模型名称</label>
+                <input type="text" placeholder="glm-4" class="w-full px-4 py-3 rounded-xl bg-surface border border-white/10 focus:border-accent/50 focus:outline-none text-sm transition-colors placeholder:text-muted/50">
+              </div>
+              <div class="flex items-center justify-between pt-2">
+                <span class="text-sm text-muted">启用此配置</span>
+                <button class="api-toggle w-12 h-7 rounded-full bg-white/10 relative transition-colors cursor-pointer" data-enabled="false">
+                  <div class="toggle-dot w-5 h-5 rounded-full bg-muted absolute top-1 left-1 transition-all duration-200"></div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 讯飞星火 -->
+        <div class="api-card bg-card rounded-2xl overflow-hidden" data-provider="xunfei">
+          <div class="api-header flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <span class="text-white font-bold text-sm">讯飞</span>
+              </div>
+              <div>
+                <div class="font-medium">讯飞星火</div>
+                <div class="text-xs text-muted">Spark 系列模型</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="api-status text-xs text-muted">未配置</span>
+              <svg class="api-arrow w-5 h-5 text-muted transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="api-content hidden border-t border-white/5">
+            <div class="p-4 space-y-4">
+              <div>
+                <label class="text-xs text-muted block mb-2">API URL</label>
+                <input type="text" placeholder="https://spark-api-open.xf-yun.com/v1" class="w-full px-4 py-3 rounded-xl bg-surface border border-white/10 focus:border-accent/50 focus:outline-none text-sm transition-colors placeholder:text-muted/50">
+              </div>
+              <div>
+                <label class="text-xs text-muted block mb-2">API Key</label>
+                <input type="password" placeholder="xxxxxxxx:xxxxxxxx" class="w-full px-4 py-3 rounded-xl bg-surface border border-white/10 focus:border-accent/50 focus:outline-none text-sm transition-colors placeholder:text-muted/50">
+              </div>
+              <div>
+                <label class="text-xs text-muted block mb-2">模型名称</label>
+                <input type="text" placeholder="spark-4.0-ultra" class="w-full px-4 py-3 rounded-xl bg-surface border border-white/10 focus:border-accent/50 focus:outline-none text-sm transition-colors placeholder:text-muted/50">
+              </div>
+              <div class="flex items-center justify-between pt-2">
+                <span class="text-sm text-muted">启用此配置</span>
+                <button class="api-toggle w-12 h-7 rounded-full bg-white/10 relative transition-colors cursor-pointer" data-enabled="false">
+                  <div class="toggle-dot w-5 h-5 rounded-full bg-muted absolute top-1 left-1 transition-all duration-200"></div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 腾讯混元 -->
+        <div class="api-card bg-card rounded-2xl overflow-hidden" data-provider="tencent">
+          <div class="api-header flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center">
+                <span class="text-white font-bold text-sm">腾讯</span>
+              </div>
+              <div>
+                <div class="font-medium">腾讯混元</div>
+                <div class="text-xs text-muted">Hunyuan 系列模型</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="api-status text-xs text-muted">未配置</span>
+              <svg class="api-arrow w-5 h-5 text-muted transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="api-content hidden border-t border-white/5">
+            <div class="p-4 space-y-4">
+              <div>
+                <label class="text-xs text-muted block mb-2">API URL</label>
+                <input type="text" placeholder="https://api.hunyuan.cloud.tencent.com/v1" class="w-full px-4 py-3 rounded-xl bg-surface border border-white/10 focus:border-accent/50 focus:outline-none text-sm transition-colors placeholder:text-muted/50">
+              </div>
+              <div>
+                <label class="text-xs text-muted block mb-2">API Key</label>
+                <input type="password" placeholder="xxxxxxxxxxxxxxxx" class="w-full px-4 py-3 rounded-xl bg-surface border border-white/10 focus:border-accent/50 focus:outline-none text-sm transition-colors placeholder:text-muted/50">
+              </div>
+              <div>
+                <label class="text-xs text-muted block mb-2">模型名称</label>
+                <input type="text" placeholder="hunyuan-lite" class="w-full px-4 py-3 rounded-xl bg-surface border border-white/10 focus:border-accent/50 focus:outline-none text-sm transition-colors placeholder:text-muted/50">
+              </div>
+              <div class="flex items-center justify-between pt-2">
+                <span class="text-sm text-muted">启用此配置</span>
+                <button class="api-toggle w-12 h-7 rounded-full bg-white/10 relative transition-colors cursor-pointer" data-enabled="false">
+                  <div class="toggle-dot w-5 h-5 rounded-full bg-muted absolute top-1 left-1 transition-all duration-200"></div>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -768,6 +983,117 @@
     sequenceBtn.querySelector('span').classList.remove('text-muted');
     sequenceBtn.querySelector('span').classList.add('text-accent');
     document.querySelector('[data-playlist="all"]').classList.add('bg-white/10');
+
+    // API 设置页面
+    const apiSettingsPage = document.getElementById('apiSettingsPage');
+    const openApiSettingsBtn = document.getElementById('openApiSettings');
+    const closeApiSettingsBtn = document.getElementById('closeApiSettings');
+    const apiCards = document.querySelectorAll('.api-card');
+    const apiToggles = document.querySelectorAll('.api-toggle');
+
+    openApiSettingsBtn.addEventListener('click', () => {
+      apiSettingsPage.classList.remove('translate-x-full');
+      closeDrawer();
+    });
+
+    closeApiSettingsBtn.addEventListener('click', () => {
+      apiSettingsPage.classList.add('translate-x-full');
+    });
+
+    // 展开/折叠 API 卡片
+    apiCards.forEach(card => {
+      const header = card.querySelector('.api-header');
+      const content = card.querySelector('.api-content');
+      const arrow = card.querySelector('.api-arrow');
+
+      header.addEventListener('click', () => {
+        const isHidden = content.classList.contains('hidden');
+        content.classList.toggle('hidden');
+        arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+      });
+    });
+
+    // 启用开关 - 只允许启用一个
+    apiToggles.forEach(toggle => {
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const card = toggle.closest('.api-card');
+        const content = card.querySelector('.api-content');
+        const inputs = content.querySelectorAll('input');
+        const status = card.querySelector('.api-status');
+        const dot = toggle.querySelector('.toggle-dot');
+        const isEnabled = toggle.dataset.enabled === 'true';
+
+        if (!isEnabled) {
+          // 检查配置是否完整
+          const urlInput = inputs[0];
+          const keyInput = inputs[1];
+          const modelInput = inputs[2];
+
+          if (!urlInput.value.trim() || !keyInput.value.trim() || !modelInput.value.trim()) {
+            showToast('请先完成所有配置项');
+            // 展开卡片
+            if (content.classList.contains('hidden')) {
+              content.classList.remove('hidden');
+              card.querySelector('.api-arrow').style.transform = 'rotate(180deg)';
+            }
+            return;
+          }
+
+          // 关闭其他已启用的
+          apiToggles.forEach(t => {
+            if (t !== toggle) {
+              t.dataset.enabled = 'false';
+              t.classList.remove('bg-accent');
+              t.classList.add('bg-white/10');
+              t.querySelector('.toggle-dot').classList.remove('bg-white', 'left-6');
+              t.querySelector('.toggle-dot').classList.add('bg-muted', 'left-1');
+              t.closest('.api-card').querySelector('.api-status').textContent = '未配置';
+              t.closest('.api-card').querySelector('.api-status').classList.remove('text-accent');
+              t.closest('.api-card').querySelector('.api-status').classList.add('text-muted');
+            }
+          });
+
+          // 启用当前
+          toggle.dataset.enabled = 'true';
+          toggle.classList.remove('bg-white/10');
+          toggle.classList.add('bg-accent');
+          dot.classList.remove('bg-muted', 'left-1');
+          dot.classList.add('bg-white', 'left-6');
+          status.textContent = '已启用';
+          status.classList.remove('text-muted');
+          status.classList.add('text-accent');
+          showToast('API 配置已启用');
+        } else {
+          // 取消启用
+          toggle.dataset.enabled = 'false';
+          toggle.classList.remove('bg-accent');
+          toggle.classList.add('bg-white/10');
+          dot.classList.remove('bg-white', 'left-6');
+          dot.classList.add('bg-muted', 'left-1');
+          status.textContent = '已配置';
+          status.classList.remove('text-accent');
+          status.classList.add('text-muted');
+        }
+      });
+
+      // 监听输入变化，更新状态
+      const card = toggle.closest('.api-card');
+      const inputs = card.querySelectorAll('input');
+      inputs.forEach(input => {
+        input.addEventListener('input', () => {
+          const status = card.querySelector('.api-status');
+          if (toggle.dataset.enabled !== 'true') {
+            const allFilled = Array.from(inputs).every(i => i.value.trim());
+            if (allFilled) {
+              status.textContent = '已配置';
+            } else {
+              status.textContent = '未配置';
+            }
+          }
+        });
+      });
+    });
   </script>
 </body>
 </html>
