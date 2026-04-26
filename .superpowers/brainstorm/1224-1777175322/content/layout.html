@@ -1,0 +1,37 @@
+<h2>API 设置页面布局</h2>
+<p class="subtitle">选择页面整体布局风格</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>卡片列表式</h3>
+      <p>每个服务商一个独立卡片，卡片内包含所有配置项。类似现有设置面板风格，简洁直观。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>分页式</h3>
+      <p>顶部 Tab 切换不同服务商，每个 Tab 页面内展示该服务商的配置。适合配置项较多时。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>折叠面板式</h3>
+      <p>每个服务商一个可展开/折叠的面板，默认只显示服务商名称和启用状态，展开后显示详细配置。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>配置项说明</h3>
+  <p>每个服务商需要配置：</p>
+  <ul style="color: #71717a; margin-left: 16px;">
+    <li>API URL（接口地址）</li>
+    <li>API Key（密钥）</li>
+    <li>模型名称（如 qwen-plus、glm-4 等）</li>
+    <li>启用开关（只能启用一个）</li>
+  </ul>
+</div>
