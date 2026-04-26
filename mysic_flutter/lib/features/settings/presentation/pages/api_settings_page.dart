@@ -501,6 +501,7 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
       ApiProvider.zhipu => AppColors.blueGradient,
       ApiProvider.xunfei => AppColors.violetGradient,
       ApiProvider.tencent => AppColors.emeraldGradient,
+      ApiProvider.openai => AppColors.accentGradient,
     };
   }
 
@@ -511,6 +512,7 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
       ApiProvider.zhipu => '智谱',
       ApiProvider.xunfei => '讯飞',
       ApiProvider.tencent => '腾讯',
+      ApiProvider.openai => 'OpenAI',
     };
   }
 
@@ -521,6 +523,7 @@ class _ApiSettingsPageState extends State<ApiSettingsPage> {
       ApiProvider.zhipu => 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
       ApiProvider.xunfei => 'xxxxxxxx:xxxxxxxx',
       ApiProvider.tencent => 'xxxxxxxxxxxxxxxx',
+      ApiProvider.openai => 'sk-xxxxxxxxxxxxxxxxxxxxxxxx',
     };
   }
 

@@ -6,6 +6,7 @@ enum ApiProvider {
   zhipu,
   xunfei,
   tencent,
+  openai, // OpenAI 兼容格式（支持 Coding Plan 等）
 }
 
 /// ApiProvider 扩展方法
@@ -16,6 +17,7 @@ extension ApiProviderExtension on ApiProvider {
         ApiProvider.zhipu => '智谱 AI',
         ApiProvider.xunfei => '讯飞星火',
         ApiProvider.tencent => '腾讯混元',
+        ApiProvider.openai => 'OpenAI 兼容',
       };
 
   /// 描述
@@ -24,6 +26,7 @@ extension ApiProviderExtension on ApiProvider {
         ApiProvider.zhipu => 'GLM 系列模型',
         ApiProvider.xunfei => 'Spark 系列模型',
         ApiProvider.tencent => 'Hunyuan 系列模型',
+        ApiProvider.openai => '支持 OpenAI 格式的 API',
       };
 
   /// 默认 API URL
@@ -32,6 +35,7 @@ extension ApiProviderExtension on ApiProvider {
         ApiProvider.zhipu => 'https://open.bigmodel.cn/api/paas/v4',
         ApiProvider.xunfei => 'https://spark-api-open.xf-yun.com/v1',
         ApiProvider.tencent => 'https://api.hunyuan.cloud.tencent.com/v1',
+        ApiProvider.openai => 'https://api.openai.com/v1',
       };
 
   /// 默认模型名称
@@ -40,6 +44,7 @@ extension ApiProviderExtension on ApiProvider {
         ApiProvider.zhipu => 'glm-4',
         ApiProvider.xunfei => 'spark-4.0-ultra',
         ApiProvider.tencent => 'hunyuan-lite',
+        ApiProvider.openai => 'gpt-4o-mini',
       };
 
   /// 从字符串解析
@@ -49,6 +54,7 @@ extension ApiProviderExtension on ApiProvider {
       'zhipu' => ApiProvider.zhipu,
       'xunfei' => ApiProvider.xunfei,
       'tencent' => ApiProvider.tencent,
+      'openai' => ApiProvider.openai,
       _ => null,
     };
   }
@@ -59,6 +65,7 @@ extension ApiProviderExtension on ApiProvider {
         ApiProvider.zhipu => 'zhipu',
         ApiProvider.xunfei => 'xunfei',
         ApiProvider.tencent => 'tencent',
+        ApiProvider.openai => 'openai',
       };
 }
 

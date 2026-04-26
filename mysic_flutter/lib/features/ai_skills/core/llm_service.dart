@@ -34,6 +34,11 @@ class LlmService {
     );
 
     try {
+      // 调试日志
+      print('[LlmService] 请求 URL: $url');
+      print('[LlmService] 请求体: ${jsonEncode(body)}');
+      print('[LlmService] API Key 长度: ${config.apiKey.length}');
+
       final response = await _client
           .post(
             url,
@@ -45,9 +50,12 @@ class LlmService {
           )
           .timeout(timeout);
 
+      print('[LlmService] 响应状态码: ${response.statusCode}');
+      print('[LlmService] 响应体: ${response.body}');
+
       if (response.statusCode != 200) {
         throw LlmServiceException(
-          'API 请求失败: ${response.statusCode}',
+          'API 请求失败: ${response.statusCode} - ${response.body}',
           statusCode: response.statusCode,
           body: response.body,
         );
@@ -71,6 +79,8 @@ class LlmService {
         'https://spark-api-open.xf-yun.com/v1/chat/completions',
       ApiProvider.tencent =>
         'https://api.hunyuan.cloud.tencent.com/v1/chat/completions',
+      ApiProvider.openai =>
+        '${config.apiUrl}/chat/completions',
     };
   }
 
@@ -120,6 +130,12 @@ class LlmService {
         ],
         if (enableWebSearch) 'enable_search': true,
       },
+      ApiProvider.openai => {
+        'model': config.modelName,
+        'messages': [
+          {'role': 'user', 'content': prompt},
+        ],
+      },
     };
   }
 
@@ -144,6 +160,7 @@ class LlmService {
       case ApiProvider.zhipu:
       case ApiProvider.xunfei:
       case ApiProvider.tencent:
+      case ApiProvider.openai:
         final choices = response['choices'] as List<dynamic>?;
         if (choices == null || choices.isEmpty) {
           throw LlmServiceException('无法解析响应: 缺少 choices 字段');
