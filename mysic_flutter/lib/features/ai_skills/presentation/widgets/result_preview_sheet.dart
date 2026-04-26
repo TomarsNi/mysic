@@ -187,10 +187,11 @@ class ResultPreviewSheet extends StatelessWidget {
   /// 歌词搜索结果
   Widget _buildLyricsResult(Map<String, dynamic> data) {
     final lyrics = data['lyrics'] as String? ?? '';
-    final lines = lyrics.split('\n').take(10).toList();
+    final lines = lyrics.split('\n');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         const Text(
           '歌词搜索结果',
@@ -213,28 +214,33 @@ class ResultPreviewSheet extends StatelessWidget {
           ),
         const SizedBox(height: 12),
 
-        // 歌词预览
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: lines
-                .map((line) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text(
-                        line,
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ))
-                .toList(),
+        // 歌词预览 - 可滚动
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 200),
+          child: SingleChildScrollView(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: lines
+                    .map((line) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            line,
+                            style: const TextStyle(
+                              color: AppColors.white,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ))
+                    .toList(),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 24),
