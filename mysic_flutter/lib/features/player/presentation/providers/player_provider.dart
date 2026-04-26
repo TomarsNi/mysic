@@ -400,6 +400,53 @@ class PlayerProvider extends ChangeNotifier {
     }();
   }
 
+  /// 保存歌词时间调整
+  /// [globalOffset] 整体偏移量
+  /// [lineOffsets] 逐行偏移量（行索引 → 偏移量）
+  Future<bool> saveLyricsAdjustment({
+    required Duration globalOffset,
+    required Map<int, Duration> lineOffsets,
+  }) async {
+    if (_currentSong == null || _currentSong!.id == null) return false;
+    if (!_currentLyrics.isValid) return false;
+
+    // 计算调整后的歌词行
+    final adjustedLines = <LyricLine>[];
+    for (int i = 0; i < _currentLyrics.lines.length; i++) {
+      final line = _currentLyrics.lines[i];
+      final lineOffset = lineOffsets[i] ?? Duration.zero;
+      final adjustedTimestamp = line.timestamp + globalOffset + lineOffset;
+
+      // 确保时间戳不为负数
+      if (adjustedTimestamp >= Duration.zero) {
+        adjustedLines.add(LyricLine(
+          timestamp: adjustedTimestamp,
+          text: line.text,
+        ));
+      }
+    }
+
+    // 创建调整后的歌词结果
+    final adjustedLyrics = LyricsResult(
+      lines: adjustedLines,
+      metadata: _currentLyrics.metadata,
+      isValid: adjustedLines.isNotEmpty,
+    );
+
+    // 生成 LRC 内容
+    final lrcContent = _lyricsParser.toLrc(adjustedLyrics);
+
+    // 保存到数据库
+    final db = DatabaseHelper();
+    await db.updateLyricsContent(_currentSong!.id!, lrcContent);
+
+    // 更新当前歌词
+    _currentLyrics = adjustedLyrics;
+    notifyListeners();
+
+    return true;
+  }
+
   @override
   void dispose() {
     _audioPlayerService.dispose();
