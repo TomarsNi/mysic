@@ -63,6 +63,9 @@ dependencies:
   # 路径
   path_provider: ^2.1.1
 
+  # 文件选择器
+  file_selector: ^1.0.3
+
   # 共享偏好
   shared_preferences: ^2.2.2
 

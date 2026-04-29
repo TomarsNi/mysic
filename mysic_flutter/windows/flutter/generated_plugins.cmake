@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
   audiotags
+  file_selector_windows
   permission_handler_windows
 )
 
