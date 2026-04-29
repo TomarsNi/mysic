@@ -32,26 +32,29 @@ class ScanDirectoryProvider {
     if (result.isEmpty) {
       // 首次访问，初始化默认目录
       await _saveDirectories(kDefaultScanDirectories);
-      return List.from(kDefaultScanDirectories);
+      return List.unmodifiable(kDefaultScanDirectories);
     }
 
     final value = result.first['value'] as String;
     final List<dynamic> jsonList = jsonDecode(value);
-    return jsonList.cast<String>();
+    return List.unmodifiable(jsonList.cast<String>());
   }
 
   /// 添加扫描目录
   Future<void> addDirectory(String directory) async {
-    final directories = await getDirectories();
-    if (!directories.contains(directory)) {
-      directories.add(directory);
+    final trimmed = directory.trim();
+    if (trimmed.isEmpty) return;
+
+    final directories = List<String>.from(await getDirectories());
+    if (!directories.contains(trimmed)) {
+      directories.add(trimmed);
       await _saveDirectories(directories);
     }
   }
 
   /// 移除扫描目录
   Future<void> removeDirectory(String directory) async {
-    final directories = await getDirectories();
+    final directories = List<String>.from(await getDirectories());
     directories.remove(directory);
     await _saveDirectories(directories);
   }
