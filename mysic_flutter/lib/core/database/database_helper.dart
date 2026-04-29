@@ -66,6 +66,7 @@ class DatabaseHelper {
         file_path TEXT NOT NULL UNIQUE,
         album_art_path TEXT,
         album_art_base64 TEXT,
+        lyrics_path TEXT,
         date_added INTEGER,
         is_deleted INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
