@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:audiotags/audiotags.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
 import 'platform_music_scanner.dart';
@@ -216,7 +217,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
       updateState(ScanState.completed);
       stopwatch.stop();
-      print('Mobile扫描完成: totalFound=$totalFound, newAdded=${result['newAdded']}, duplicates=${result['duplicates']}');
+      debugPrint('Mobile扫描完成: totalFound=$totalFound, newAdded=${result['newAdded']}, duplicates=${result['duplicates']}');
 
       updateProgress(ScanProgress(
         currentPath: '完成',
@@ -260,7 +261,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
         if (isCancelled) return;
 
         if (entity is Directory) {
-          final dirName = entity.path.split('/').last;
+          final dirName = entity.path.split(Platform.pathSeparator).last;
           if (_skipDirectories.contains(dirName)) continue;
 
           try {
@@ -319,11 +320,11 @@ class MobileMusicScanner extends PlatformMusicScanner {
       }
     } catch (e) {
       // 元数据读取失败，使用文件名
-      print('读取元数据失败: $filePath, 错误: $e');
+      debugPrint('读取元数据失败: $filePath, 错误: $e');
     }
 
     // 回退：从文件名提取
-    final fileName = filePath.split('/').last;
+    final fileName = filePath.split(Platform.pathSeparator).last;
     return _AudioMetadata(
       title: _cleanTitleFromFileName(fileName),
       artist: null,
@@ -388,7 +389,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
           }
 
           // 确定最终标题：优先使用元数据，回退到清理后的文件名
-          final fileName = filePath.split('/').last;
+          final fileName = filePath.split(Platform.pathSeparator).last;
           final title = metadata.title?.isNotEmpty == true
               ? metadata.title
               : _cleanTitleFromFileName(fileName);
@@ -412,7 +413,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
       }
     });
 
-    print('Mobile扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered, skipped=$skipped');
+    debugPrint('Mobile扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered, skipped=$skipped');
     return {'newAdded': newAdded, 'duplicates': duplicates};
   }
 
