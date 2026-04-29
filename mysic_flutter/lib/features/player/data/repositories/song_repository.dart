@@ -83,4 +83,34 @@ class SongRepository {
     if (result.isEmpty) return 0;
     return result.first['count'] as int? ?? 0;
   }
+
+  /// 更新专辑封面路径
+  /// 同时清空 albumArtBase64（优先使用文件路径）
+  Future<void> updateAlbumArt(int songId, String? albumArtPath) async {
+    final db = await _dbHelper.database;
+    await db.update(
+      DatabaseHelper.tableSongs,
+      {
+        'album_art_path': albumArtPath,
+        'album_art_base64': null,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [songId],
+    );
+  }
+
+  /// 更新歌词文件路径
+  Future<void> updateLyricsPath(int songId, String? lyricsPath) async {
+    final db = await _dbHelper.database;
+    await db.update(
+      DatabaseHelper.tableSongs,
+      {
+        'lyrics_path': lyricsPath,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [songId],
+    );
+  }
 }
