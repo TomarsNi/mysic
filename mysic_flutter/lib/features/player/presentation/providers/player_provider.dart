@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import '../../data/models/song.dart';
 import '../../data/services/audio_player_service.dart';
@@ -81,7 +83,19 @@ class PlayerProvider extends ChangeNotifier {
       return;
     }
 
-    // 1. 优先从数据库加载
+    // 1. 优先从 songs.lyrics_path 读取（应用目录内的 .lrc 文件）
+    if (song.lyricsPath != null && song.lyricsPath!.isNotEmpty) {
+      final lyricsFile = File(song.lyricsPath!);
+      if (await lyricsFile.exists()) {
+        _currentLyrics = await _lyricsParser.parseFile(song.lyricsPath!);
+        if (_currentLyrics.isValid) {
+          notifyListeners();
+          return;
+        }
+      }
+    }
+
+    // 2. 从数据库 lyrics 表加载
     final db = await DatabaseHelper().database;
     final dbResult = await db.query(
       DatabaseHelper.tableLyrics,
@@ -98,7 +112,7 @@ class PlayerProvider extends ChangeNotifier {
       }
     }
 
-    // 2. 再从文件系统查找
+    // 3. 从文件系统查找同名 .lrc 文件
     final lyricsPath = _lyricsParser.findLyricsFile(song.filePath);
     if (lyricsPath != null) {
       _currentLyrics = await _lyricsParser.parseFile(lyricsPath);
