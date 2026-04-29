@@ -22,120 +22,157 @@ class _ScanDirectoryListState extends State<ScanDirectoryList> {
   }
 
   Future<void> _loadDirectories() async {
-    final directories = await _provider.getDirectories();
-    if (mounted) {
-      setState(() {
-        _directories = directories;
-        _isLoading = false;
-      });
+    try {
+      final directories = await _provider.getDirectories();
+      if (mounted) {
+        setState(() {
+          _directories = directories;
+          _isLoading = false;
+        });
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载目录失败: $e')),
+        );
+      }
     }
   }
 
   Future<void> _addDirectory() async {
     final controller = TextEditingController();
 
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text(
-          '添加扫描目录',
-          style: TextStyle(color: AppColors.white),
-        ),
-        content: TextField(
-          controller: controller,
-          style: const TextStyle(color: AppColors.white),
-          decoration: const InputDecoration(
-            hintText: '输入目录名称',
-            hintStyle: TextStyle(color: AppColors.muted),
-            enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.muted),
+    try {
+      final result = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text(
+            '添加扫描目录',
+            style: TextStyle(color: AppColors.white),
+          ),
+          content: TextField(
+            controller: controller,
+            style: const TextStyle(color: AppColors.white),
+            decoration: const InputDecoration(
+              hintText: '输入目录名称',
+              hintStyle: TextStyle(color: AppColors.muted),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: AppColors.muted),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: AppColors.accent),
+              ),
             ),
-            focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.accent),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消', style: TextStyle(color: AppColors.muted)),
             ),
-          ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('添加', style: TextStyle(color: AppColors.accent)),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: AppColors.muted)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('添加', style: TextStyle(color: AppColors.accent)),
-          ),
-        ],
-      ),
-    );
+      );
 
-    if (result != null && result.isNotEmpty) {
-      await _provider.addDirectory(result);
-      await _loadDirectories();
+      if (result != null && result.isNotEmpty) {
+        await _provider.addDirectory(result);
+        await _loadDirectories();
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('添加目录失败: $e')),
+        );
+      }
+    } finally {
+      controller.dispose();
     }
   }
 
   Future<void> _removeDirectory(String directory) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text(
-          '确认删除',
-          style: TextStyle(color: AppColors.white),
-        ),
-        content: Text(
-          '确定要删除目录 "$directory" 吗？',
-          style: const TextStyle(color: AppColors.muted),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消', style: TextStyle(color: AppColors.muted)),
+    try {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text(
+            '确认删除',
+            style: TextStyle(color: AppColors.white),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          content: Text(
+            '确定要删除目录 "$directory" 吗？',
+            style: const TextStyle(color: AppColors.muted),
           ),
-        ],
-      ),
-    );
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消', style: TextStyle(color: AppColors.muted)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('删除', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
 
-    if (confirm == true) {
-      await _provider.removeDirectory(directory);
-      await _loadDirectories();
+      if (confirm == true) {
+        await _provider.removeDirectory(directory);
+        await _loadDirectories();
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('删除目录失败: $e')),
+        );
+      }
     }
   }
 
   Future<void> _resetToDefault() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text(
-          '恢复默认',
-          style: TextStyle(color: AppColors.white),
-        ),
-        content: const Text(
-          '确定要恢复默认扫描目录吗？',
-          style: TextStyle(color: AppColors.muted),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消', style: TextStyle(color: AppColors.muted)),
+    try {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text(
+            '恢复默认',
+            style: TextStyle(color: AppColors.white),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('恢复', style: TextStyle(color: AppColors.accent)),
+          content: const Text(
+            '确定要恢复默认扫描目录吗？',
+            style: TextStyle(color: AppColors.muted),
           ),
-        ],
-      ),
-    );
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('取消', style: TextStyle(color: AppColors.muted)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('恢复', style: TextStyle(color: AppColors.accent)),
+            ),
+          ],
+        ),
+      );
 
-    if (confirm == true) {
-      await _provider.resetToDefault();
-      await _loadDirectories();
+      if (confirm == true) {
+        await _provider.resetToDefault();
+        await _loadDirectories();
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('恢复默认失败: $e')),
+        );
+      }
     }
   }
 
@@ -170,34 +207,48 @@ class _ScanDirectoryListState extends State<ScanDirectoryList> {
         const SizedBox(height: 16),
 
         // 目录列表
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _directories.length,
-            separatorBuilder: (context, index) => const Divider(
-              color: AppColors.surface,
-              height: 1,
+        if (_directories.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(12),
             ),
-            itemBuilder: (context, index) {
-              final directory = _directories[index];
-              return ListTile(
-                title: Text(
-                  directory,
-                  style: const TextStyle(color: AppColors.white),
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline, color: AppColors.muted),
-                  onPressed: () => _removeDirectory(directory),
-                ),
-              );
-            },
+            child: const Text(
+              '暂无扫描目录，请添加',
+              style: TextStyle(color: AppColors.muted),
+              textAlign: TextAlign.center,
+            ),
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _directories.length,
+              separatorBuilder: (context, index) => const Divider(
+                color: AppColors.surface,
+                height: 1,
+              ),
+              itemBuilder: (context, index) {
+                final directory = _directories[index];
+                return ListTile(
+                  title: Text(
+                    directory,
+                    style: const TextStyle(color: AppColors.white),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline, color: AppColors.muted),
+                    onPressed: () => _removeDirectory(directory),
+                  ),
+                );
+              },
+            ),
           ),
-        ),
 
         const SizedBox(height: 16),
 
