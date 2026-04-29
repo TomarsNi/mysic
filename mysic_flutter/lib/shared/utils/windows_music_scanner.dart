@@ -4,10 +4,12 @@ import 'package:audiotags/audiotags.dart';
 import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
 import 'platform_music_scanner.dart';
+import 'scan_directory_provider.dart';
 
 /// Windows 平台音乐扫描器
 class WindowsMusicScanner extends PlatformMusicScanner {
   final DatabaseHelper _dbHelper = DatabaseHelper();
+  final ScanDirectoryProvider _directoryProvider = ScanDirectoryProvider();
 
   /// 支持的音频格式
   static const Set<String> _audioExtensions = {
@@ -129,9 +131,9 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     try {
       updateState(ScanState.scanning);
 
-      // 获取所有驱动器
-      final drives = await _getAvailableDrives();
-      if (drives.isEmpty) {
+      // 获取扫描根目录列表
+      final scanRoots = await _getScanRoots();
+      if (scanRoots.isEmpty) {
         updateState(ScanState.completed);
         stopwatch.stop();
         return ScanResult(
@@ -142,18 +144,18 @@ class WindowsMusicScanner extends PlatformMusicScanner {
         );
       }
 
-      // 扫描所有驱动器
+      // 扫描所有配置的目录
       final songs = <File>[];
       int filesScanned = 0;
       int progressCounter = 0; // 进度更新计数器
 
-      for (int i = 0; i < drives.length; i++) {
+      for (int i = 0; i < scanRoots.length; i++) {
         if (isCancelled) break;
 
-        final drive = drives[i];
-        final driveProgress = i / drives.length;
+        final root = scanRoots[i];
+        final rootProgress = i / scanRoots.length;
 
-        await _scanDirectory(drive, songs, (path, count) {
+        await _scanDirectory(root, songs, (path, count) {
           filesScanned += count;
           progressCounter++;
 
@@ -163,7 +165,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
               currentPath: path,
               filesScanned: filesScanned,
               songsFound: songs.length,
-              progress: driveProgress + (1 / drives.length) * 0.9,
+              progress: rootProgress + (1 / scanRoots.length) * 0.9,
             ));
           }
         });
@@ -240,6 +242,30 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     }
     return drives;
   }
+
+  /// 获取扫描根目录列表
+  Future<List<String>> _getScanRoots() async {
+    final directoryNames = await _directoryProvider.getDirectories();
+    final drives = await _getAvailableDrives();
+
+    final roots = <String>[];
+    for (final drive in drives) {
+      for (final dirName in directoryNames) {
+        final path = '$drive$dirName';
+        try {
+          if (await Directory(path).exists()) {
+            roots.add(path);
+          }
+        } catch (_) {
+          // 忽略无权限目录
+        }
+      }
+    }
+    return roots;
+  }
+
+  /// 测试用：获取扫描根目录
+  Future<List<String>> getScanRootsForTest() => _getScanRoots();
 
   /// 递归扫描目录
   Future<void> _scanDirectory(
