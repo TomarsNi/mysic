@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:audiotags/audiotags.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
 import 'platform_music_scanner.dart';
@@ -106,21 +105,15 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
   @override
   Future<bool> requestPermission() async {
-    final status = await Permission.storage.request();
-    if (status.isGranted) return true;
-
-    // Android 13+ 需要请求音频权限
-    final audioStatus = await Permission.audio.request();
-    return audioStatus.isGranted;
+    // 文件系统扫描不需要单独请求权限
+    // 实际权限检查在文件系统操作时进行
+    return true;
   }
 
   @override
   Future<bool> hasPermission() async {
-    final status = await Permission.storage.status;
-    if (status.isGranted) return true;
-
-    final audioStatus = await Permission.audio.status;
-    return audioStatus.isGranted;
+    // 文件系统扫描不需要单独检查权限
+    return true;
   }
 
   @override

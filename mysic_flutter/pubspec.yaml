@@ -45,10 +45,6 @@ dependencies:
   audioplayers: ^6.0.0
   audio_session: ^0.1.18
 
-  # 本地音乐
-  on_audio_query: ^2.6.1
-  permission_handler: ^11.1.0
-
   # 本地存储
   sqflite: ^2.3.0
   sqflite_common_ffi: ^2.3.0  # Windows 支持
