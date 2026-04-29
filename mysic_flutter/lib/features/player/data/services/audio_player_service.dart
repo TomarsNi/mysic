@@ -194,12 +194,6 @@ class AudioPlayerService {
   Future<void> previous() async {
     if (_playlist.isEmpty) return;
 
-    // 如果当前播放超过3秒，重新播放当前歌曲
-    if (_position.inSeconds > 3) {
-      await _player.seek(Duration.zero);
-      return;
-    }
-
     if (_currentIndex > 0) {
       _currentIndex--;
     } else if (_loopMode == MysicLoopMode.all) {

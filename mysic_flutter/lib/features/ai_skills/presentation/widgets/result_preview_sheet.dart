@@ -1,4 +1,6 @@
 // lib/features/ai_skills/presentation/widgets/result_preview_sheet.dart
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:mysic_flutter/core/theme/app_colors.dart';
 import 'package:mysic_flutter/features/ai_skills/core/ai_skill.dart';
@@ -113,6 +115,9 @@ class ResultPreviewSheet extends StatelessWidget {
 
   /// 歌曲识别结果
   Widget _buildRecognitionResult(Map<String, dynamic> data) {
+    final albumArtBase64 = data['albumArtBase64'] as String?;
+    final hasAlbumArt = albumArtBase64 != null && albumArtBase64.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -125,6 +130,31 @@ class ResultPreviewSheet extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
+
+        // 封面预览（如果有）
+        if (hasAlbumArt) ...[
+          Center(
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: _buildAlbumArtPreview(albumArtBase64),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
 
         // 歌曲名称
         _buildComparisonRow(
@@ -181,6 +211,36 @@ class ResultPreviewSheet extends StatelessWidget {
         // 操作按钮
         _buildActionButtons(),
       ],
+    );
+  }
+
+  /// 构建封面预览
+  Widget _buildAlbumArtPreview(String base64) {
+    try {
+      final bytes = base64Decode(base64);
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildDefaultCoverPreview(),
+      );
+    } catch (e) {
+      return _buildDefaultCoverPreview();
+    }
+  }
+
+  /// 默认封面预览
+  Widget _buildDefaultCoverPreview() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: AppColors.accentGradient,
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.music_note_rounded,
+          size: 48,
+          color: AppColors.white,
+        ),
+      ),
     );
   }
 

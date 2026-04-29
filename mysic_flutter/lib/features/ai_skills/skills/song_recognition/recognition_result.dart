@@ -11,6 +11,12 @@ class RecognitionResult {
   /// 识别的专辑
   final String album;
 
+  /// 专辑封面图片URL（从联网搜索获取）
+  final String? albumArtUrl;
+
+  /// 专辑封面Base64数据（下载后转换）
+  final String? albumArtBase64;
+
   /// 置信度（high/medium/low）
   final String confidence;
 
@@ -24,6 +30,8 @@ class RecognitionResult {
     required this.title,
     required this.artist,
     required this.album,
+    this.albumArtUrl,
+    this.albumArtBase64,
     required this.confidence,
     required this.source,
     required this.reason,
@@ -35,6 +43,8 @@ class RecognitionResult {
       title: json['title'] as String? ?? '',
       artist: json['artist'] as String? ?? '',
       album: json['album'] as String? ?? '',
+      albumArtUrl: json['albumArtUrl'] as String?,
+      albumArtBase64: json['albumArtBase64'] as String?,
       confidence: json['confidence'] as String? ?? 'low',
       source: json['source'] as String? ?? 'knowledge',
       reason: json['reason'] as String? ?? '',
@@ -61,6 +71,8 @@ class RecognitionResult {
       'title': title,
       'artist': artist,
       'album': album,
+      'albumArtUrl': albumArtUrl,
+      'albumArtBase64': albumArtBase64,
       'confidence': confidence,
       'source': source,
       'reason': reason,
@@ -69,6 +81,6 @@ class RecognitionResult {
 
   @override
   String toString() {
-    return 'RecognitionResult(title: $title, artist: $artist, album: $album, confidence: $confidence, source: $source)';
+    return 'RecognitionResult(title: $title, artist: $artist, album: $album, albumArtUrl: $albumArtUrl, confidence: $confidence, source: $source)';
   }
 }

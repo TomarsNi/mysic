@@ -899,6 +899,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         title: data['title'] as String,
         artist: data['artist'] as String,
         album: data['album'] as String,
+        albumArtBase64: data['albumArtBase64'] as String?,
         updatedAt: DateTime.now(),
       );
 

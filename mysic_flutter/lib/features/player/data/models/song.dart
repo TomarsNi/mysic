@@ -9,6 +9,7 @@ class Song {
   final int? duration; // 毫秒
   final String filePath;
   final String? albumArtPath;
+  final String? albumArtBase64;
   final int? dateAdded;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -21,6 +22,7 @@ class Song {
     this.duration,
     required this.filePath,
     this.albumArtPath,
+    this.albumArtBase64,
     this.dateAdded,
     required this.createdAt,
     required this.updatedAt,
@@ -45,6 +47,7 @@ class Song {
       duration: map['duration'] as int?,
       filePath: map['file_path'] as String,
       albumArtPath: map['album_art_path'] as String?,
+      albumArtBase64: map['album_art_base64'] as String?,
       dateAdded: map['date_added'] as int?,
       createdAt: parseTimestamp(map['created_at']),
       updatedAt: parseTimestamp(map['updated_at']),
@@ -61,6 +64,7 @@ class Song {
       'duration': duration,
       'file_path': filePath,
       'album_art_path': albumArtPath,
+      'album_art_base64': albumArtBase64,
       'date_added': dateAdded,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -76,6 +80,7 @@ class Song {
     int? duration,
     String? filePath,
     String? albumArtPath,
+    String? albumArtBase64,
     int? dateAdded,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -88,6 +93,7 @@ class Song {
       duration: duration ?? this.duration,
       filePath: filePath ?? this.filePath,
       albumArtPath: albumArtPath ?? this.albumArtPath,
+      albumArtBase64: albumArtBase64 ?? this.albumArtBase64,
       dateAdded: dateAdded ?? this.dateAdded,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

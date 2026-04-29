@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -156,7 +157,22 @@ class _AlbumCoverState extends State<AlbumCover>
   }
 
   Widget _buildCoverImage(double radius) {
-    // 如果有专辑封面路径，尝试加载
+    // 优先使用 base64 封面
+    if (widget.song?.albumArtBase64 != null &&
+        widget.song!.albumArtBase64!.isNotEmpty) {
+      try {
+        final bytes = base64Decode(widget.song!.albumArtBase64!);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultCover(),
+        );
+      } catch (e) {
+        // base64 解码失败，继续尝试文件路径
+      }
+    }
+
+    // 其次尝试文件路径
     if (widget.song?.albumArtPath != null &&
         widget.song!.albumArtPath!.isNotEmpty) {
       final file = File(widget.song!.albumArtPath!);
@@ -223,6 +239,21 @@ class AlbumCoverSmall extends StatelessWidget {
   }
 
   Widget _buildCoverImage() {
+    // 优先使用 base64 封面
+    if (song?.albumArtBase64 != null && song!.albumArtBase64!.isNotEmpty) {
+      try {
+        final bytes = base64Decode(song!.albumArtBase64!);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultCover(),
+        );
+      } catch (e) {
+        // base64 解码失败，继续尝试文件路径
+      }
+    }
+
+    // 其次尝试文件路径
     if (song?.albumArtPath != null && song!.albumArtPath!.isNotEmpty) {
       final file = File(song!.albumArtPath!);
       if (file.existsSync()) {

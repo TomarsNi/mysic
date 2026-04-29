@@ -16,7 +16,7 @@ class DatabaseHelper {
   static const String _databaseName = 'mysic.db';
 
   /// 数据库版本
-  static const int _databaseVersion = 5;
+  static const int _databaseVersion = 6;
 
   /// 表名常量
   static const String tableSongs = 'songs';
@@ -65,6 +65,7 @@ class DatabaseHelper {
         duration INTEGER NOT NULL,
         file_path TEXT NOT NULL UNIQUE,
         album_art_path TEXT,
+        album_art_base64 TEXT,
         date_added INTEGER,
         is_deleted INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
@@ -302,6 +303,13 @@ class DatabaseHelper {
       await db.execute('''
         CREATE INDEX idx_api_configs_provider ON $tableApiConfigs (provider)
       ''');
+    }
+
+    // 版本 5 -> 6: 新增 album_art_base64 字段
+    if (oldVersion < 6) {
+      await db.execute(
+        'ALTER TABLE songs ADD COLUMN album_art_base64 TEXT',
+      );
     }
   }
 
