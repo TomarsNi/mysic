@@ -16,7 +16,7 @@ class DatabaseHelper {
   static const String _databaseName = 'mysic.db';
 
   /// 数据库版本
-  static const int _databaseVersion = 6;
+  static const int _databaseVersion = 7;
 
   /// 表名常量
   static const String tableSongs = 'songs';
@@ -309,6 +309,13 @@ class DatabaseHelper {
     if (oldVersion < 6) {
       await db.execute(
         'ALTER TABLE songs ADD COLUMN album_art_base64 TEXT',
+      );
+    }
+
+    // 版本 6 -> 7: 新增 lyrics_path 字段
+    if (oldVersion < 7) {
+      await db.execute(
+        'ALTER TABLE $tableSongs ADD COLUMN lyrics_path TEXT',
       );
     }
   }
