@@ -6,6 +6,7 @@ import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
 import 'dart:io';
 
 import 'core/theme/app_theme.dart';
+import 'core/theme/app_colors.dart';
 import 'core/database/database_helper.dart';
 import 'features/player/presentation/providers/player_provider.dart';
 import 'features/playlist/presentation/providers/playlist_provider.dart';
@@ -13,6 +14,7 @@ import 'features/lyrics/presentation/pages/lyrics_page.dart' show LyricsPage;
 import 'features/settings/presentation/pages/about_page.dart';
 import 'features/settings/presentation/pages/api_settings_page.dart';
 import 'features/settings/presentation/providers/api_config_provider.dart';
+import 'features/settings/presentation/widgets/scan_directory_list.dart';
 import 'features/ai_skills/presentation/providers/ai_skills_provider.dart';
 import 'features/ai_skills/presentation/widgets/magic_wand_button.dart';
 import 'features/ai_skills/presentation/widgets/skill_selection_sheet.dart';
@@ -1104,8 +1106,39 @@ class SettingsSheet extends StatelessWidget {
             onTap: () {},
           ),
 
+          ListTile(
+            leading: const Icon(Icons.folder_rounded, color: Color(0xFF6366F1)),
+            title: const Text('扫描目录', style: TextStyle(color: Colors.white)),
+            subtitle: const Text('管理音乐扫描目录', style: TextStyle(color: Color(0xFF9CA3AF))),
+            onTap: () {
+              Navigator.pop(context);
+              _showScanDirectorySheet(context);
+            },
+          ),
+
           const SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+
+  void _showScanDirectorySheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(20),
+          child: const ScanDirectoryList(),
+        ),
       ),
     );
   }
