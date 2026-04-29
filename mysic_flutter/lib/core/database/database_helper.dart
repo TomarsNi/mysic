@@ -16,7 +16,7 @@ class DatabaseHelper {
   static const String _databaseName = 'mysic.db';
 
   /// 数据库版本
-  static const int _databaseVersion = 7;
+  static const int _databaseVersion = 8;
 
   /// 表名常量
   static const String tableSongs = 'songs';
@@ -26,6 +26,7 @@ class DatabaseHelper {
   static const String tablePlayHistory = 'play_history';
   static const String tableAppState = 'app_state';
   static const String tableApiConfigs = 'api_configs';
+  static const String tableSettings = 'settings';
 
   /// 获取数据库实例
   Future<Database> get database async {
@@ -168,6 +169,15 @@ class DatabaseHelper {
     // 创建 API 配置表索引
     await db.execute('''
       CREATE INDEX idx_api_configs_provider ON $tableApiConfigs (provider)
+    ''');
+
+    // 创建设置表
+    await db.execute('''
+      CREATE TABLE $tableSettings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
     ''');
   }
 
@@ -318,6 +328,17 @@ class DatabaseHelper {
       await db.execute(
         'ALTER TABLE $tableSongs ADD COLUMN lyrics_path TEXT',
       );
+    }
+
+    // 版本 7 -> 8: 新增 settings 表
+    if (oldVersion < 8) {
+      await db.execute('''
+        CREATE TABLE $tableSettings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      ''');
     }
   }
 
