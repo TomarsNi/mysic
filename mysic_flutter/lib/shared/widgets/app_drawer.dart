@@ -17,8 +17,8 @@ class AppDrawer extends StatelessWidget {
   /// 歌单点击回调
   final void Function(Playlist)? onPlaylistTap;
 
-  /// 扫描音乐点击回调
-  final VoidCallback? onScanTap;
+  /// 扫描设置点击回调
+  final VoidCallback? onScanSettingsTap;
 
   /// 设置点击回调
   final VoidCallback? onSettingsTap;
@@ -37,7 +37,7 @@ class AppDrawer extends StatelessWidget {
     this.selectedPlaylistId,
     this.playlists = const [],
     this.onPlaylistTap,
-    this.onScanTap,
+    this.onScanSettingsTap,
     this.onSettingsTap,
     this.onAboutTap,
     this.onApiSettingsTap,
@@ -221,7 +221,7 @@ class AppDrawer extends StatelessWidget {
           color: AppColors.accent.withValues(alpha: 0.20), // bg-accent/20
           borderRadius: BorderRadius.circular(12),
           child: InkWell(
-            onTap: isScanning ? null : onScanTap,
+            onTap: isScanning ? null : onScanSettingsTap,
             borderRadius: BorderRadius.circular(12),
             child: Container(
               width: double.infinity,
@@ -271,7 +271,7 @@ class AppDrawer extends StatelessWidget {
                       const SizedBox(width: 8),
                       // 文字
                       Text(
-                        isScanning ? '${(scanProgress * 100).toInt()}%' : '扫描全盘',
+                        isScanning ? '${(scanProgress * 100).toInt()}%' : '扫描设置',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
