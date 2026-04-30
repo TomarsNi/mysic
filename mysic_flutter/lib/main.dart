@@ -13,6 +13,8 @@ import 'features/playlist/presentation/providers/playlist_provider.dart';
 import 'features/lyrics/presentation/pages/lyrics_page.dart' show LyricsPage;
 import 'features/settings/presentation/pages/about_page.dart';
 import 'features/settings/presentation/pages/api_settings_page.dart';
+import 'features/settings/data/scan_options_provider.dart';
+import 'features/settings/presentation/pages/scan_settings_page.dart';
 import 'features/settings/presentation/providers/api_config_provider.dart';
 import 'features/settings/presentation/widgets/scan_directory_list.dart';
 import 'features/ai_skills/presentation/providers/ai_skills_provider.dart';
@@ -65,6 +67,7 @@ class MysicApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PlaylistProvider()),
         ChangeNotifierProvider(create: (_) => ApiConfigProvider()..load()),
         ChangeNotifierProvider(create: (_) => AiSkillsProvider()),
+        ChangeNotifierProvider(create: (_) => ScanOptionsProvider()..load()),
       ],
       child: MaterialApp(
         title: 'Mysic',
@@ -181,7 +184,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
               // 5. 抽屉会自动关闭（在 AppDrawer 中处理）
             },
-            onScanTap: _startScan,
+            onScanSettingsTap: () => _showScanSettings(context),
             onSettingsTap: () => _showSettings(context),
             onAboutTap: () => _showAbout(context),
             onApiSettingsTap: () => _showApiSettings(context),
@@ -726,6 +729,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const ApiSettingsPage(),
+      ),
+    );
+  }
+
+  void _showScanSettings(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const ScanSettingsPage(),
       ),
     );
   }

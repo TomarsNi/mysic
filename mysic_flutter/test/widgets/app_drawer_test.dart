@@ -16,7 +16,7 @@ void main() {
       List<Playlist> playlists = const [],
       int? selectedPlaylistId,
       void Function(Playlist)? onPlaylistTap,
-      VoidCallback? onScanTap,
+      VoidCallback? onScanSettingsTap,
       VoidCallback? onSettingsTap,
       VoidCallback? onAboutTap,
       VoidCallback? onCreatePlaylistTap,
@@ -38,7 +38,7 @@ void main() {
                     playlists: playlists,
                     selectedPlaylistId: selectedPlaylistId,
                     onPlaylistTap: onPlaylistTap,
-                    onScanTap: onScanTap,
+                    onScanSettingsTap: onScanSettingsTap,
                     onSettingsTap: onSettingsTap,
                     onAboutTap: onAboutTap,
                     onCreatePlaylistTap: onCreatePlaylistTap,
@@ -63,8 +63,7 @@ void main() {
     testWidgets('should render scan button', (tester) async {
       await pumpAppDrawer(tester);
 
-      expect(find.text('本地音乐'), findsOneWidget);
-      expect(find.text('扫描设备中的音乐文件'), findsOneWidget);
+      expect(find.text('扫描设置'), findsOneWidget);
     });
 
     testWidgets('should render empty state when no playlists', (tester) async {
@@ -153,15 +152,15 @@ void main() {
       expect(tappedPlaylist?.id, 1);
     });
 
-    testWidgets('should call onScanTap when scan button is tapped', (tester) async {
+    testWidgets('should call onScanSettingsTap when scan button is tapped', (tester) async {
       bool scanTapped = false;
 
       await pumpAppDrawer(
         tester,
-        onScanTap: () => scanTapped = true,
+        onScanSettingsTap: () => scanTapped = true,
       );
 
-      await tester.tap(find.text('本地音乐'));
+      await tester.tap(find.text('扫描设置'));
       await tester.pumpAndSettle();
 
       expect(scanTapped, isTrue);
