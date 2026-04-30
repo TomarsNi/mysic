@@ -4,20 +4,24 @@ import '../../../../shared/utils/scan_directory_provider.dart';
 
 /// 扫描目录管理组件
 class ScanDirectoryList extends StatefulWidget {
-  const ScanDirectoryList({super.key});
+  /// 可选的 provider，用于测试注入
+  final ScanDirectoryProvider? provider;
+
+  const ScanDirectoryList({super.key, this.provider});
 
   @override
   State<ScanDirectoryList> createState() => _ScanDirectoryListState();
 }
 
 class _ScanDirectoryListState extends State<ScanDirectoryList> {
-  final ScanDirectoryProvider _provider = ScanDirectoryProvider();
+  late final ScanDirectoryProvider _provider;
   List<String> _directories = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _provider = widget.provider ?? ScanDirectoryProvider();
     _loadDirectories();
   }
 
