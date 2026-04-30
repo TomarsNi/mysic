@@ -1,6 +1,25 @@
 import 'dart:async';
 import '../../features/player/data/models/song.dart';
 
+/// 扫描选项配置
+class ScanOptions {
+  final List<String> audioFormats;
+  final int minFileSizeKb;
+  final bool autoDedupe;
+
+  const ScanOptions({
+    this.audioFormats = const ['mp3', 'flac', 'wav', 'm4a', 'ogg', 'aac', 'wma', 'ape'],
+    this.minFileSizeKb = 100,
+    this.autoDedupe = true,
+  });
+
+  /// 最小文件大小（字节）
+  int get minFileSizeBytes => minFileSizeKb * 1024;
+
+  /// 音频格式扩展名集合
+  Set<String> get audioExtensions => audioFormats.map((f) => '.$f').toSet();
+}
+
 /// 扫描状态
 enum ScanState {
   idle,
@@ -76,6 +95,15 @@ abstract class PlatformMusicScanner {
   // 取消标志
   bool _cancelled = false;
   bool get isCancelled => _cancelled;
+
+  /// 扫描选项
+  ScanOptions _options = const ScanOptions();
+  ScanOptions get options => _options;
+
+  /// 设置扫描选项
+  void setOptions(ScanOptions options) {
+    _options = options;
+  }
 
   /// 请求权限
   Future<bool> requestPermission();

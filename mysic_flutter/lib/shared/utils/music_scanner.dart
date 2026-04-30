@@ -5,18 +5,31 @@ import 'windows_music_scanner.dart';
 import 'mobile_music_scanner.dart';
 
 // 导出类型供外部使用
-export 'platform_music_scanner.dart' show ScanState, ScanProgress, ScanResult;
+export 'platform_music_scanner.dart' show ScanState, ScanProgress, ScanResult, ScanOptions;
 
 /// 音乐扫描服务
 /// 根据平台自动选择合适的扫描器实现
 class MusicScanner {
   late final PlatformMusicScanner _platformScanner;
 
-  MusicScanner() {
+  MusicScanner({
+    List<String>? audioFormats,
+    int? minFileSizeKb,
+    bool? autoDedupe,
+  }) {
     if (Platform.isWindows || Platform.isLinux) {
       _platformScanner = WindowsMusicScanner();
     } else {
       _platformScanner = MobileMusicScanner();
+    }
+
+    // 设置扫描选项
+    if (audioFormats != null || minFileSizeKb != null || autoDedupe != null) {
+      _platformScanner.setOptions(ScanOptions(
+        audioFormats: audioFormats ?? const ['mp3', 'flac', 'wav', 'm4a', 'ogg', 'aac', 'wma', 'ape'],
+        minFileSizeKb: minFileSizeKb ?? 100,
+        autoDedupe: autoDedupe ?? true,
+      ));
     }
   }
 
