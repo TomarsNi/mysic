@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:audiotags/audiotags.dart';
+import 'package:flutter/foundation.dart';
 import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
 import 'platform_music_scanner.dart';
@@ -10,14 +11,6 @@ import 'scan_directory_provider.dart';
 class WindowsMusicScanner extends PlatformMusicScanner {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   final ScanDirectoryProvider _directoryProvider = ScanDirectoryProvider();
-
-  /// 支持的音频格式
-  static const Set<String> _audioExtensions = {
-    '.mp3', '.flac', '.wav', '.m4a', '.aac', '.ogg', '.wma',
-  };
-
-  /// 最小文件大小 (2.5MB)
-  static const int _minFileSizeBytes = 2500 * 1024;
 
   /// 最小时长（秒）- 2分45秒 = 165秒
   static const int _minDurationSec = 165;
@@ -198,7 +191,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
       updateState(ScanState.completed);
       stopwatch.stop();
-      print('Windows扫描完成: totalFound=$totalFound, newAdded=${result['newAdded']}, duplicates=${result['duplicates']}');
+      debugPrint('Windows扫描完成: totalFound=$totalFound, newAdded=${result['newAdded']}, duplicates=${result['duplicates']}');
 
       updateProgress(ScanProgress(
         currentPath: '完成',
@@ -293,7 +286,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
           }
         } else if (entity is File) {
           final extension = entity.path.toLowerCase();
-          for (final ext in _audioExtensions) {
+          for (final ext in options.audioExtensions) {
             if (extension.endsWith(ext)) {
               // 检查文件名是否像非音乐文件
               if (_isLikelyNonMusicFile(entity.path)) {
@@ -302,7 +295,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
               // 检查文件大小
               try {
                 final fileSize = await entity.length();
-                if (fileSize >= _minFileSizeBytes) {
+                if (fileSize >= options.minFileSizeBytes) {
                   songs.add(entity);
                   onProgress(entity.path, 1);
                 }
@@ -400,7 +393,14 @@ class WindowsMusicScanner extends PlatformMusicScanner {
         }
 
         if (existingPaths.contains(filePath)) {
-          duplicates++;
+          // 根据 autoDedupe 选项决定行为
+          // 无论 autoDedupe 值如何，都跳过已存在的文件（数据库有唯一约束）
+          // 但计数方式不同：autoDedupe=true 计入 duplicates，否则计入 skipped
+          if (options.autoDedupe) {
+            duplicates++;
+          } else {
+            skipped++;
+          }
         } else {
           // 提取音频元数据
           final metadata = await _extractMetadata(filePath);
@@ -439,7 +439,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
       }
     });
 
-    print('Windows扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered, skipped=$skipped');
+    debugPrint('Windows扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered, skipped=$skipped');
     return {'newAdded': newAdded, 'duplicates': duplicates};
   }
 
