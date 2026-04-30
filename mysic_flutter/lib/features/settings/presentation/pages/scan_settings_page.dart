@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -18,13 +19,25 @@ class _ScanSettingsPageState extends State<ScanSettingsPage> {
   bool _isScanning = false;
   double _scanProgress = 0.0;
   MusicScanner? _currentScanner;
+  StreamSubscription<ScanProgress>? _progressSubscription;
+  late final TextEditingController _minFileSizeController;
 
   @override
   void initState() {
     super.initState();
+    _minFileSizeController = TextEditingController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ScanOptionsProvider>().load();
+      final provider = context.read<ScanOptionsProvider>();
+      provider.load();
+      _minFileSizeController.text = provider.minFileSizeKb.toString();
     });
+  }
+
+  @override
+  void dispose() {
+    _progressSubscription?.cancel();
+    _minFileSizeController.dispose();
+    super.dispose();
   }
 
   @override
@@ -53,17 +66,9 @@ class _ScanSettingsPageState extends State<ScanSettingsPage> {
         icon: const Icon(Icons.arrow_back_rounded),
         onPressed: () => Navigator.of(context).pop(),
       ),
-      title: const Column(
-        children: [
-          Text(
-            '设置',
-            style: TextStyle(fontSize: 12, color: AppColors.muted),
-          ),
-          Text(
-            '扫描设置',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-        ],
+      title: const Text(
+        '扫描设置',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
       centerTitle: true,
     );
@@ -273,7 +278,7 @@ class _ScanSettingsPageState extends State<ScanSettingsPage> {
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
-                  controller: TextEditingController(text: optionsProvider.minFileSizeKb.toString()),
+                  controller: _minFileSizeController,
                   onSubmitted: (value) {
                     final kb = int.tryParse(value);
                     if (kb != null && kb > 0) {
@@ -375,7 +380,7 @@ class _ScanSettingsPageState extends State<ScanSettingsPage> {
       );
       _currentScanner = scanner;
 
-      scanner.progressStream.listen((progress) {
+      _progressSubscription = scanner.progressStream.listen((progress) {
         if (mounted) {
           setState(() {
             _scanProgress = progress.progress;
@@ -393,8 +398,26 @@ class _ScanSettingsPageState extends State<ScanSettingsPage> {
             backgroundColor: AppColors.accent,
           ),
         );
+      } else if (mounted && !result.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('扫描失败: ${result.errorMessage ?? "未知错误"}'),
+            backgroundColor: AppColors.muted,
+          ),
+        );
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('扫描失败: $e'),
+            backgroundColor: AppColors.muted,
+          ),
+        );
       }
     } finally {
+      _progressSubscription?.cancel();
+      _progressSubscription = null;
       if (mounted) {
         playerProvider.finishScan();
         setState(() {
