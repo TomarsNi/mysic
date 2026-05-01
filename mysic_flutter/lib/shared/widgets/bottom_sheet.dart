@@ -1,7 +1,11 @@
+import 'dart:async';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:mysic_flutter/core/theme/app_colors.dart';
 import 'package:mysic_flutter/features/player/data/models/playlist.dart';
 import 'package:mysic_flutter/features/player/data/models/song.dart';
+import 'package:mysic_flutter/shared/utils/music_scanner.dart';
 
 /// 添加到歌单底部面板
 /// 显示歌单列表，允许用户将歌曲添加到指定歌单
@@ -493,7 +497,7 @@ class PlaylistOptionsSheet extends StatelessWidget {
 /// 创建歌单对话框
 class CreatePlaylistDialog extends StatefulWidget {
   /// 创建回调
-  final void Function(String name, String? description)? onCreate;
+  final void Function(String name, String? description, String? directory)? onCreate;
 
   const CreatePlaylistDialog({
     super.key,
@@ -508,6 +512,10 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   bool _canCreate = false;
+  String? _selectedDirectory;
+  bool _isScanning = false;
+  double _scanProgress = 0.0;
+  int _songsFound = 0;
 
   @override
   void initState() {
@@ -528,14 +536,228 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
     });
   }
 
+  Future<void> _selectDirectory() async {
+    final result = await getDirectoryPath();
+    if (result != null && mounted) {
+      setState(() {
+        _selectedDirectory = result;
+      });
+    }
+  }
+
+  void _clearDirectory() {
+    setState(() {
+      _selectedDirectory = null;
+      _songsFound = 0;
+    });
+  }
+
   void _handleCreate() {
-    if (!_canCreate) return;
+    if (_selectedDirectory != null) {
+      _scanAndCreate();
+    } else {
+      if (!_canCreate || _isScanning) return;
 
-    final name = _nameController.text.trim();
-    final description = _descriptionController.text.trim();
+      final name = _nameController.text.trim();
+      final description = _descriptionController.text.trim();
 
-    widget.onCreate?.call(name, description.isEmpty ? null : description);
-    Navigator.of(context).pop();
+      widget.onCreate?.call(
+        name,
+        description.isEmpty ? null : description,
+        null,
+      );
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _scanAndCreate() async {
+    if (!_canCreate || _isScanning) return;
+    if (_selectedDirectory == null) {
+      _handleCreate();
+      return;
+    }
+
+    setState(() {
+      _isScanning = true;
+      _scanProgress = 0.0;
+    });
+
+    MusicScanner? scanner;
+    StreamSubscription<ScanProgress>? subscription;
+
+    try {
+      scanner = MusicScanner();
+      subscription = scanner.progressStream.listen(
+        (progress) {
+          if (mounted) {
+            setState(() {
+              _scanProgress = progress.progress;
+            });
+          }
+        },
+        onError: (error) {
+          debugPrint('扫描进度错误: $error');
+        },
+      );
+
+      final result = await scanner.scanMusicInDirectory(_selectedDirectory!);
+
+      if (!mounted) return;
+
+      setState(() {
+        _isScanning = false;
+        _songsFound = result.totalFound;
+      });
+
+      final name = _nameController.text.trim();
+      final description = _descriptionController.text.trim();
+
+      widget.onCreate?.call(
+        name,
+        description.isEmpty ? null : description,
+        _selectedDirectory,
+      );
+      Navigator.of(context).pop();
+    } on Exception catch (e) {
+      if (mounted) {
+        setState(() {
+          _isScanning = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('扫描失败: $e')),
+        );
+      }
+    } finally {
+      await subscription?.cancel();
+      await scanner?.dispose();
+    }
+  }
+
+  Widget _buildDirectorySelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '扫描目录（可选）',
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.muted,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _selectedDirectory ?? '未选择目录',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: _selectedDirectory != null
+                        ? AppColors.white
+                        : AppColors.muted.withValues(alpha: 0.7),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (_selectedDirectory != null) ...[
+                GestureDetector(
+                  onTap: _clearDirectory,
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+              ],
+              GestureDetector(
+                onTap: _selectDirectory,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    '选择',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScanProgress() {
+    if (!_isScanning && _songsFound == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        if (_isScanning) ...[
+          Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppColors.accent.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '正在扫描... ${(_scanProgress * 100).toInt()}%',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.muted,
+                ),
+              ),
+            ],
+          ),
+        ] else if (_songsFound > 0) ...[
+          Row(
+            children: [
+              const Icon(
+                Icons.check_circle_rounded,
+                size: 16,
+                color: AppColors.accent,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '已找到 $_songsFound 首歌曲',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.accent,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
   }
 
   @override
@@ -555,7 +777,15 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 目录选择
+          _buildDirectorySelector(),
+
+          _buildScanProgress(),
+
+          const SizedBox(height: 16),
+
           // 歌单名称输入
           TextField(
             controller: _nameController,
@@ -615,7 +845,7 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
 
         // 创建按钮
         ElevatedButton(
-          onPressed: _canCreate ? _handleCreate : null,
+          onPressed: (_canCreate && !_isScanning) ? _handleCreate : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.accent,
             foregroundColor: AppColors.white,
@@ -624,7 +854,16 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: const Text('创建'),
+          child: _isScanning
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                  ),
+                )
+              : const Text('创建'),
         ),
       ],
     );
@@ -683,7 +922,7 @@ void showPlaylistOptionsSheet(
 /// 显示创建歌单对话框的辅助函数
 void showCreatePlaylistDialog(
   BuildContext context, {
-  void Function(String name, String? description)? onCreate,
+  void Function(String name, String? description, String? directory)? onCreate,
 }) {
   showDialog(
     context: context,
