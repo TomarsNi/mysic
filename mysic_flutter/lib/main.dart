@@ -24,6 +24,7 @@ import 'features/ai_skills/presentation/widgets/result_preview_sheet.dart';
 import 'features/ai_skills/core/ai_skill.dart';
 import 'features/ai_skills/core/skill_result.dart';
 import 'shared/widgets/app_drawer.dart';
+import 'shared/widgets/bottom_sheet.dart' show showCreatePlaylistDialog;
 import 'shared/utils/music_scanner.dart';
 import 'features/playlist/data/playlist_repository.dart';
 import 'features/player/data/models/song.dart';
@@ -742,10 +743,91 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   void _createPlaylist(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => const CreatePlaylistDialog(),
+    showCreatePlaylistDialog(
+      context,
+      onCreate: (name, description, directory) async {
+        final playlistProvider = context.read<PlaylistProvider>();
+
+        // 创建歌单
+        final playlist = await playlistProvider.createPlaylist(
+          name: name,
+          description: description,
+        );
+
+        // 如果用户选择了目录，扫描并添加歌曲
+        if (playlist != null && directory != null) {
+          final scanner = MusicScanner();
+          try {
+            final result = await scanner.scanMusicInDirectory(directory);
+
+            if (result.isSuccess && result.totalFound > 0) {
+              // 获取扫描到的歌曲
+              final songs = await scanner.getAllSongs();
+
+              // 添加到新创建的歌单
+              await playlistProvider.addSongsToPlaylist(playlist.id!, songs);
+
+              // 添加到"本地音乐"歌单
+              await _ensureLocalMusicPlaylistForSongs(playlistProvider, songs);
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('歌单创建成功，已添加 ${songs.length} 首歌曲'),
+                    backgroundColor: const Color(0xFF10B981),
+                  ),
+                );
+              }
+            } else if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('歌单创建成功，但未在所选目录中找到音乐文件'),
+                  backgroundColor: Color(0xFF6366F1),
+                ),
+              );
+            }
+          } finally {
+            await scanner.dispose();
+          }
+        }
+
+        // 刷新歌单列表
+        await playlistProvider.refresh();
+      },
     );
+  }
+
+  /// 确保存在"本地音乐"歌单，并将歌曲添加进去
+  Future<void> _ensureLocalMusicPlaylistForSongs(
+    PlaylistProvider playlistProvider,
+    List<Song> songs,
+  ) async {
+    if (songs.isEmpty) return;
+
+    const localMusicPlaylistName = '本地音乐';
+
+    // 查找是否已存在"本地音乐"歌单
+    Playlist? localPlaylist;
+    try {
+      localPlaylist = playlistProvider.playlists.firstWhere(
+        (p) => p.name == localMusicPlaylistName,
+      );
+    } catch (_) {
+      // 不存在，需要创建
+    }
+
+    if (localPlaylist == null) {
+      // 创建"本地音乐"歌单
+      localPlaylist = await playlistProvider.createPlaylist(
+        name: localMusicPlaylistName,
+        description: '扫描本地音乐自动创建',
+      );
+    }
+
+    final playlistId = localPlaylist?.id;
+    if (playlistId == null) return;
+
+    await playlistProvider.addSongsToPlaylist(playlistId, songs);
   }
 
   void _handleMiniPlayerMenuAction(BuildContext context, Song song, String value) {
@@ -1151,88 +1233,6 @@ class SettingsSheet extends StatelessWidget {
           child: const ScanDirectoryList(),
         ),
       ),
-    );
-  }
-}
-
-/// 创建歌单对话框
-class CreatePlaylistDialog extends StatefulWidget {
-  const CreatePlaylistDialog({super.key});
-
-  @override
-  State<CreatePlaylistDialog> createState() => _CreatePlaylistDialogState();
-}
-
-class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: const Color(0xFF16213E),
-      title: const Text('创建歌单', style: TextStyle(color: Colors.white)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _nameController,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: '歌单名称',
-              labelStyle: TextStyle(color: Color(0xFF9CA3AF)),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF9CA3AF)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _descriptionController,
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: '描述（可选）',
-              labelStyle: TextStyle(color: Color(0xFF9CA3AF)),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF9CA3AF)),
-              ),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('取消', style: TextStyle(color: Color(0xFF9CA3AF))),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            if (_nameController.text.isNotEmpty) {
-              final playlistProvider = context.read<PlaylistProvider>();
-              await playlistProvider.createPlaylist(
-                name: _nameController.text,
-                description: _descriptionController.text.isNotEmpty
-                    ? _descriptionController.text
-                    : null,
-              );
-              if (mounted) {
-                Navigator.pop(context);
-              }
-            }
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF6366F1),
-          ),
-          child: const Text('创建'),
-        ),
-      ],
     );
   }
 }
