@@ -48,6 +48,10 @@ class MusicScanner {
   /// 扫描本地音乐
   Future<ScanResult> scanMusic() => _platformScanner.scanMusic();
 
+  /// 扫描指定目录的音乐
+  Future<ScanResult> scanMusicInDirectory(String directory) =>
+      _platformScanner.scanMusicInDirectory(directory);
+
   /// 取消扫描
   void cancelScan() => _platformScanner.cancelScan();
 

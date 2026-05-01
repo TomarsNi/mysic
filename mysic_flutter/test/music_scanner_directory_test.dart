@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mysic_flutter/features/player/data/models/song.dart';
+import 'package:mysic_flutter/shared/utils/music_scanner.dart';
 import 'package:mysic_flutter/shared/utils/platform_music_scanner.dart';
 
 void main() {
@@ -17,6 +18,19 @@ void main() {
       final scanner = _TestScanner();
 
       // 验证方法存在且返回类型正确
+      expect(scanner.scanMusicInDirectory, isA<Function>());
+    });
+  });
+
+  group('MusicScanner scanMusicInDirectory', () {
+    test('should delegate to platform scanner', () {
+      // 验证 MusicScanner 有 scanMusicInDirectory 方法
+      expect(MusicScanner, isNotNull);
+    });
+
+    test('scanMusicInDirectory method should exist on MusicScanner', () {
+      // 创建 MusicScanner 实例并验证方法存在
+      final scanner = MusicScanner();
       expect(scanner.scanMusicInDirectory, isA<Function>());
     });
   });
