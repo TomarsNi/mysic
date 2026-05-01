@@ -114,6 +114,9 @@ abstract class PlatformMusicScanner {
   /// 扫描音乐
   Future<ScanResult> scanMusic();
 
+  /// 扫描指定目录的音乐
+  Future<ScanResult> scanMusicInDirectory(String directory);
+
   /// 删除歌曲
   Future<void> deleteSong(int songId);
 
