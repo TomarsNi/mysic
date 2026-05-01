@@ -745,7 +745,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   void _createPlaylist(BuildContext context) {
     showCreatePlaylistDialog(
       context,
-      onCreate: (name, description, directory) async {
+      onCreate: (name, description, scannedSongs) async {
         final playlistProvider = context.read<PlaylistProvider>();
 
         // 创建歌单
@@ -754,45 +754,34 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           description: description,
         );
 
-        // 如果用户选择了目录，扫描并添加歌曲
-        if (playlist != null && directory != null) {
-          final scanner = MusicScanner();
-          try {
-            final result = await scanner.scanMusicInDirectory(directory);
+        if (playlist != null && scannedSongs != null && scannedSongs.isNotEmpty) {
+          // 添加到新创建的歌单
+          await playlistProvider.addSongsToPlaylist(playlist.id!, scannedSongs);
 
-            if (result.isSuccess && result.totalFound > 0) {
-              // 获取扫描到的歌曲
-              final songs = await scanner.getAllSongs();
+          // 添加到"本地音乐"歌单
+          await _ensureLocalMusicPlaylistForSongs(playlistProvider, scannedSongs);
 
-              // 添加到新创建的歌单
-              await playlistProvider.addSongsToPlaylist(playlist.id!, songs);
+          // 刷新数据
+          await playlistProvider.refresh();
 
-              // 添加到"本地音乐"歌单
-              await _ensureLocalMusicPlaylistForSongs(playlistProvider, songs);
-
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('歌单创建成功，已添加 ${songs.length} 首歌曲'),
-                    backgroundColor: const Color(0xFF10B981),
-                  ),
-                );
-              }
-            } else if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('歌单创建成功，但未在所选目录中找到音乐文件'),
-                  backgroundColor: Color(0xFF6366F1),
-                ),
-              );
-            }
-          } finally {
-            await scanner.dispose();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('歌单创建成功，已添加 ${scannedSongs.length} 首歌曲'),
+                backgroundColor: const Color(0xFF10B981),
+              ),
+            );
           }
+        } else if (playlist != null && mounted) {
+          // 歌单创建成功但没有扫描歌曲
+          await playlistProvider.refresh();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('歌单创建成功'),
+              backgroundColor: Color(0xFF10B981),
+            ),
+          );
         }
-
-        // 刷新歌单列表
-        await playlistProvider.refresh();
       },
     );
   }

@@ -497,7 +497,8 @@ class PlaylistOptionsSheet extends StatelessWidget {
 /// 创建歌单对话框
 class CreatePlaylistDialog extends StatefulWidget {
   /// 创建回调
-  final void Function(String name, String? description, String? directory)? onCreate;
+  /// [scannedSongs] 如果用户选择了目录并扫描成功，则为扫描到的歌曲列表；否则为 null
+  final void Function(String name, String? description, List<Song>? scannedSongs)? onCreate;
 
   const CreatePlaylistDialog({
     super.key,
@@ -604,6 +605,15 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
 
       if (!mounted) return;
 
+      // 获取本次扫描的歌曲
+      List<Song>? scannedSongs;
+      if (result.isSuccess && result.newAdded > 0) {
+        // 获取所有歌曲（扫描器会保存到数据库）
+        final allSongs = await scanner.getAllSongs();
+        // 本次扫描的歌曲就是 newAdded 首新歌
+        scannedSongs = allSongs.take(result.newAdded).toList();
+      }
+
       setState(() {
         _isScanning = false;
         _songsFound = result.totalFound;
@@ -615,7 +625,7 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
       widget.onCreate?.call(
         name,
         description.isEmpty ? null : description,
-        _selectedDirectory,
+        scannedSongs,
       );
       Navigator.of(context).pop();
     } on Exception catch (e) {
@@ -922,7 +932,7 @@ void showPlaylistOptionsSheet(
 /// 显示创建歌单对话框的辅助函数
 void showCreatePlaylistDialog(
   BuildContext context, {
-  void Function(String name, String? description, String? directory)? onCreate,
+  void Function(String name, String? description, List<Song>? scannedSongs)? onCreate,
 }) {
   showDialog(
     context: context,

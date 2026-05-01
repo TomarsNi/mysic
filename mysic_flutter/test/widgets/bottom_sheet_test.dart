@@ -236,7 +236,7 @@ void main() {
   group('CreatePlaylistDialog', () {
     Future<void> pumpCreatePlaylistDialog(
       WidgetTester tester, {
-      void Function(String name, String? description)? onCreate,
+      void Function(String name, String? description, List<Song>? scannedSongs)? onCreate,
     }) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -301,12 +301,14 @@ void main() {
     testWidgets('should call onCreate with name when create tapped', (tester) async {
       String? createdName;
       String? createdDescription;
+      List<Song>? createdSongs;
 
       await pumpCreatePlaylistDialog(
         tester,
-        onCreate: (name, description) {
+        onCreate: (name, description, scannedSongs) {
           createdName = name;
           createdDescription = description;
+          createdSongs = scannedSongs;
         },
       );
 
@@ -318,17 +320,20 @@ void main() {
 
       expect(createdName, '新歌单');
       expect(createdDescription, isNull);
+      expect(createdSongs, isNull);
     });
 
     testWidgets('should call onCreate with description when provided', (tester) async {
       String? createdName;
       String? createdDescription;
+      List<Song>? createdSongs;
 
       await pumpCreatePlaylistDialog(
         tester,
-        onCreate: (name, description) {
+        onCreate: (name, description, scannedSongs) {
           createdName = name;
           createdDescription = description;
+          createdSongs = scannedSongs;
         },
       );
 
@@ -350,6 +355,49 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('创建歌单'), findsNothing);
+    });
+  });
+
+  group('CreatePlaylistDialog with directory selection', () {
+    Future<void> pumpCreatePlaylistDialog(
+      WidgetTester tester, {
+      void Function(String name, String? description, List<Song>? scannedSongs)? onCreate,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => CreatePlaylistDialog(onCreate: onCreate),
+                    );
+                  },
+                  child: const Text('Show Dialog'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show Dialog'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('should render directory selection field', (tester) async {
+      await pumpCreatePlaylistDialog(tester);
+
+      expect(find.text('扫描目录（可选）'), findsOneWidget);
+      expect(find.text('选择'), findsOneWidget);
+    });
+
+    testWidgets('should show placeholder when no directory selected', (tester) async {
+      await pumpCreatePlaylistDialog(tester);
+
+      expect(find.text('未选择目录'), findsOneWidget);
     });
   });
 }
