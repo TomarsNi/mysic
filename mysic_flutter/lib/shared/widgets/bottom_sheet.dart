@@ -517,6 +517,7 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
   bool _isScanning = false;
   double _scanProgress = 0.0;
   int _songsFound = 0;
+  String? _lastAutoFilledName;
 
   @override
   void initState() {
