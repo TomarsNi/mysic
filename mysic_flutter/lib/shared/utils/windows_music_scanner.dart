@@ -461,13 +461,16 @@ class WindowsMusicScanner extends PlatformMusicScanner {
       }
 
       // 次选：宽松匹配
+      // 清理音频文件名用于比较（移除序号前缀）
+      final cleanedAudioName = _cleanTitleFromFileName(audioFileName).toLowerCase();
+
       await for (final entity in dir.list(followLinks: false)) {
         if (entity is File) {
           final lrcName = entity.path.split(Platform.pathSeparator).last;
           if (lrcName.toLowerCase().endsWith('.lrc')) {
             // 清理歌词文件名的序号前缀
             final cleanedLrcName = _cleanLrcFileName(lrcName);
-            if (cleanedLrcName == audioName.toLowerCase()) {
+            if (cleanedLrcName == cleanedAudioName) {
               return entity.path;
             }
           }
