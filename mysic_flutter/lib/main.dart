@@ -25,6 +25,7 @@ import 'features/ai_skills/core/ai_skill.dart';
 import 'features/ai_skills/core/skill_result.dart';
 import 'shared/widgets/app_drawer.dart';
 import 'shared/widgets/bottom_sheet.dart' show showCreatePlaylistDialog;
+import 'shared/widgets/delete_confirm_sheet.dart';
 import 'shared/utils/music_scanner.dart';
 import 'features/playlist/data/playlist_repository.dart';
 import 'features/player/data/models/song.dart';
@@ -32,7 +33,6 @@ import 'features/player/data/models/playlist.dart';
 import 'features/player/presentation/widgets/album_cover.dart';
 import 'features/player/presentation/widgets/play_controls.dart';
 import 'features/player/presentation/widgets/progress_bar.dart';
-import 'features/settings/data/delete_preference.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -839,7 +839,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => _DeleteConfirmSheet(
+      builder: (context) => DeleteConfirmSheet(
         song: song,
         onConfirm: (deleteWithFile) async {
           final playlistProvider = context.read<PlaylistProvider>();
@@ -1318,202 +1318,6 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
             ),
 
           const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-}
-
-/// 删除确认 BottomSheet
-class _DeleteConfirmSheet extends StatefulWidget {
-  final Song song;
-  final void Function(bool deleteWithFile) onConfirm;
-
-  const _DeleteConfirmSheet({
-    required this.song,
-    required this.onConfirm,
-  });
-
-  @override
-  State<_DeleteConfirmSheet> createState() => _DeleteConfirmSheetState();
-}
-
-class _DeleteConfirmSheetState extends State<_DeleteConfirmSheet> {
-  bool _deleteWithFile = false;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPreference();
-  }
-
-  Future<void> _loadPreference() async {
-    final value = await DeletePreference.getDeleteWithFile();
-    if (mounted) {
-      setState(() {
-        _deleteWithFile = value;
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _toggleDeleteWithFile(bool value) async {
-    setState(() {
-      _deleteWithFile = value;
-    });
-    await DeletePreference.setDeleteWithFile(value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF27272A),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 拖拽指示条
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFF71717A),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // 警告图标
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEF4444).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(32),
-            ),
-            child: const Icon(
-              Icons.warning_rounded,
-              color: Color(0xFFEF4444),
-              size: 32,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // 标题
-          const Text(
-            '确认删除歌曲？',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // 歌曲名称
-          Text(
-            widget.song.title,
-            style: const TextStyle(
-              color: Color(0xFF71717A),
-              fontSize: 14,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-
-          // 同时删除文件勾选框
-          if (!_isLoading)
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF3F3F46),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: CheckboxListTile(
-                value: _deleteWithFile,
-                onChanged: (value) => _toggleDeleteWithFile(value ?? false),
-                title: const Text(
-                  '同时删除原文件',
-                  style: TextStyle(color: Colors.white, fontSize: 14),
-                ),
-                subtitle: const Text(
-                  '文件删除后无法恢复',
-                  style: TextStyle(color: Color(0xFF71717A), fontSize: 12),
-                ),
-                activeColor: const Color(0xFFEF4444),
-                checkColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-
-          // 警告提示
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEF4444).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              _deleteWithFile
-                  ? '歌曲和原文件都将被删除，且无法恢复'
-                  : '删除后歌曲将从所有歌单移除，且不会在下次扫描时重新添加',
-              style: const TextStyle(
-                color: Color(0xFFEF4444),
-                fontSize: 12,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // 操作按钮
-          Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: const Color(0xFF3F3F46),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    '算了吧',
-                    style: TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    widget.onConfirm(_deleteWithFile);
-                  },
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: const Color(0xFFEF4444),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    '删了吧',
-                    style: TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );

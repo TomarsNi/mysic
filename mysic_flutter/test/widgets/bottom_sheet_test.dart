@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mysic_flutter/shared/widgets/bottom_sheet.dart';
-import 'package:mysic_flutter/core/theme/app_colors.dart';
+import 'package:mysic_flutter/shared/widgets/delete_confirm_sheet.dart';
 import 'package:mysic_flutter/features/player/data/models/playlist.dart';
 import 'package:mysic_flutter/features/player/data/models/song.dart';
 
 void main() {
+  // 初始化 SharedPreferences mock
+  setUpAll(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   group('AddToPlaylistSheet', () {
     Future<void> pumpAddToPlaylistSheet(
       WidgetTester tester, {
@@ -346,6 +352,7 @@ void main() {
 
       expect(createdName, '新歌单');
       expect(createdDescription, '歌单描述');
+      expect(createdSongs, isNull); // 没有选择目录时为 null
     });
 
     testWidgets('should close dialog when cancel tapped', (tester) async {
@@ -398,6 +405,123 @@ void main() {
       await pumpCreatePlaylistDialog(tester);
 
       expect(find.text('未选择目录'), findsOneWidget);
+    });
+  });
+
+  group('DeleteConfirmSheet', () {
+    testWidgets('显示删除确认弹窗和勾选框', (tester) async {
+      final song = Song(
+        id: 1,
+        title: '测试歌曲',
+        artist: '测试艺术家',
+        filePath: '/test/path.mp3',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DeleteConfirmSheet(
+              song: song,
+              onConfirm: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      // 等待异步加载完成
+      await tester.pumpAndSettle();
+
+      // 验证标题显示
+      expect(find.text('确认删除歌曲？'), findsOneWidget);
+      expect(find.text('测试歌曲'), findsOneWidget);
+      expect(find.text('同时删除原文件'), findsOneWidget);
+    });
+
+    testWidgets('显示歌曲信息', (tester) async {
+      final song = Song(
+        id: 1,
+        title: '我的歌曲',
+        artist: '艺术家名称',
+        filePath: '/test/song.mp3',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DeleteConfirmSheet(
+              song: song,
+              onConfirm: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // 验证歌曲标题显示
+      expect(find.text('我的歌曲'), findsOneWidget);
+    });
+
+    testWidgets('显示操作按钮', (tester) async {
+      final song = Song(
+        id: 1,
+        title: '测试歌曲',
+        artist: '测试艺术家',
+        filePath: '/test/path.mp3',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DeleteConfirmSheet(
+              song: song,
+              onConfirm: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // 验证按钮显示
+      expect(find.text('算了吧'), findsOneWidget);
+      expect(find.text('删了吧'), findsOneWidget);
+    });
+
+    testWidgets('显示警告提示', (tester) async {
+      final song = Song(
+        id: 1,
+        title: '测试歌曲',
+        artist: '测试艺术家',
+        filePath: '/test/path.mp3',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DeleteConfirmSheet(
+              song: song,
+              onConfirm: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // 验证警告提示显示
+      expect(
+        find.text('删除后歌曲将从所有歌单移除，且不会在下次扫描时重新添加'),
+        findsOneWidget,
+      );
     });
   });
 }
