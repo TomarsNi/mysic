@@ -219,6 +219,111 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     }
   }
 
+  @override
+  Future<ScanResult> scanMusicInDirectory(String directory) async {
+    if (isScanning) {
+      return const ScanResult(
+        totalFound: 0,
+        newAdded: 0,
+        duplicates: 0,
+        scanDuration: Duration.zero,
+        errorMessage: '扫描正在进行中',
+      );
+    }
+
+    final stopwatch = Stopwatch()..start();
+    resetCancel();
+
+    try {
+      // 检查目录是否存在
+      final dir = Directory(directory);
+      if (!await dir.exists()) {
+        updateState(ScanState.completed);
+        stopwatch.stop();
+        return ScanResult(
+          totalFound: 0,
+          newAdded: 0,
+          duplicates: 0,
+          scanDuration: stopwatch.elapsed,
+        );
+      }
+
+      updateState(ScanState.scanning);
+
+      // 扫描指定目录
+      final songs = <File>[];
+      int filesScanned = 0;
+      int progressCounter = 0;
+
+      await _scanDirectory(directory, songs, (path, count) {
+        filesScanned += count;
+        progressCounter++;
+
+        if (progressCounter % 100 == 0 || songs.length % 50 == 0) {
+          updateProgress(ScanProgress(
+            currentPath: path,
+            filesScanned: filesScanned,
+            songsFound: songs.length,
+            progress: progressCounter / (progressCounter + 100),
+          ));
+        }
+      });
+
+      if (isCancelled) {
+        updateState(ScanState.idle);
+        stopwatch.stop();
+        return ScanResult(
+          totalFound: songs.length,
+          newAdded: 0,
+          duplicates: 0,
+          scanDuration: stopwatch.elapsed,
+          errorMessage: '扫描已取消',
+        );
+      }
+
+      final totalFound = songs.length;
+      updateProgress(ScanProgress(
+        currentPath: '正在保存...',
+        filesScanned: filesScanned,
+        songsFound: totalFound,
+        progress: 0.95,
+      ));
+
+      updateState(ScanState.saving);
+
+      // 保存到数据库
+      final result = await _saveSongsToDatabase(songs);
+
+      updateState(ScanState.completed);
+      stopwatch.stop();
+      debugPrint('Windows目录扫描完成: directory=$directory, totalFound=$totalFound, newAdded=${result['newAdded']}');
+
+      updateProgress(ScanProgress(
+        currentPath: '完成',
+        filesScanned: filesScanned,
+        songsFound: totalFound,
+        progress: 1.0,
+      ));
+
+      return ScanResult(
+        totalFound: totalFound,
+        newAdded: result['newAdded']!,
+        duplicates: result['duplicates']!,
+        scanDuration: stopwatch.elapsed,
+      );
+    } catch (e) {
+      updateState(ScanState.error);
+      stopwatch.stop();
+      return ScanResult(
+        totalFound: 0,
+        newAdded: 0,
+        duplicates: 0,
+        scanDuration: stopwatch.elapsed,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
   /// 获取所有可用驱动器
   Future<List<String>> _getAvailableDrives() async {
     final drives = <String>[];
@@ -321,6 +426,18 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     // 移除开头常见的艺术家前缀格式 (艺术家 - 歌名)
     // 注意：这个可能不准确，所以只在元数据缺失时使用
     return title.trim();
+  }
+
+  /// 清理歌词文件名（移除扩展名、序号前缀和艺术家后缀）
+  /// 用于宽松匹配歌词文件
+  String _cleanLrcFileName(String lrcFileName) {
+    // 移除 .lrc 扩展名（大小写不敏感）
+    var name = lrcFileName.replaceAll(RegExp(r'\.lrc$', caseSensitive: false), '');
+    // 移除开头的数字序号和分隔符
+    name = name.replaceFirst(RegExp(r'^\d+[\s.\-_]*'), '');
+    // 移除可能的艺术家后缀（如 " - 周杰伦"）
+    name = name.replaceFirst(RegExp(r'\s*-\s*.+$'), '');
+    return name.toLowerCase().trim();
   }
 
   /// 从音频文件提取元数据
