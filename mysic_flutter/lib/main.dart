@@ -32,6 +32,7 @@ import 'features/player/data/models/playlist.dart';
 import 'features/player/presentation/widgets/album_cover.dart';
 import 'features/player/presentation/widgets/play_controls.dart';
 import 'features/player/presentation/widgets/progress_bar.dart';
+import 'features/settings/data/delete_preference.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -840,21 +841,25 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       isScrollControlled: true,
       builder: (context) => _DeleteConfirmSheet(
         song: song,
-        onConfirm: () async {
-          final playerProvider = context.read<PlayerProvider>();
+        onConfirm: (deleteWithFile) async {
           final playlistProvider = context.read<PlaylistProvider>();
 
           // 删除歌曲
-          await playerProvider.deleteCurrentSong();
+          await playlistProvider.deleteSong(
+            song.id!,
+            deleteFile: deleteWithFile,
+          );
 
           // 刷新歌单数据
           await playlistProvider.refresh();
 
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('歌曲已删除'),
-                backgroundColor: Color(0xFF10B981),
+              SnackBar(
+                content: Text(
+                  deleteWithFile ? '歌曲和原文件已删除' : '歌曲已删除',
+                ),
+                backgroundColor: const Color(0xFF10B981),
               ),
             );
           }
@@ -1320,14 +1325,45 @@ class _AddToPlaylistSheetState extends State<AddToPlaylistSheet> {
 }
 
 /// 删除确认 BottomSheet
-class _DeleteConfirmSheet extends StatelessWidget {
+class _DeleteConfirmSheet extends StatefulWidget {
   final Song song;
-  final VoidCallback onConfirm;
+  final void Function(bool deleteWithFile) onConfirm;
 
   const _DeleteConfirmSheet({
     required this.song,
     required this.onConfirm,
   });
+
+  @override
+  State<_DeleteConfirmSheet> createState() => _DeleteConfirmSheetState();
+}
+
+class _DeleteConfirmSheetState extends State<_DeleteConfirmSheet> {
+  bool _deleteWithFile = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreference();
+  }
+
+  Future<void> _loadPreference() async {
+    final value = await DeletePreference.getDeleteWithFile();
+    if (mounted) {
+      setState(() {
+        _deleteWithFile = value;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _toggleDeleteWithFile(bool value) async {
+    setState(() {
+      _deleteWithFile = value;
+    });
+    await DeletePreference.setDeleteWithFile(value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1380,7 +1416,7 @@ class _DeleteConfirmSheet extends StatelessWidget {
 
           // 歌曲名称
           Text(
-            song.title,
+            widget.song.title,
             style: const TextStyle(
               color: Color(0xFF71717A),
               fontSize: 14,
@@ -1389,6 +1425,34 @@ class _DeleteConfirmSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
+          // 同时删除文件勾选框
+          if (!_isLoading)
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3F3F46),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: CheckboxListTile(
+                value: _deleteWithFile,
+                onChanged: (value) => _toggleDeleteWithFile(value ?? false),
+                title: const Text(
+                  '同时删除原文件',
+                  style: TextStyle(color: Colors.white, fontSize: 14),
+                ),
+                subtitle: const Text(
+                  '文件删除后无法恢复',
+                  style: TextStyle(color: Color(0xFF71717A), fontSize: 12),
+                ),
+                activeColor: const Color(0xFFEF4444),
+                checkColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+
           // 警告提示
           Container(
             padding: const EdgeInsets.all(12),
@@ -1396,9 +1460,11 @@ class _DeleteConfirmSheet extends StatelessWidget {
               color: const Color(0xFFEF4444).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text(
-              '删除后歌曲将从所有歌单移除，且不会在下次扫描时重新添加',
-              style: TextStyle(
+            child: Text(
+              _deleteWithFile
+                  ? '歌曲和原文件都将被删除，且无法恢复'
+                  : '删除后歌曲将从所有歌单移除，且不会在下次扫描时重新添加',
+              style: const TextStyle(
                 color: Color(0xFFEF4444),
                 fontSize: 12,
               ),
@@ -1431,7 +1497,7 @@ class _DeleteConfirmSheet extends StatelessWidget {
                 child: TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    onConfirm();
+                    widget.onConfirm(_deleteWithFile);
                   },
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
