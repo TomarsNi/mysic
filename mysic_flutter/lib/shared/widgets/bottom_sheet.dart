@@ -547,8 +547,16 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
   Future<void> _selectDirectory() async {
     final result = await getDirectoryPath();
     if (result != null && mounted) {
+      final folderName = _extractFolderName(result);
       setState(() {
         _selectedDirectory = result;
+        // 智能填充：空值或等于上次自动填充值时才更新
+        if (_nameController.text.isEmpty ||
+            _nameController.text == _lastAutoFilledName) {
+          _nameController.text = folderName;
+          _lastAutoFilledName = folderName;
+          _updateCanCreate();
+        }
       });
     }
   }
