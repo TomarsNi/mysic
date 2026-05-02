@@ -523,5 +523,126 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets('点击删除按钮调用 onConfirm 回调（默认不删除文件）', (tester) async {
+      final song = Song(
+        id: 1,
+        title: '测试歌曲',
+        artist: '测试艺术家',
+        filePath: '/test/path.mp3',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      bool? receivedDeleteWithFile;
+      bool onConfirmCalled = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DeleteConfirmSheet(
+              song: song,
+              onConfirm: (deleteWithFile) {
+                onConfirmCalled = true;
+                receivedDeleteWithFile = deleteWithFile;
+              },
+            ),
+          ),
+        ),
+      );
+
+      // 等待异步加载完成
+      await tester.pumpAndSettle();
+
+      // 点击删除按钮
+      await tester.tap(find.text('删了吧'));
+      await tester.pumpAndSettle();
+
+      // 验证 onConfirm 被调用，且 deleteWithFile 为 false（默认值）
+      expect(onConfirmCalled, isTrue);
+      expect(receivedDeleteWithFile, isFalse);
+    });
+
+    testWidgets('勾选复选框后点击删除按钮调用 onConfirm 回调（删除文件）', (tester) async {
+      final song = Song(
+        id: 1,
+        title: '测试歌曲',
+        artist: '测试艺术家',
+        filePath: '/test/path.mp3',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      bool? receivedDeleteWithFile;
+      bool onConfirmCalled = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DeleteConfirmSheet(
+              song: song,
+              onConfirm: (deleteWithFile) {
+                onConfirmCalled = true;
+                receivedDeleteWithFile = deleteWithFile;
+              },
+            ),
+          ),
+        ),
+      );
+
+      // 等待异步加载完成
+      await tester.pumpAndSettle();
+
+      // 找到 CheckboxListTile 并点击切换状态
+      final checkbox = find.byType(CheckboxListTile);
+      expect(checkbox, findsOneWidget);
+
+      await tester.tap(checkbox);
+      await tester.pumpAndSettle();
+
+      // 点击删除按钮
+      await tester.tap(find.text('删了吧'));
+      await tester.pumpAndSettle();
+
+      // 验证 onConfirm 被调用，且 deleteWithFile 为 true
+      expect(onConfirmCalled, isTrue);
+      expect(receivedDeleteWithFile, isTrue);
+    });
+
+    testWidgets('点击取消按钮不调用 onConfirm 回调', (tester) async {
+      final song = Song(
+        id: 1,
+        title: '测试歌曲',
+        artist: '测试艺术家',
+        filePath: '/test/path.mp3',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      bool onConfirmCalled = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DeleteConfirmSheet(
+              song: song,
+              onConfirm: (_) {
+                onConfirmCalled = true;
+              },
+            ),
+          ),
+        ),
+      );
+
+      // 等待异步加载完成
+      await tester.pumpAndSettle();
+
+      // 点击取消按钮
+      await tester.tap(find.text('算了吧'));
+      await tester.pumpAndSettle();
+
+      // 验证 onConfirm 未被调用
+      expect(onConfirmCalled, isFalse);
+    });
   });
 }
