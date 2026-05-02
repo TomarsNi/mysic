@@ -537,6 +537,12 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
     });
   }
 
+  /// 从路径中提取文件夹名称
+  String _extractFolderName(String path) {
+    final parts = path.split(RegExp(r'[\\/]'));
+    return parts.where((p) => p.isNotEmpty).last;
+  }
+
   Future<void> _selectDirectory() async {
     final result = await getDirectoryPath();
     if (result != null && mounted) {
