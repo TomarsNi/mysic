@@ -580,6 +580,9 @@ class WindowsMusicScanner extends PlatformMusicScanner {
               ? metadata.title
               : _cleanTitleFromFileName(fileName);
 
+          // 查找歌词文件
+          final lyricsPath = await _findLyricsFile(filePath);
+
           await txn.insert(
             DatabaseHelper.tableSongs,
             {
@@ -589,6 +592,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
               'duration': metadata.duration ?? 0,
               'file_path': filePath,
               'album_art_path': null,
+              'lyrics_path': lyricsPath,
               'date_added': null,
               'created_at': nowIso,
               'updated_at': nowIso,
