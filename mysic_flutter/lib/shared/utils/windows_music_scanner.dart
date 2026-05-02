@@ -440,6 +440,46 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     return name.toLowerCase().trim();
   }
 
+  /// 查找音频文件对应的歌词文件
+  /// 支持同名匹配和宽松匹配（忽略序号前缀）
+  Future<String?> _findLyricsFile(String audioFilePath) async {
+    final audioFile = File(audioFilePath);
+    final dirPath = audioFile.parent.path;
+    final audioFileName = audioFilePath.split(Platform.pathSeparator).last;
+
+    // 提取音频文件名（不含扩展名）
+    final audioName = audioFileName.replaceAll(RegExp(r'\.[^.]+$'), '');
+
+    try {
+      final dir = Directory(dirPath);
+      if (!await dir.exists()) return null;
+
+      // 优先：同名匹配
+      final sameNameLrc = '$dirPath${Platform.pathSeparator}$audioName.lrc';
+      if (await File(sameNameLrc).exists()) {
+        return sameNameLrc;
+      }
+
+      // 次选：宽松匹配
+      await for (final entity in dir.list(followLinks: false)) {
+        if (entity is File) {
+          final lrcName = entity.path.split(Platform.pathSeparator).last;
+          if (lrcName.toLowerCase().endsWith('.lrc')) {
+            // 清理歌词文件名的序号前缀
+            final cleanedLrcName = _cleanLrcFileName(lrcName);
+            if (cleanedLrcName == audioName.toLowerCase()) {
+              return entity.path;
+            }
+          }
+        }
+      }
+    } catch (_) {
+      // 忽略无法访问的目录
+    }
+
+    return null;
+  }
+
   /// 从音频文件提取元数据
   Future<_AudioMetadata> _extractMetadata(String filePath) async {
     try {
