@@ -196,6 +196,18 @@ void main() {
       expect(provider.allSongs, isEmpty);
     });
 
+    test('删除歌曲时可以选择同时删除文件', () async {
+      final song = await provider.saveSong(createTestSong('歌曲A'));
+      expect(song, isNotNull);
+
+      // 注意：这里只测试数据库删除逻辑
+      // 文件删除由 FileUtils 单独测试
+      final success = await provider.deleteSong(song!.id!, deleteFile: true);
+
+      expect(success, isTrue);
+      expect(provider.allSongs, isEmpty);
+    });
+
     test('搜索歌曲', () async {
       await provider.saveSong(createTestSong('晴天'));
       await provider.saveSong(createTestSong('阴天'));

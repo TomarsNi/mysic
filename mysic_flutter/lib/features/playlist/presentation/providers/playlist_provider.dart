@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../../data/playlist_repository.dart';
 import '../../../player/data/models/song.dart';
 import '../../../player/data/models/playlist.dart';
+import '../../../../core/utils/file_utils.dart';
 
 /// 歌单状态管理 Provider
 /// 使用 ChangeNotifier 管理歌单状态，供 UI 层使用
@@ -302,8 +303,18 @@ class PlaylistProvider extends ChangeNotifier {
   }
 
   /// 删除歌曲
-  Future<bool> deleteSong(int songId) async {
+  /// [songId] 歌曲 ID
+  /// [deleteFile] 是否同时删除文件系统中的原文件
+  Future<bool> deleteSong(int songId, {bool deleteFile = false}) async {
     try {
+      // 如果需要删除文件，先获取歌曲信息
+      if (deleteFile) {
+        final song = await _repository.getSongById(songId);
+        if (song != null) {
+          await FileUtils.deleteFile(song.filePath);
+        }
+      }
+
       final success = await _repository.deleteSong(songId);
       if (success) {
         _allSongs.removeWhere((s) => s.id == songId);
