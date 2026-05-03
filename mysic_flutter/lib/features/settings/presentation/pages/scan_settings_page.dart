@@ -5,6 +5,10 @@ import '../../../../core/theme/app_colors.dart';
 import '../../data/scan_options_provider.dart';
 import '../widgets/scan_directory_list.dart';
 import '../../../../shared/utils/music_scanner.dart';
+import '../../../../shared/utils/scan_directory_provider.dart';
+import '../../../../features/playlist/presentation/providers/playlist_provider.dart';
+import '../../../../features/player/data/models/playlist.dart';
+import '../../../../features/playlist/data/playlist_repository.dart';
 import '../../../../features/player/presentation/providers/player_provider.dart';
 
 /// 扫描设置页面
@@ -392,12 +396,26 @@ class _ScanSettingsPageState extends State<ScanSettingsPage> {
       final result = await scanner.scanMusic();
 
       if (mounted && result.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('扫描完成: 发现 ${result.totalFound} 首，新增 ${result.newAdded} 首'),
-            backgroundColor: AppColors.accent,
-          ),
-        );
+        // 刷新 PlaylistProvider 数据
+        final playlistProvider = context.read<PlaylistProvider>();
+        await playlistProvider.refresh();
+
+        // 将歌曲添加到各目录关联的歌单
+        await _addSongsToLinkedPlaylists(playlistProvider);
+
+        // 确保"本地音乐"歌单存在并添加所有歌曲（作为总览）
+        if (playlistProvider.allSongs.isNotEmpty) {
+          await _ensureLocalMusicPlaylist(playlistProvider, result.newAdded);
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('扫描完成: 发现 ${result.totalFound} 首，新增 ${result.newAdded} 首'),
+              backgroundColor: AppColors.accent,
+            ),
+          );
+        }
       } else if (mounted && !result.isSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -425,6 +443,94 @@ class _ScanSettingsPageState extends State<ScanSettingsPage> {
           _currentScanner = null;
         });
       }
+    }
+  }
+
+  /// 检查文件路径是否包含指定目录
+  /// 支持正斜杠和反斜杠路径分隔符
+  bool _isPathInDirectory(String filePath, String directoryName) {
+    final lowerPath = filePath.toLowerCase();
+    final lowerDir = directoryName.toLowerCase();
+    // 正斜杠分隔符: /directory/
+    if (lowerPath.contains('/$lowerDir/')) return true;
+    // 反斜杠分隔符: \directory\
+    final bs = '\\';
+    if (lowerPath.contains(bs + lowerDir + bs)) return true;
+    // 混合分隔符
+    if (lowerPath.contains('/' + lowerDir + bs)) return true;
+    if (lowerPath.contains(bs + lowerDir + '/')) return true;
+    return false;
+  }
+
+  /// 将扫描的歌曲添加到各目录关联的歌单
+  Future<void> _addSongsToLinkedPlaylists(PlaylistProvider playlistProvider) async {
+    final directoryProvider = ScanDirectoryProvider();
+    final configs = await directoryProvider.getConfigs();
+
+    if (configs.isEmpty) return;
+
+    // 获取所有歌曲
+    final allSongs = playlistProvider.allSongs;
+    if (allSongs.isEmpty) return;
+
+    // 按目录分组添加歌曲
+    for (final config in configs) {
+      if (!config.isLinked) continue;
+
+      final playlistId = config.playlistId;
+      if (playlistId == null) continue;
+
+      // 筛选该目录下的歌曲
+      final directorySongs = allSongs
+          .where((song) => _isPathInDirectory(song.filePath, config.directory))
+          .toList();
+
+      if (directorySongs.isNotEmpty) {
+        await playlistProvider.addSongsToPlaylist(playlistId, directorySongs);
+      }
+    }
+  }
+
+  /// 确保存在"本地音乐"歌单，并将所有歌曲添加进去
+  Future<void> _ensureLocalMusicPlaylist(
+    PlaylistProvider playlistProvider,
+    int newSongCount,
+  ) async {
+    const localMusicPlaylistName = '本地音乐';
+
+    // 查找是否已存在"本地音乐"歌单
+    Playlist? localPlaylist;
+    try {
+      localPlaylist = playlistProvider.playlists.firstWhere(
+        (p) => p.name == localMusicPlaylistName,
+      );
+    } catch (_) {
+      // 不存在，需要创建
+    }
+
+    if (localPlaylist == null) {
+      // 创建"本地音乐"歌单
+      localPlaylist = await playlistProvider.createPlaylist(
+        name: localMusicPlaylistName,
+        description: '扫描本地音乐自动创建',
+      );
+    }
+
+    final playlistId = localPlaylist?.id;
+    if (playlistId == null) return;
+
+    // 获取所有歌曲并添加到歌单
+    final allSongs = playlistProvider.allSongs;
+
+    if (allSongs.isEmpty) {
+      // 直接从数据库获取
+      final repository = PlaylistRepository();
+      final songs = await repository.getAllSongs();
+      if (songs.isNotEmpty) {
+        await playlistProvider.addSongsToPlaylist(playlistId, songs);
+      }
+    } else {
+      await playlistProvider.addSongsToPlaylist(playlistId, allSongs);
     }
   }
 }
