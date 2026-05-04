@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mysic_flutter/features/settings/data/scan_options_provider.dart';
 import 'package:mysic_flutter/features/settings/presentation/widgets/scan_directory_list.dart';
 import 'package:mysic_flutter/shared/utils/scan_directory_provider.dart';
-import 'package:provider/provider.dart';
+import 'package:mysic_flutter/shared/utils/scan_directory_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Fake ScanDirectoryProvider for testing
@@ -30,6 +30,52 @@ class FakeScanDirectoryProvider implements ScanDirectoryProvider {
   @override
   Future<void> resetToDefault() async {
     _directories = ['Music', 'Downloads', 'Audio'];
+  }
+
+  // 新增方法实现
+  @override
+  Future<List<ScanDirectoryConfig>> getConfigs() async {
+    return _directories.map((d) => ScanDirectoryConfig(directory: d)).toList();
+  }
+
+  @override
+  Future<void> addDirectoryWithPlaylist(
+    String directory, {
+    int? playlistId,
+    String? playlistName,
+    String? displayName,
+  }) async {
+    await addDirectory(directory);
+  }
+
+  @override
+  Future<ScanDirectoryConfig?> getConfigByDirectory(String directory) async {
+    if (_directories.contains(directory)) {
+      return ScanDirectoryConfig(directory: directory);
+    }
+    return null;
+  }
+
+  @override
+  Future<void> updateDirectoryPlaylist(
+    String directory,
+    int playlistId,
+    String playlistName,
+  ) async {}
+
+  @override
+  Future<void> removeConfig(String directory) async {
+    await removeDirectory(directory);
+  }
+
+  @override
+  Future<List<ScanDirectoryConfig>> migrateIfNeeded() async {
+    return await getConfigs();
+  }
+
+  @override
+  Future<List<ScanDirectoryConfig>> migrateToFullPath() async {
+    return await getConfigs();
   }
 }
 

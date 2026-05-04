@@ -15,7 +15,7 @@ void main() {
       WidgetTester tester, {
       List<Playlist> playlists = const [],
       int? selectedPlaylistId,
-      void Function(Playlist)? onPlaylistTap,
+      Future<void> Function(Playlist)? onPlaylistTap,
       VoidCallback? onScanSettingsTap,
       VoidCallback? onSettingsTap,
       VoidCallback? onAboutTap,
@@ -142,7 +142,9 @@ void main() {
       await pumpAppDrawer(
         tester,
         playlists: playlists,
-        onPlaylistTap: (playlist) => tappedPlaylist = playlist,
+        onPlaylistTap: (playlist) async {
+          tappedPlaylist = playlist;
+        },
       );
 
       await tester.tap(find.text('我喜欢的音乐'));
