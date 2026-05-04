@@ -168,32 +168,22 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             selectedPlaylistId: playlistProvider.selectedPlaylist?.id,
             onPlaylistTap: (playlist) async {
               final playlistId = playlist.id;
-              debugPrint('========== onPlaylistTap 开始, playlistId=$playlistId ==========');
               if (playlistId == null) return;
 
               // 1. 记录最后播放的歌单
               final repository = PlaylistRepository();
               await repository.setAppState('last_playlist_id', playlistId.toString());
-              debugPrint('步骤1: 已记录 last_playlist_id');
 
               // 2. 选择歌单（加载歌曲）
               await playlistProvider.selectPlaylist(playlistId);
-              debugPrint('步骤2: 已选择歌单');
 
               // 3. 获取歌曲列表
               final songs = playlistProvider.selectedPlaylistSongs;
-              debugPrint('步骤3: 歌曲数量=${songs.length}');
 
               if (songs.isNotEmpty) {
-                debugPrint('步骤4: 准备设置播放列表并自动播放');
                 // 4. 设置播放列表并自动播放
                 await playerProvider.setPlaylist(songs, autoPlay: true);
-                debugPrint('步骤4: 已设置播放列表');
-              } else {
-                debugPrint('步骤4: 歌曲列表为空，跳过播放');
               }
-
-              debugPrint('========== onPlaylistTap 完成 ==========');
 
               // 5. 抽屉会自动关闭（在 AppDrawer 中处理）
             },
