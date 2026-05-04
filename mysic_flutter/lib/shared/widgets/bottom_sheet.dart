@@ -498,7 +498,13 @@ class PlaylistOptionsSheet extends StatelessWidget {
 class CreatePlaylistDialog extends StatefulWidget {
   /// 创建回调
   /// [scannedSongs] 如果用户选择了目录并扫描成功，则为扫描到的歌曲列表；否则为 null
-  final void Function(String name, String? description, List<Song>? scannedSongs)? onCreate;
+  /// [scannedDirectory] 如果用户选择了目录，则为完整目录路径；否则为 null
+  final void Function(
+    String name,
+    String? description,
+    List<Song>? scannedSongs,
+    String? scannedDirectory,
+  )? onCreate;
 
   const CreatePlaylistDialog({
     super.key,
@@ -581,6 +587,7 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
         name,
         description.isEmpty ? null : description,
         null,
+        null, // 没有选择目录
       );
       Navigator.of(context).pop();
     }
@@ -641,6 +648,7 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
         name,
         description.isEmpty ? null : description,
         scannedSongs,
+        _selectedDirectory, // 传递完整目录路径
       );
       Navigator.of(context).pop();
     } on Exception catch (e) {
@@ -947,7 +955,12 @@ void showPlaylistOptionsSheet(
 /// 显示创建歌单对话框的辅助函数
 void showCreatePlaylistDialog(
   BuildContext context, {
-  void Function(String name, String? description, List<Song>? scannedSongs)? onCreate,
+  void Function(
+    String name,
+    String? description,
+    List<Song>? scannedSongs,
+    String? scannedDirectory,
+  )? onCreate,
 }) {
   showDialog(
     context: context,

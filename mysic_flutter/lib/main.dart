@@ -28,6 +28,7 @@ import 'shared/widgets/bottom_sheet.dart' show showCreatePlaylistDialog;
 import 'shared/widgets/delete_confirm_sheet.dart';
 import 'shared/widgets/playlist_queue_sheet.dart';
 import 'shared/utils/music_scanner.dart';
+import 'shared/utils/scan_directory_provider.dart';
 import 'features/playlist/data/playlist_repository.dart';
 import 'features/player/data/models/song.dart';
 import 'features/player/data/models/playlist.dart';
@@ -764,7 +765,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   void _createPlaylist(BuildContext context) {
     showCreatePlaylistDialog(
       context,
-      onCreate: (name, description, scannedSongs) async {
+      onCreate: (name, description, scannedSongs, scannedDirectory) async {
         final playlistProvider = context.read<PlaylistProvider>();
 
         // 创建歌单
@@ -773,33 +774,45 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           description: description,
         );
 
-        if (playlist != null && scannedSongs != null && scannedSongs.isNotEmpty) {
-          // 添加到新创建的歌单
-          await playlistProvider.addSongsToPlaylist(playlist.id!, scannedSongs);
+        if (playlist != null) {
+          // 如果选择了目录，存储目录与歌单的关联
+          if (scannedDirectory != null && scannedDirectory.isNotEmpty) {
+            final scanDirectoryProvider = ScanDirectoryProvider();
+            await scanDirectoryProvider.addDirectoryWithPlaylist(
+              scannedDirectory,
+              playlistId: playlist.id!,
+              playlistName: playlist.name,
+            );
+          }
 
-          // 添加到"本地音乐"歌单
-          await _ensureLocalMusicPlaylistForSongs(playlistProvider, scannedSongs);
+          if (scannedSongs != null && scannedSongs.isNotEmpty) {
+            // 添加到新创建的歌单
+            await playlistProvider.addSongsToPlaylist(playlist.id!, scannedSongs);
 
-          // 刷新数据
-          await playlistProvider.refresh();
+            // 添加到"本地音乐"歌单
+            await _ensureLocalMusicPlaylistForSongs(playlistProvider, scannedSongs);
 
-          if (mounted) {
+            // 刷新数据
+            await playlistProvider.refresh();
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('歌单创建成功，已添加 ${scannedSongs.length} 首歌曲'),
+                  backgroundColor: const Color(0xFF10B981),
+                ),
+              );
+            }
+          } else if (mounted) {
+            // 歌单创建成功但没有扫描歌曲
+            await playlistProvider.refresh();
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('歌单创建成功，已添加 ${scannedSongs.length} 首歌曲'),
-                backgroundColor: const Color(0xFF10B981),
+              const SnackBar(
+                content: Text('歌单创建成功'),
+                backgroundColor: Color(0xFF10B981),
               ),
             );
           }
-        } else if (playlist != null && mounted) {
-          // 歌单创建成功但没有扫描歌曲
-          await playlistProvider.refresh();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('歌单创建成功'),
-              backgroundColor: Color(0xFF10B981),
-            ),
-          );
         }
       },
     );
