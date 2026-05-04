@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:sqflite/sqflite.dart';
 import '../../core/database/database_helper.dart';
 import 'scan_directory_config.dart';
@@ -79,6 +80,7 @@ class ScanDirectoryProvider {
     String directory, {
     int? playlistId,
     String? playlistName,
+    String? displayName,
   }) async {
     final trimmed = directory.trim();
     if (trimmed.isEmpty) return;
@@ -91,6 +93,7 @@ class ScanDirectoryProvider {
       configs[existingIndex] = configs[existingIndex].copyWith(
         playlistId: playlistId,
         playlistName: playlistName,
+        displayName: displayName,
       );
     } else {
       // 新增
@@ -98,6 +101,7 @@ class ScanDirectoryProvider {
         directory: trimmed,
         playlistId: playlistId,
         playlistName: playlistName,
+        displayName: displayName,
       ));
     }
 
@@ -170,6 +174,72 @@ class ScanDirectoryProvider {
 
     await _saveConfigs(newConfigs);
     return newConfigs;
+  }
+
+  /// 迁移旧格式数据（目录名）到新格式（完整路径）
+  /// 返回迁移后的配置列表
+  Future<List<ScanDirectoryConfig>> migrateToFullPath() async {
+    final configs = await getConfigs();
+    if (configs.isEmpty) return [];
+
+    final drives = await _getAvailableDrives();
+    final migratedConfigs = <ScanDirectoryConfig>[];
+    bool hasChanges = false;
+
+    for (final config in configs) {
+      // 检查是否已经是完整路径（路径存在）
+      if (await Directory(config.directory).exists()) {
+        migratedConfigs.add(config);
+        continue;
+      }
+
+      // 尝试在驱动器中查找完整路径
+      String? fullPath;
+      for (final drive in drives) {
+        final path = '$drive${config.directory}';
+        try {
+          if (await Directory(path).exists()) {
+            fullPath = path;
+            break;
+          }
+        } catch (_) {
+          // 忽略无权限目录
+        }
+      }
+
+      if (fullPath != null) {
+        migratedConfigs.add(config.copyWith(
+          directory: fullPath,
+          displayName: config.directory,
+        ));
+        hasChanges = true;
+      } else {
+        // 保留原值，用户需重新选择
+        migratedConfigs.add(config);
+      }
+    }
+
+    if (hasChanges) {
+      await _saveConfigs(migratedConfigs);
+    }
+
+    return migratedConfigs;
+  }
+
+  /// 获取所有可用驱动器
+  Future<List<String>> _getAvailableDrives() async {
+    final drives = <String>[];
+    for (final letter in ['C', 'D', 'E', 'F', 'G', 'H']) {
+      final drive = '$letter:\\';
+      try {
+        if (await Directory(drive).exists()) {
+          drives.add(drive);
+        }
+      } catch (_) {
+        // 忽略无法访问的驱动器
+      }
+    }
+    return drives;
   }
 
   /// 保存目录列表到数据库（旧格式）
