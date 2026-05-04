@@ -343,22 +343,36 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
   /// 获取扫描根目录列表
   Future<List<String>> _getScanRoots() async {
-    final directoryNames = await _directoryProvider.getDirectories();
-    final drives = await _getAvailableDrives();
-
+    final configs = await _directoryProvider.getConfigs();
     final roots = <String>[];
-    for (final drive in drives) {
-      for (final dirName in directoryNames) {
-        final path = '$drive$dirName';
+
+    for (final config in configs) {
+      // 检查是否是完整路径（包含驱动器字母）
+      if (config.directory.contains(':\\') || config.directory.contains(':/')) {
+        // 完整路径，直接检查是否存在
         try {
-          if (await Directory(path).exists()) {
-            roots.add(path);
+          if (await Directory(config.directory).exists()) {
+            roots.add(config.directory);
           }
         } catch (_) {
           // 忽略无权限目录
         }
+      } else {
+        // 旧格式（仅目录名），在所有驱动器中查找
+        final drives = await _getAvailableDrives();
+        for (final drive in drives) {
+          final path = '$drive${config.directory}';
+          try {
+            if (await Directory(path).exists()) {
+              roots.add(path);
+            }
+          } catch (_) {
+            // 忽略无权限目录
+          }
+        }
       }
     }
+
     return roots;
   }
 
