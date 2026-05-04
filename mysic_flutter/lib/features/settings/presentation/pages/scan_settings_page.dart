@@ -6,6 +6,7 @@ import '../../data/scan_options_provider.dart';
 import '../widgets/scan_directory_list.dart';
 import '../../../../shared/utils/music_scanner.dart';
 import '../../../../shared/utils/scan_directory_provider.dart';
+import '../../../../shared/utils/path_utils.dart';
 import '../../../../features/playlist/presentation/providers/playlist_provider.dart';
 import '../../../../features/player/data/models/playlist.dart';
 import '../../../../features/playlist/data/playlist_repository.dart';
@@ -446,22 +447,6 @@ class _ScanSettingsPageState extends State<ScanSettingsPage> {
     }
   }
 
-  /// 检查文件路径是否包含指定目录
-  /// 支持正斜杠和反斜杠路径分隔符
-  bool _isPathInDirectory(String filePath, String directoryName) {
-    final lowerPath = filePath.toLowerCase();
-    final lowerDir = directoryName.toLowerCase();
-    // 正斜杠分隔符: /directory/
-    if (lowerPath.contains('/$lowerDir/')) return true;
-    // 反斜杠分隔符: \directory\
-    final bs = '\\';
-    if (lowerPath.contains(bs + lowerDir + bs)) return true;
-    // 混合分隔符
-    if (lowerPath.contains('/' + lowerDir + bs)) return true;
-    if (lowerPath.contains(bs + lowerDir + '/')) return true;
-    return false;
-  }
-
   /// 将扫描的歌曲添加到各目录关联的歌单
   Future<void> _addSongsToLinkedPlaylists(PlaylistProvider playlistProvider) async {
     final directoryProvider = ScanDirectoryProvider();
@@ -482,7 +467,7 @@ class _ScanSettingsPageState extends State<ScanSettingsPage> {
 
       // 筛选该目录下的歌曲
       final directorySongs = allSongs
-          .where((song) => _isPathInDirectory(song.filePath, config.directory))
+          .where((song) => PathUtils.isPathInDirectory(song.filePath, config.directory))
           .toList();
 
       if (directorySongs.isNotEmpty) {
