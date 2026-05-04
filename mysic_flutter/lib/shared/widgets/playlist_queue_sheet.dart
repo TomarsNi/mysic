@@ -14,6 +14,9 @@ class PlaylistQueueSheet extends StatelessWidget {
   /// 歌单名称
   final String playlistName;
 
+  /// 滚动控制器（用于 DraggableScrollableSheet 协调）
+  final ScrollController? scrollController;
+
   /// 歌曲点击回调
   final void Function(int index) onSongTap;
 
@@ -22,6 +25,7 @@ class PlaylistQueueSheet extends StatelessWidget {
     required this.songs,
     required this.currentIndex,
     required this.playlistName,
+    this.scrollController,
     required this.onSongTap,
   });
 
@@ -78,6 +82,7 @@ class PlaylistQueueSheet extends StatelessWidget {
                     ),
                   )
                 : ListView.builder(
+                    controller: scrollController,
                     shrinkWrap: true,
                     itemCount: songs.length,
                     itemBuilder: (context, index) {

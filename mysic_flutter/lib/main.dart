@@ -914,6 +914,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           songs: playerProvider.playlist,
           currentIndex: playerProvider.currentIndex,
           playlistName: playlistProvider.selectedPlaylist?.name ?? '播放列表',
+          scrollController: scrollController,
           onSongTap: (index) {
             playerProvider.seekToIndex(index);
             Navigator.of(context).pop();
