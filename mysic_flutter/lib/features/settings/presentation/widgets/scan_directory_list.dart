@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/utils/scan_directory_provider.dart';
+import '../../../../shared/utils/scan_directory_config.dart';
+import '../../../playlist/presentation/providers/playlist_provider.dart';
 
 /// 扫描目录管理组件
 class ScanDirectoryList extends StatefulWidget {
@@ -15,7 +18,7 @@ class ScanDirectoryList extends StatefulWidget {
 
 class _ScanDirectoryListState extends State<ScanDirectoryList> {
   late final ScanDirectoryProvider _provider;
-  List<String> _directories = [];
+  List<ScanDirectoryConfig> _configs = [];
   bool _isLoading = true;
 
   @override
@@ -27,10 +30,12 @@ class _ScanDirectoryListState extends State<ScanDirectoryList> {
 
   Future<void> _loadDirectories() async {
     try {
-      final directories = await _provider.getDirectories();
+      // 先尝试迁移旧数据
+      await _provider.migrateIfNeeded();
+      final configs = await _provider.getConfigs();
       if (mounted) {
         setState(() {
-          _directories = directories;
+          _configs = configs;
           _isLoading = false;
         });
       }
@@ -86,8 +91,45 @@ class _ScanDirectoryListState extends State<ScanDirectoryList> {
       );
 
       if (result != null && result.isNotEmpty) {
-        await _provider.addDirectory(result);
-        await _loadDirectories();
+        // 检查是否已存在
+        final exists = _configs.any((c) => c.directory == result);
+        if (exists) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('该目录已存在')),
+            );
+          }
+          return;
+        }
+
+        // 获取 PlaylistProvider 并创建同名歌单
+        if (!mounted) return;
+        final playlistProvider = context.read<PlaylistProvider>();
+        final playlist = await playlistProvider.createPlaylist(name: result);
+
+        if (playlist != null) {
+          // 关联目录与歌单
+          await _provider.addDirectoryWithPlaylist(
+            result,
+            playlistId: playlist.id,
+            playlistName: playlist.name,
+          );
+          await _loadDirectories();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('已添加目录并创建歌单$result')),
+            );
+          }
+        } else {
+          // 歌单创建失败，仅添加目录
+          await _provider.addDirectoryWithPlaylist(result);
+          await _loadDirectories();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('已添加目录$result（歌单创建失败）')),
+            );
+          }
+        }
       }
     } on Exception catch (e) {
       if (mounted) {
@@ -100,7 +142,7 @@ class _ScanDirectoryListState extends State<ScanDirectoryList> {
     }
   }
 
-  Future<void> _removeDirectory(String directory) async {
+  Future<void> _removeDirectory(ScanDirectoryConfig config) async {
     try {
       final confirm = await showDialog<bool>(
         context: context,
@@ -111,7 +153,7 @@ class _ScanDirectoryListState extends State<ScanDirectoryList> {
             style: TextStyle(color: AppColors.white),
           ),
           content: Text(
-            '确定要删除目录 "$directory" 吗？',
+            '确定要删除目录 ${config.effectiveDisplayName} 吗？',
             style: const TextStyle(color: AppColors.muted),
           ),
           actions: [
@@ -128,7 +170,7 @@ class _ScanDirectoryListState extends State<ScanDirectoryList> {
       );
 
       if (confirm == true) {
-        await _provider.removeDirectory(directory);
+        await _provider.removeConfig(config.directory);
         await _loadDirectories();
       }
     } on Exception catch (e) {
@@ -151,7 +193,7 @@ class _ScanDirectoryListState extends State<ScanDirectoryList> {
             style: TextStyle(color: AppColors.white),
           ),
           content: const Text(
-            '确定要恢复默认扫描目录吗？',
+            '确定要恢复默认扫描目录吗？这将清除所有目录配置。',
             style: TextStyle(color: AppColors.muted),
           ),
           actions: [
@@ -169,6 +211,8 @@ class _ScanDirectoryListState extends State<ScanDirectoryList> {
 
       if (confirm == true) {
         await _provider.resetToDefault();
+        // 重新迁移以获取默认目录配置
+        await _provider.migrateIfNeeded();
         await _loadDirectories();
       }
     } on Exception catch (e) {
@@ -177,6 +221,123 @@ class _ScanDirectoryListState extends State<ScanDirectoryList> {
           SnackBar(content: Text('恢复默认失败: $e')),
         );
       }
+    }
+  }
+
+  /// 显示编辑歌单关联对话框
+  Future<void> _showEditPlaylistDialog(ScanDirectoryConfig config) async {
+    final playlistProvider = context.read<PlaylistProvider>();
+    final playlists = playlistProvider.playlists;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(
+          '关联歌单 - ${config.effectiveDisplayName}',
+          style: const TextStyle(color: AppColors.white),
+        ),
+        content: SizedBox(
+          width: 300,
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              // 取消关联选项
+              ListTile(
+                title: const Text(
+                  '取消关联',
+                  style: TextStyle(color: AppColors.muted),
+                ),
+                leading: Icon(
+                  Icons.link_off,
+                  color: config.isLinked ? AppColors.muted : AppColors.accent,
+                ),
+                onTap: () async {
+                  // 清除关联
+                  final configs = List<ScanDirectoryConfig>.from(await _provider.getConfigs());
+                  final index = configs.indexWhere((c) => c.directory == config.directory);
+                  if (index >= 0) {
+                    final newConfig = configs[index].copyWith(clearPlaylist: true);
+                    await _provider.removeConfig(config.directory);
+                    await _provider.addDirectoryWithPlaylist(
+                      newConfig.directory,
+                    );
+                  }
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                  await _loadDirectories();
+                },
+              ),
+              const Divider(color: AppColors.card),
+              // 歌单列表
+              ...playlists.map((playlist) => ListTile(
+                title: Text(
+                  playlist.name,
+                  style: TextStyle(
+                    color: config.playlistId == playlist.id
+                        ? AppColors.accent
+                        : AppColors.white,
+                  ),
+                ),
+                leading: Icon(
+                  config.playlistId == playlist.id
+                      ? Icons.link
+                      : Icons.playlist_play,
+                  color: config.playlistId == playlist.id
+                      ? AppColors.accent
+                      : AppColors.muted,
+                ),
+                onTap: () async {
+                  await _provider.updateDirectoryPlaylist(
+                    config.directory,
+                    playlist.id!,
+                    playlist.name,
+                  );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                  await _loadDirectories();
+                },
+              )),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('关闭', style: TextStyle(color: AppColors.muted)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建目录项的尾部组件（显示关联状态）
+  Widget _buildPlaylistTrailing(ScanDirectoryConfig config) {
+    if (config.isLinked) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              config.playlistName!,
+              style: const TextStyle(color: AppColors.accent, fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.link, color: AppColors.accent, size: 16),
+        ],
+      );
+    } else {
+      return Text(
+        '未关联',
+        style: TextStyle(
+          color: AppColors.muted.withValues(alpha: 0.5),
+          fontSize: 12,
+        ),
+      );
     }
   }
 
@@ -211,7 +372,7 @@ class _ScanDirectoryListState extends State<ScanDirectoryList> {
         const SizedBox(height: 16),
 
         // 目录列表
-        if (_directories.isEmpty)
+        if (_configs.isEmpty)
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -233,22 +394,24 @@ class _ScanDirectoryListState extends State<ScanDirectoryList> {
             child: ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: _directories.length,
+              itemCount: _configs.length,
               separatorBuilder: (context, index) => const Divider(
                 color: AppColors.surface,
                 height: 1,
               ),
               itemBuilder: (context, index) {
-                final directory = _directories[index];
+                final config = _configs[index];
                 return ListTile(
                   title: Text(
-                    directory,
+                    config.effectiveDisplayName,
                     style: const TextStyle(color: AppColors.white),
                   ),
+                  subtitle: _buildPlaylistTrailing(config),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete_outline, color: AppColors.muted),
-                    onPressed: () => _removeDirectory(directory),
+                    onPressed: () => _removeDirectory(config),
                   ),
+                  onTap: () => _showEditPlaylistDialog(config),
                 );
               },
             ),
