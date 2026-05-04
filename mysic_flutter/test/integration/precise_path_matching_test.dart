@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:mysic_flutter/core/database/database_helper.dart';
+import 'package:mysic_flutter/shared/utils/scan_directory_provider.dart';
 import 'package:mysic_flutter/shared/utils/scan_directory_config.dart';
 
 void main() {
@@ -127,6 +129,72 @@ void main() {
       expect(clearedPlaylist.playlistId, isNull);
       expect(clearedPlaylist.playlistName, isNull);
       expect(clearedPlaylist.displayName, '我的成名曲');
+    });
+  });
+
+  group('ScanDirectoryProvider Integration', () {
+    late DatabaseHelper dbHelper;
+    late ScanDirectoryProvider scanProvider;
+
+    setUp(() async {
+      dbHelper = DatabaseHelper();
+      // 先关闭现有连接
+      await dbHelper.close();
+      // 删除数据库
+      await dbHelper.deleteDatabase();
+      // 重新初始化数据库（这会创建新的表结构）
+      await dbHelper.database;
+
+      scanProvider = ScanDirectoryProvider();
+    });
+
+    tearDown(() async {
+      await dbHelper.close();
+    });
+
+    test('storing full path with displayName', () async {
+      // 添加完整路径配置
+      await scanProvider.addDirectoryWithPlaylist(
+        r'G:\music\成名曲',
+        playlistId: 1,
+        playlistName: '成名曲',
+        displayName: '成名曲',
+      );
+
+      final configs = await scanProvider.getConfigs();
+      // 验证配置已存储
+      expect(configs.any((c) => c.directory == r'G:\music\成名曲'), isTrue);
+      final storedConfig = configs.firstWhere((c) => c.directory == r'G:\music\成名曲');
+      expect(storedConfig.displayName, '成名曲');
+      expect(storedConfig.effectiveDisplayName, '成名曲');
+    });
+
+    test('updating existing directory config', () async {
+      // 先添加
+      await scanProvider.addDirectoryWithPlaylist(
+        r'G:\music\test',
+        playlistId: 1,
+        playlistName: 'Music',
+      );
+
+      final configsAfterAdd = await scanProvider.getConfigs();
+      expect(configsAfterAdd.any((c) => c.directory == r'G:\music\test'), isTrue);
+
+      // 再更新（同一个目录）
+      await scanProvider.addDirectoryWithPlaylist(
+        r'G:\music\test',
+        playlistId: 2,
+        playlistName: 'New Music',
+        displayName: '我的音乐',
+      );
+
+      final configs = await scanProvider.getConfigs();
+      // 验证只有一条该目录的记录
+      final matchingConfigs = configs.where((c) => c.directory == r'G:\music\test').toList();
+      expect(matchingConfigs.length, 1);
+      expect(matchingConfigs.first.playlistId, 2);
+      expect(matchingConfigs.first.playlistName, 'New Music');
+      expect(matchingConfigs.first.displayName, '我的音乐');
     });
   });
 }
