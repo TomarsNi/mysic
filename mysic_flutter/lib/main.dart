@@ -26,6 +26,7 @@ import 'features/ai_skills/core/skill_result.dart';
 import 'shared/widgets/app_drawer.dart';
 import 'shared/widgets/bottom_sheet.dart' show showCreatePlaylistDialog;
 import 'shared/widgets/delete_confirm_sheet.dart';
+import 'shared/widgets/playlist_queue_sheet.dart';
 import 'shared/utils/music_scanner.dart';
 import 'features/playlist/data/playlist_repository.dart';
 import 'features/player/data/models/song.dart';
@@ -167,22 +168,32 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             selectedPlaylistId: playlistProvider.selectedPlaylist?.id,
             onPlaylistTap: (playlist) async {
               final playlistId = playlist.id;
+              debugPrint('========== onPlaylistTap 开始, playlistId=$playlistId ==========');
               if (playlistId == null) return;
 
               // 1. 记录最后播放的歌单
               final repository = PlaylistRepository();
               await repository.setAppState('last_playlist_id', playlistId.toString());
+              debugPrint('步骤1: 已记录 last_playlist_id');
 
               // 2. 选择歌单（加载歌曲）
               await playlistProvider.selectPlaylist(playlistId);
+              debugPrint('步骤2: 已选择歌单');
 
               // 3. 获取歌曲列表
               final songs = playlistProvider.selectedPlaylistSongs;
+              debugPrint('步骤3: 歌曲数量=${songs.length}');
 
               if (songs.isNotEmpty) {
+                debugPrint('步骤4: 准备设置播放列表并自动播放');
                 // 4. 设置播放列表并自动播放
                 await playerProvider.setPlaylist(songs, autoPlay: true);
+                debugPrint('步骤4: 已设置播放列表');
+              } else {
+                debugPrint('步骤4: 歌曲列表为空，跳过播放');
               }
+
+              debugPrint('========== onPlaylistTap 完成 ==========');
 
               // 5. 抽屉会自动关闭（在 AppDrawer 中处理）
             },
@@ -193,7 +204,24 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             onCreatePlaylistTap: () => _createPlaylist(context),
           ),
           body: _buildBody(context, playerProvider),
-          floatingActionButton: null,
+          floatingActionButton: playerProvider.hasPlaylist
+              ? Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.queue_music_rounded,
+                      color: AppColors.white,
+                      size: 24,
+                    ),
+                    onPressed: () => _showPlaylistQueue(context),
+                  ),
+                )
+              : null,
         );
       },
     );
@@ -876,6 +904,32 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => AddToPlaylistSheet(song: song),
+    );
+  }
+
+  void _showPlaylistQueue(BuildContext context) {
+    final playerProvider = context.read<PlayerProvider>();
+    final playlistProvider = context.read<PlaylistProvider>();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => PlaylistQueueSheet(
+          songs: playerProvider.playlist,
+          currentIndex: playerProvider.currentIndex,
+          playlistName: playlistProvider.selectedPlaylist?.name ?? '播放列表',
+          onSongTap: (index) {
+            playerProvider.seekToIndex(index);
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
     );
   }
 
