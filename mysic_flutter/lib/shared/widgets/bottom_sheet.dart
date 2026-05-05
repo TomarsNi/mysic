@@ -499,7 +499,7 @@ class CreatePlaylistDialog extends StatefulWidget {
   /// 创建回调
   /// [scannedSongs] 如果用户选择了目录并扫描成功，则为扫描到的歌曲列表；否则为 null
   /// [scannedDirectory] 如果用户选择了目录，则为完整目录路径；否则为 null
-  final void Function(
+  final Future<void> Function(
     String name,
     String? description,
     List<Song>? scannedSongs,
@@ -521,6 +521,7 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
   bool _canCreate = false;
   String? _selectedDirectory;
   bool _isScanning = false;
+  bool _isCreating = false;
   double _scanProgress = 0.0;
   int _songsFound = 0;
   String? _lastAutoFilledName;
@@ -578,7 +579,7 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
     if (_selectedDirectory != null) {
       _scanAndCreate();
     } else {
-      if (!_canCreate || _isScanning) return;
+      if (!_canCreate || _isScanning || _isCreating) return;
 
       final name = _nameController.text.trim();
       final description = _descriptionController.text.trim();
@@ -594,7 +595,7 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
   }
 
   Future<void> _scanAndCreate() async {
-    if (!_canCreate || _isScanning) return;
+    if (!_canCreate || _isScanning || _isCreating) return;
     if (_selectedDirectory == null) {
       _handleCreate();
       return;
@@ -627,34 +628,38 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
 
       if (!mounted) return;
 
-      // 获取本次扫描的歌曲
+      // 获取本次扫描的歌曲（使用 newSongIds 精确获取）
       List<Song>? scannedSongs;
-      if (result.isSuccess && result.newAdded > 0) {
-        // 获取所有歌曲（扫描器会保存到数据库）
-        final allSongs = await scanner.getAllSongs();
-        // 本次扫描的歌曲就是 newAdded 首新歌
-        scannedSongs = allSongs.take(result.newAdded).toList();
+      if (result.isSuccess && result.newSongIds.isNotEmpty) {
+        scannedSongs = await scanner.getSongsByIds(result.newSongIds);
       }
 
       setState(() {
         _isScanning = false;
+        _isCreating = true;
         _songsFound = result.totalFound;
       });
 
       final name = _nameController.text.trim();
       final description = _descriptionController.text.trim();
 
-      widget.onCreate?.call(
+      // 等待数据库操作完成
+      await widget.onCreate?.call(
         name,
         description.isEmpty ? null : description,
         scannedSongs,
         _selectedDirectory, // 传递完整目录路径
       );
-      Navigator.of(context).pop();
+
+      // 完成后关闭弹窗
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
     } on Exception catch (e) {
       if (mounted) {
         setState(() {
           _isScanning = false;
+          _isCreating = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('扫描失败: $e')),
@@ -739,6 +744,37 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
   }
 
   Widget _buildScanProgress() {
+    if (_isCreating) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppColors.accent.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                '正在创建歌单，请稍候...',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.muted,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
     if (!_isScanning && _songsFound == 0) {
       return const SizedBox.shrink();
     }
@@ -878,7 +914,7 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
 
         // 创建按钮
         ElevatedButton(
-          onPressed: (_canCreate && !_isScanning) ? _handleCreate : null,
+          onPressed: (_canCreate && !_isScanning && !_isCreating) ? _handleCreate : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.accent,
             foregroundColor: AppColors.white,
@@ -887,14 +923,21 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: _isScanning
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
-                  ),
+          child: _isScanning || _isCreating
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(_isScanning ? '扫描中...' : '创建中...'),
+                  ],
                 )
               : const Text('创建'),
         ),
@@ -955,7 +998,7 @@ void showPlaylistOptionsSheet(
 /// 显示创建歌单对话框的辅助函数
 void showCreatePlaylistDialog(
   BuildContext context, {
-  void Function(
+  Future<void> Function(
     String name,
     String? description,
     List<Song>? scannedSongs,
