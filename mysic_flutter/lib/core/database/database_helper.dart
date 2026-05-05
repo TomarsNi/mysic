@@ -16,7 +16,7 @@ class DatabaseHelper {
   static const String _databaseName = 'mysic.db';
 
   /// 数据库版本
-  static const int _databaseVersion = 8;
+  static const int _databaseVersion = 9;
 
   /// 表名常量
   static const String tableSongs = 'songs';
@@ -27,6 +27,7 @@ class DatabaseHelper {
   static const String tableAppState = 'app_state';
   static const String tableApiConfigs = 'api_configs';
   static const String tableSettings = 'settings';
+  static const String tableExcludedSongs = 'excluded_songs';
 
   /// 获取数据库实例
   Future<Database> get database async {
@@ -82,6 +83,7 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         description TEXT,
         cover_path TEXT,
+        is_system INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )
@@ -178,6 +180,22 @@ class DatabaseHelper {
         value TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )
+    ''');
+
+    // 创建排除歌曲表
+    await db.execute('''
+      CREATE TABLE $tableExcludedSongs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        song_id INTEGER NOT NULL,
+        excluded_at TEXT NOT NULL,
+        FOREIGN KEY (song_id) REFERENCES $tableSongs (id) ON DELETE CASCADE,
+        UNIQUE(song_id)
+      )
+    ''');
+
+    // 创建排除歌曲表索引
+    await db.execute('''
+      CREATE INDEX idx_excluded_songs_song ON $tableExcludedSongs (song_id)
     ''');
   }
 
@@ -338,6 +356,30 @@ class DatabaseHelper {
           value TEXT NOT NULL,
           updated_at TEXT NOT NULL
         )
+      ''');
+    }
+
+    // 版本 8 -> 9: 新增 is_system 字段和 excluded_songs 表
+    if (oldVersion < 9) {
+      // 添加 is_system 字段到 playlists 表
+      await db.execute(
+        'ALTER TABLE $tablePlaylists ADD COLUMN is_system INTEGER NOT NULL DEFAULT 0',
+      );
+
+      // 创建 excluded_songs 表
+      await db.execute('''
+        CREATE TABLE $tableExcludedSongs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          song_id INTEGER NOT NULL,
+          excluded_at TEXT NOT NULL,
+          FOREIGN KEY (song_id) REFERENCES $tableSongs (id) ON DELETE CASCADE,
+          UNIQUE(song_id)
+        )
+      ''');
+
+      // 创建索引
+      await db.execute('''
+        CREATE INDEX idx_excluded_songs_song ON $tableExcludedSongs (song_id)
       ''');
     }
   }
