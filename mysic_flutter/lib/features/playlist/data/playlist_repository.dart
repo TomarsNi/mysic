@@ -187,9 +187,15 @@ class PlaylistRepository {
   Future<bool> deletePlaylist(int playlistId) async {
     final db = await _db;
 
-    // 检查是否为系统歌单
-    final playlist = await getPlaylistById(playlistId);
-    if (playlist?.isSystem == true) {
+    // 检查是否为系统歌单（仅查询 is_system 列，避免加载歌曲）
+    final result = await db.query(
+      DatabaseHelper.tablePlaylists,
+      columns: ['is_system'],
+      where: 'id = ?',
+      whereArgs: [playlistId],
+      limit: 1,
+    );
+    if (result.isNotEmpty && result.first['is_system'] == 1) {
       return false; // 系统歌单不可删除
     }
 
