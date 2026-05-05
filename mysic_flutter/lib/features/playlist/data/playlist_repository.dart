@@ -484,6 +484,13 @@ class PlaylistRepository {
       whereArgs: [songId],
     );
 
+    // 删除排除记录
+    await db.delete(
+      DatabaseHelper.tableExcludedSongs,
+      where: 'song_id = ?',
+      whereArgs: [songId],
+    );
+
     // 删除歌曲
     final count = await db.delete(
       DatabaseHelper.tableSongs,
@@ -678,5 +685,53 @@ class PlaylistRepository {
       {'key': key, 'value': value},
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  // ==================== 排除歌曲操作 ====================
+
+  /// 获取排除歌曲 ID 列表
+  Future<Set<int>> getExcludedSongIds() async {
+    final db = await _db;
+    final result = await db.query(
+      DatabaseHelper.tableExcludedSongs,
+      columns: ['song_id'],
+    );
+
+    return result.map((row) => row['song_id'] as int).toSet();
+  }
+
+  /// 添加歌曲到排除列表
+  Future<void> excludeSong(int songId) async {
+    final db = await _db;
+    await db.insert(
+      DatabaseHelper.tableExcludedSongs,
+      {
+        'song_id': songId,
+        'excluded_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
+  /// 从排除列表移除歌曲
+  Future<void> restoreSong(int songId) async {
+    final db = await _db;
+    await db.delete(
+      DatabaseHelper.tableExcludedSongs,
+      where: 'song_id = ?',
+      whereArgs: [songId],
+    );
+  }
+
+  /// 检查歌曲是否被排除
+  Future<bool> isSongExcluded(int songId) async {
+    final db = await _db;
+    final result = await db.query(
+      DatabaseHelper.tableExcludedSongs,
+      where: 'song_id = ?',
+      whereArgs: [songId],
+      limit: 1,
+    );
+    return result.isNotEmpty;
   }
 }
