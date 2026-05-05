@@ -16,6 +16,68 @@ class PlaylistRepository {
 
   // ==================== 歌单操作 ====================
 
+  /// 创建系统歌单
+  Future<Playlist> createSystemPlaylist({
+    required String name,
+    String? description,
+  }) async {
+    final db = await _db;
+    final now = DateTime.now();
+
+    final id = await db.insert(
+      DatabaseHelper.tablePlaylists,
+      {
+        'name': name,
+        'description': description,
+        'is_system': 1,
+        'created_at': now.toIso8601String(),
+        'updated_at': now.toIso8601String(),
+      },
+    );
+
+    return Playlist(
+      id: id,
+      name: name,
+      description: description,
+      isSystem: true,
+      createdAt: now,
+      updatedAt: now,
+      songs: [],
+    );
+  }
+
+  /// 获取系统歌单
+  Future<Playlist?> getSystemPlaylist() async {
+    final db = await _db;
+    final List<Map<String, dynamic>> maps = await db.query(
+      DatabaseHelper.tablePlaylists,
+      where: 'is_system = ?',
+      whereArgs: [1],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+
+    final playlist = Playlist.fromMap(maps.first);
+    final songs = await getSongsInPlaylist(playlist.id!);
+    return playlist.copyWith(songs: songs);
+  }
+
+  /// 获取系统歌单 ID
+  Future<int?> getSystemPlaylistId() async {
+    final db = await _db;
+    final result = await db.query(
+      DatabaseHelper.tablePlaylists,
+      columns: ['id'],
+      where: 'is_system = ?',
+      whereArgs: [1],
+      limit: 1,
+    );
+
+    if (result.isEmpty) return null;
+    return result.first['id'] as int;
+  }
+
   /// 创建新歌单
   Future<Playlist> createPlaylist({
     required String name,
@@ -48,11 +110,12 @@ class PlaylistRepository {
   }
 
   /// 获取所有歌单（不含歌曲）
+  /// 系统歌单排在前面，其他歌单按更新时间降序
   Future<List<Playlist>> getAllPlaylists() async {
     final db = await _db;
     final List<Map<String, dynamic>> maps = await db.query(
       DatabaseHelper.tablePlaylists,
-      orderBy: 'updated_at DESC',
+      orderBy: 'is_system DESC, updated_at DESC',
     );
 
     return maps.map((map) => Playlist.fromMap(map)).toList();
@@ -120,8 +183,15 @@ class PlaylistRepository {
   }
 
   /// 删除歌单
+  /// 系统歌单不可删除
   Future<bool> deletePlaylist(int playlistId) async {
     final db = await _db;
+
+    // 检查是否为系统歌单
+    final playlist = await getPlaylistById(playlistId);
+    if (playlist?.isSystem == true) {
+      return false; // 系统歌单不可删除
+    }
 
     // 先删除歌单中的歌曲关联
     await db.delete(
