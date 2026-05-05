@@ -8,8 +8,6 @@ import '../../../../shared/utils/music_scanner.dart';
 import '../../../../shared/utils/scan_directory_provider.dart';
 import '../../../../shared/utils/path_utils.dart';
 import '../../../../features/playlist/presentation/providers/playlist_provider.dart';
-import '../../../../features/player/data/models/playlist.dart';
-import '../../../../features/playlist/data/playlist_repository.dart';
 import '../../../../features/player/presentation/providers/player_provider.dart';
 
 /// 扫描设置页面
@@ -404,9 +402,9 @@ class _ScanSettingsPageState extends State<ScanSettingsPage> {
         // 将歌曲添加到各目录关联的歌单
         await _addSongsToLinkedPlaylists(playlistProvider);
 
-        // 确保"本地音乐"歌单存在并添加所有歌曲（作为总览）
-        if (playlistProvider.allSongs.isNotEmpty) {
-          await _ensureLocalMusicPlaylist(playlistProvider, result.newAdded);
+        // 同步歌曲到"本地音乐"系统歌单
+        if (result.newAdded > 0 && playlistProvider.allSongs.isNotEmpty) {
+          await playlistProvider.syncToLocalMusicPlaylist(playlistProvider.allSongs);
         }
 
         if (mounted) {
@@ -473,49 +471,6 @@ class _ScanSettingsPageState extends State<ScanSettingsPage> {
       if (directorySongs.isNotEmpty) {
         await playlistProvider.addSongsToPlaylist(playlistId, directorySongs);
       }
-    }
-  }
-
-  /// 确保存在"本地音乐"歌单，并将所有歌曲添加进去
-  Future<void> _ensureLocalMusicPlaylist(
-    PlaylistProvider playlistProvider,
-    int newSongCount,
-  ) async {
-    const localMusicPlaylistName = '本地音乐';
-
-    // 查找是否已存在"本地音乐"歌单
-    Playlist? localPlaylist;
-    try {
-      localPlaylist = playlistProvider.playlists.firstWhere(
-        (p) => p.name == localMusicPlaylistName,
-      );
-    } catch (_) {
-      // 不存在，需要创建
-    }
-
-    if (localPlaylist == null) {
-      // 创建"本地音乐"歌单
-      localPlaylist = await playlistProvider.createPlaylist(
-        name: localMusicPlaylistName,
-        description: '扫描本地音乐自动创建',
-      );
-    }
-
-    final playlistId = localPlaylist?.id;
-    if (playlistId == null) return;
-
-    // 获取所有歌曲并添加到歌单
-    final allSongs = playlistProvider.allSongs;
-
-    if (allSongs.isEmpty) {
-      // 直接从数据库获取
-      final repository = PlaylistRepository();
-      final songs = await repository.getAllSongs();
-      if (songs.isNotEmpty) {
-        await playlistProvider.addSongsToPlaylist(playlistId, songs);
-      }
-    } else {
-      await playlistProvider.addSongsToPlaylist(playlistId, allSongs);
     }
   }
 }
