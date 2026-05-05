@@ -6,6 +6,7 @@ class Playlist {
   final String name;
   final String? description;
   final String? coverPath;
+  final bool isSystem; // 是否为系统歌单（不可删除）
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<Song>? songs; // 可选的歌曲列表
@@ -15,6 +16,7 @@ class Playlist {
     required this.name,
     this.description,
     this.coverPath,
+    this.isSystem = false, // 默认为用户歌单
     required this.createdAt,
     required this.updatedAt,
     this.songs,
@@ -27,6 +29,7 @@ class Playlist {
       name: map['name'] as String,
       description: map['description'] as String?,
       coverPath: map['cover_path'] as String?,
+      isSystem: (map['is_system'] as int?) == 1, // 从数据库读取 is_system 字段
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
       songs: songs,
@@ -40,6 +43,7 @@ class Playlist {
       'name': name,
       'description': description,
       'cover_path': coverPath,
+      'is_system': isSystem ? 1 : 0, // 写入 is_system 字段
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -51,6 +55,7 @@ class Playlist {
     String? name,
     String? description,
     String? coverPath,
+    bool? isSystem,
     DateTime? createdAt,
     DateTime? updatedAt,
     List<Song>? songs,
@@ -60,6 +65,7 @@ class Playlist {
       name: name ?? this.name,
       description: description ?? this.description,
       coverPath: coverPath ?? this.coverPath,
+      isSystem: isSystem ?? this.isSystem,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       songs: songs ?? this.songs,
@@ -69,7 +75,7 @@ class Playlist {
   /// 获取歌曲数量
   int get songCount => songs?.length ?? 0;
 
-  /// 获取总时长（毫秒）
+  /// 获取总时长（秒）
   int get totalDuration {
     if (songs == null || songs!.isEmpty) return 0;
     return songs!.fold(0, (sum, song) => sum + (song.duration ?? 0));
@@ -77,12 +83,12 @@ class Playlist {
 
   /// 格式化总时长显示 (HH:mm:ss 或 mm:ss)
   String get formattedTotalDuration {
-    final totalMs = totalDuration;
-    if (totalMs == 0) return '00:00';
+    final totalSec = totalDuration;
+    if (totalSec == 0) return '00:00';
 
-    final hours = totalMs ~/ 3600000;
-    final minutes = (totalMs % 3600000) ~/ 60000;
-    final seconds = (totalMs % 60000) ~/ 1000;
+    final hours = totalSec ~/ 3600;
+    final minutes = (totalSec % 3600) ~/ 60;
+    final seconds = totalSec % 60;
 
     if (hours > 0) {
       return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
