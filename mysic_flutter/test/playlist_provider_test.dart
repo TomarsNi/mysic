@@ -31,12 +31,17 @@ void main() {
       await dbHelper.close();
     });
 
-    test('初始状态正确', () {
+    test('初始状态正确', () async {
+      // 等待加载完成
+      await Future.delayed(Duration(milliseconds: 200));
       expect(provider.isLoading, isFalse);
       expect(provider.error, isNull);
-      expect(provider.playlists, isEmpty);
+      // 系统歌单会自动创建
+      expect(provider.playlists.length, equals(1));
+      expect(provider.playlists.first.name, equals('本地音乐'));
+      expect(provider.systemPlaylistId, isNotNull);
       expect(provider.allSongs, isEmpty);
-      expect(provider.hasPlaylists, isFalse);
+      expect(provider.hasPlaylists, isTrue);
       expect(provider.hasSongs, isFalse);
     });
 
@@ -48,7 +53,8 @@ void main() {
 
       expect(playlist, isNotNull);
       expect(playlist!.name, equals('测试歌单'));
-      expect(provider.playlists.length, equals(1));
+      // 系统歌单 + 新创建的歌单
+      expect(provider.playlists.length, equals(2));
       expect(provider.hasPlaylists, isTrue);
     });
 
@@ -58,7 +64,8 @@ void main() {
 
       final stats = provider.getStatistics();
 
-      expect(stats['totalPlaylists'], equals(2));
+      // 系统歌单 + 歌单1 + 歌单2 = 3
+      expect(stats['totalPlaylists'], equals(3));
       expect(stats['totalSongs'], equals(0));
     });
   });
@@ -119,7 +126,9 @@ void main() {
       final success = await provider.deletePlaylist(playlist!.id!);
 
       expect(success, isTrue);
-      expect(provider.playlists, isEmpty);
+      // 只有系统歌单剩余
+      expect(provider.playlists.length, equals(1));
+      expect(provider.playlists.first.name, equals('本地音乐'));
     });
 
     test('删除选中的歌单后清除选择', () async {
@@ -390,7 +399,8 @@ void main() {
       await provider.createPlaylist(name: '歌单1');
       await provider.refresh();
 
-      expect(provider.playlists.length, equals(1));
+      // 系统歌单 + 歌单1 = 2
+      expect(provider.playlists.length, equals(2));
     });
   });
 }

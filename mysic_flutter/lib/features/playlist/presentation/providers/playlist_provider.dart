@@ -15,6 +15,8 @@ class PlaylistProvider extends ChangeNotifier {
   List<Song> _selectedPlaylistSongs = [];
   List<Song> _allSongs = [];
   List<Song> _playHistory = [];
+  Set<int> _excludedSongIds = {}; // 排除歌曲 ID 缓存
+  int? _systemPlaylistId; // 系统歌单 ID 缓存
   bool _isLoading = false;
   String? _error;
 
@@ -35,15 +37,21 @@ class PlaylistProvider extends ChangeNotifier {
   bool get hasSongs => _allSongs.isNotEmpty;
   int get playlistCount => _playlists.length;
   int get songCount => _allSongs.length;
+  int? get systemPlaylistId => _systemPlaylistId;
+  Set<int> get excludedSongIds => Set.unmodifiable(_excludedSongIds);
 
   /// 加载初始数据
   Future<void> _loadData() async {
     _setLoading(true);
     try {
+      // 确保系统歌单存在
+      await _ensureSystemPlaylistExists();
+
       await Future.wait([
         _loadPlaylists(),
         _loadAllSongs(),
         _loadPlayHistory(),
+        _loadExcludedSongIds(),
       ]);
     } catch (e) {
       _setError('加载数据失败: $e');
@@ -68,6 +76,101 @@ class PlaylistProvider extends ChangeNotifier {
   Future<void> _loadPlayHistory() async {
     _playHistory = await _repository.getPlayHistory();
     notifyListeners();
+  }
+
+  /// 确保系统歌单存在
+  Future<void> _ensureSystemPlaylistExists() async {
+    final systemPlaylist = await _repository.getSystemPlaylist();
+    if (systemPlaylist == null) {
+      final created = await _repository.createSystemPlaylist(
+        name: '本地音乐',
+        description: '自动同步本地扫描的所有音乐',
+      );
+      _systemPlaylistId = created.id;
+    } else {
+      _systemPlaylistId = systemPlaylist.id;
+    }
+  }
+
+  /// 加载排除歌曲 ID 列表
+  Future<void> _loadExcludedSongIds() async {
+    _excludedSongIds = await _repository.getExcludedSongIds();
+  }
+
+  /// 同步歌曲到本地音乐歌单
+  Future<void> syncToLocalMusicPlaylist(List<Song> scannedSongs) async {
+    if (_systemPlaylistId == null) {
+      await _ensureSystemPlaylistExists();
+    }
+
+    if (_systemPlaylistId == null) return;
+
+    int addedCount = 0;
+    for (final song in scannedSongs) {
+      // 跳过已排除的歌曲
+      if (_excludedSongIds.contains(song.id)) continue;
+
+      // 添加到本地音乐歌单
+      final success = await _repository.addSongToPlaylist(
+        _systemPlaylistId!,
+        song,
+      );
+      if (success) addedCount++;
+    }
+
+    if (addedCount > 0) {
+      await _loadPlaylists();
+      notifyListeners();
+    }
+  }
+
+  /// 从本地音乐移除并排除
+  Future<bool> removeFromLocalMusic(int songId) async {
+    if (_systemPlaylistId == null) return false;
+
+    try {
+      // 1. 从歌单移除
+      final success = await _repository.removeSongFromPlaylist(
+        _systemPlaylistId!,
+        songId,
+      );
+
+      // 2. 添加到排除列表
+      if (success) {
+        await _repository.excludeSong(songId);
+        _excludedSongIds.add(songId);
+        notifyListeners();
+      }
+
+      return success;
+    } catch (e) {
+      _setError('移除歌曲失败: $e');
+      return false;
+    }
+  }
+
+  /// 恢复歌曲到本地音乐
+  Future<bool> restoreToLocalMusic(int songId) async {
+    if (_systemPlaylistId == null) return false;
+
+    try {
+      // 1. 从排除列表移除
+      await _repository.restoreSong(songId);
+      _excludedSongIds.remove(songId);
+
+      // 2. 获取歌曲并添加到歌单
+      final song = await _repository.getSongById(songId);
+      if (song != null) {
+        await _repository.addSongToPlaylist(_systemPlaylistId!, song);
+      }
+
+      await _loadPlaylists();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _setError('恢复歌曲失败: $e');
+      return false;
+    }
   }
 
   /// 刷新所有数据
@@ -103,16 +206,24 @@ class PlaylistProvider extends ChangeNotifier {
 
   /// 选择歌单
   Future<void> selectPlaylist(int playlistId) async {
+    debugPrint('========== selectPlaylist 开始, playlistId=$playlistId ==========');
     _setLoading(true);
     try {
       _selectedPlaylist = await _repository.getPlaylistById(playlistId);
+      debugPrint('获取到的歌单: id=${_selectedPlaylist?.id}, name=${_selectedPlaylist?.name}');
       _selectedPlaylistSongs = _selectedPlaylist?.songs ?? [];
+      debugPrint('歌曲数量: ${_selectedPlaylistSongs.length}');
+      if (_selectedPlaylistSongs.isNotEmpty) {
+        debugPrint('第一首歌: ${_selectedPlaylistSongs.first.title}');
+      }
       notifyListeners();
     } catch (e) {
+      debugPrint('selectPlaylist 错误: $e');
       _setError('加载歌单失败: $e');
     } finally {
       _setLoading(false);
     }
+    debugPrint('========== selectPlaylist 完成 ==========');
   }
 
   /// 取消选择歌单
