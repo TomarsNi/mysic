@@ -119,8 +119,7 @@ class PlaylistProvider extends ChangeNotifier {
     }
 
     if (addedCount > 0) {
-      await _loadPlaylists();
-      notifyListeners();
+      await _loadPlaylists(); // _loadPlaylists 内部会调用 notifyListeners
     }
   }
 
@@ -154,15 +153,19 @@ class PlaylistProvider extends ChangeNotifier {
     if (_systemPlaylistId == null) return false;
 
     try {
-      // 1. 从排除列表移除
+      // 1. 获取歌曲信息（在修改之前）
+      final song = await _repository.getSongById(songId);
+      if (song == null) {
+        _setError('歌曲不存在');
+        return false;
+      }
+
+      // 2. 添加到歌单（可能失败的操作先执行）
+      await _repository.addSongToPlaylist(_systemPlaylistId!, song);
+
+      // 3. 成功后才从排除列表移除
       await _repository.restoreSong(songId);
       _excludedSongIds.remove(songId);
-
-      // 2. 获取歌曲并添加到歌单
-      final song = await _repository.getSongById(songId);
-      if (song != null) {
-        await _repository.addSongToPlaylist(_systemPlaylistId!, song);
-      }
 
       await _loadPlaylists();
       notifyListeners();
