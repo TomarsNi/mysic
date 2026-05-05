@@ -44,6 +44,10 @@ class PlaylistItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 系统歌单不显示删除/编辑按钮
+    final effectiveOnDelete = playlist.isSystem ? null : onDelete;
+    final effectiveOnEdit = playlist.isSystem ? null : onEdit;
+
     return Material(
       color: isSelected
           ? AppColors.accent.withValues(alpha: 0.15)
@@ -52,7 +56,10 @@ class PlaylistItem extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
-        onLongPress: onLongPress ?? _showContextMenu,
+        onLongPress: onLongPress ??
+            (effectiveOnDelete != null || effectiveOnEdit != null
+                ? _showContextMenu
+                : null),
         child: Container(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -98,6 +105,13 @@ class PlaylistItem extends StatelessWidget {
   }
 
   Widget _buildDefaultCoverIcon() {
+    if (playlist.isSystem) {
+      return const Icon(
+        Icons.folder_rounded,
+        color: AppColors.white,
+        size: 32,
+      );
+    }
     return const Icon(
       Icons.playlist_play_rounded,
       color: AppColors.white,
@@ -399,6 +413,13 @@ class PlaylistHeader extends StatelessWidget {
   }
 
   Widget _buildDefaultCoverIcon() {
+    if (playlist.isSystem) {
+      return const Icon(
+        Icons.folder_rounded,
+        color: AppColors.white,
+        size: 48,
+      );
+    }
     return const Icon(
       Icons.playlist_play_rounded,
       color: AppColors.white,
