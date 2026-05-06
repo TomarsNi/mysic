@@ -844,63 +844,65 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
           color: AppColors.white,
         ),
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 目录选择
-          _buildDirectorySelector(),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 目录选择
+            _buildDirectorySelector(),
 
-          _buildScanProgress(),
+            _buildScanProgress(),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // 歌单名称输入
-          TextField(
-            controller: _nameController,
-            style: const TextStyle(color: AppColors.white),
-            decoration: InputDecoration(
-              hintText: '歌单名称',
-              hintStyle: TextStyle(color: AppColors.muted.withValues(alpha: 0.7)),
-              filled: true,
-              fillColor: AppColors.surface,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+            // 歌单名称输入
+            TextField(
+              controller: _nameController,
+              style: const TextStyle(color: AppColors.white),
+              decoration: InputDecoration(
+                hintText: '歌单名称',
+                hintStyle: TextStyle(color: AppColors.muted.withValues(alpha: 0.7)),
+                filled: true,
+                fillColor: AppColors.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
+              autofocus: true,
+              textInputAction: TextInputAction.next,
             ),
-            autofocus: true,
-            textInputAction: TextInputAction.next,
-          ),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // 描述输入
-          TextField(
-            controller: _descriptionController,
-            style: const TextStyle(color: AppColors.white),
-            decoration: InputDecoration(
-              hintText: '描述（可选）',
-              hintStyle: TextStyle(color: AppColors.muted.withValues(alpha: 0.7)),
-              filled: true,
-              fillColor: AppColors.surface,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+            // 描述输入
+            TextField(
+              controller: _descriptionController,
+              style: const TextStyle(color: AppColors.white),
+              decoration: InputDecoration(
+                hintText: '描述（可选）',
+                hintStyle: TextStyle(color: AppColors.muted.withValues(alpha: 0.7)),
+                filled: true,
+                fillColor: AppColors.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
+              maxLines: 2,
+              textInputAction: TextInputAction.done,
             ),
-            maxLines: 2,
-            textInputAction: TextInputAction.done,
-          ),
-        ],
+          ],
+        ),
       ),
       actions: [
         // 取消按钮
