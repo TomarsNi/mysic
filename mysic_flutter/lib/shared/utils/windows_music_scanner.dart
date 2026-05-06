@@ -202,9 +202,10 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
       return ScanResult(
         totalFound: totalFound,
-        newAdded: result['newAdded']!,
-        duplicates: result['duplicates']!,
+        newAdded: result['newAdded']! as int,
+        duplicates: result['duplicates']! as int,
         scanDuration: stopwatch.elapsed,
+        newSongIds: result['newSongIds']! as List<int>,
       );
     } catch (e) {
       updateState(ScanState.error);
@@ -307,9 +308,10 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
       return ScanResult(
         totalFound: totalFound,
-        newAdded: result['newAdded']!,
-        duplicates: result['duplicates']!,
+        newAdded: result['newAdded']! as int,
+        duplicates: result['duplicates']! as int,
         scanDuration: stopwatch.elapsed,
+        newSongIds: result['newSongIds']! as List<int>,
       );
     } catch (e) {
       updateState(ScanState.error);
@@ -436,7 +438,8 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     // 移除扩展名
     var title = fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
     // 移除开头的数字序号 (01. 或 01- 或 01 或 1. 或 1- 等)
-    title = title.replaceFirst(RegExp(r'^\d+[\s.\-_]+'), '');
+    // 使用 * 表示分隔符可选，支持 "01歌名" 格式
+    title = title.replaceFirst(RegExp(r'^\d+[\s.\-_]*'), '');
     // 移除开头常见的艺术家前缀格式 (艺术家 - 歌名)
     // 注意：这个可能不准确，所以只在元数据缺失时使用
     return title.trim();
@@ -526,12 +529,14 @@ class WindowsMusicScanner extends PlatformMusicScanner {
   }
 
   /// 保存歌曲到数据库（批量操作优化）
-  Future<Map<String, int>> _saveSongsToDatabase(List<File> songs) async {
+  /// 返回 Map 包含：newAdded（新增数量）、duplicates（重复数量）、newSongIds（新增歌曲ID列表）
+  Future<Map<String, dynamic>> _saveSongsToDatabase(List<File> songs) async {
     final db = await _dbHelper.database;
     int newAdded = 0;
     int duplicates = 0;
     int filtered = 0;
     int skipped = 0;
+    final newSongIds = <int>[];
     final now = DateTime.now();
     final nowIso = now.toIso8601String();
 
@@ -596,8 +601,9 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
           // 查找歌词文件
           final lyricsPath = await _findLyricsFile(filePath);
+          debugPrint('扫描歌曲: $title, 歌词路径: $lyricsPath');
 
-          await txn.insert(
+          final songId = await txn.insert(
             DatabaseHelper.tableSongs,
             {
               'title': title,
@@ -612,13 +618,14 @@ class WindowsMusicScanner extends PlatformMusicScanner {
               'updated_at': nowIso,
             },
           );
+          newSongIds.add(songId);
           newAdded++;
         }
       }
     });
 
     debugPrint('Windows扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered, skipped=$skipped');
-    return {'newAdded': newAdded, 'duplicates': duplicates};
+    return {'newAdded': newAdded, 'duplicates': duplicates, 'newSongIds': newSongIds};
   }
 
   @override
@@ -638,6 +645,18 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     final maps = await db.query(
       DatabaseHelper.tableSongs,
       orderBy: 'title ASC',
+    );
+    return maps.map((map) => Song.fromMap(map)).toList();
+  }
+
+  /// 根据 ID 列表获取歌曲
+  @override
+  Future<List<Song>> getSongsByIds(List<int> ids) async {
+    if (ids.isEmpty) return [];
+    final db = await _dbHelper.database;
+    final maps = await db.query(
+      DatabaseHelper.tableSongs,
+      where: 'id IN (${ids.join(',')})',
     );
     return maps.map((map) => Song.fromMap(map)).toList();
   }

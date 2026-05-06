@@ -65,6 +65,8 @@ class ScanResult {
   final int duplicates;
   final Duration scanDuration;
   final String? errorMessage;
+  /// 本次扫描新增的歌曲 ID 列表
+  final List<int> newSongIds;
 
   const ScanResult({
     required this.totalFound,
@@ -72,6 +74,7 @@ class ScanResult {
     required this.duplicates,
     required this.scanDuration,
     this.errorMessage,
+    this.newSongIds = const [],
   });
 
   bool get isSuccess => errorMessage == null;
@@ -122,6 +125,9 @@ abstract class PlatformMusicScanner {
 
   /// 获取所有歌曲
   Future<List<Song>> getAllSongs();
+
+  /// 根据 ID 列表获取歌曲
+  Future<List<Song>> getSongsByIds(List<int> ids);
 
   /// 获取歌曲数量
   Future<int> getSongCount();

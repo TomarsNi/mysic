@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:charset_converter/charset_converter.dart';
 
 /// 歌词行数据模型
 class LyricLine {
@@ -184,6 +187,7 @@ class LyricsParser {
   }
 
   /// 从文件解析歌词
+  /// 自动检测编码（支持 UTF-8 和 GBK）
   Future<LyricsResult> parseFile(String filePath) async {
     try {
       final file = File(filePath);
@@ -191,7 +195,9 @@ class LyricsParser {
         return LyricsResult.empty;
       }
 
-      final content = await file.readAsString();
+      // 先读取字节
+      final bytes = await file.readAsBytes();
+      final content = await _decodeBytes(bytes);
       return parse(content);
     } catch (e) {
       return LyricsResult.empty;
@@ -199,6 +205,7 @@ class LyricsParser {
   }
 
   /// 从文件路径解析歌词（同步）
+  /// 注意：同步方法仅支持 UTF-8 编码
   LyricsResult parseFileSync(String filePath) {
     try {
       final file = File(filePath);
@@ -206,11 +213,63 @@ class LyricsParser {
         return LyricsResult.empty;
       }
 
-      final content = file.readAsStringSync();
+      // 先读取字节
+      final bytes = file.readAsBytesSync();
+      final content = _decodeBytesSync(bytes);
       return parse(content);
     } catch (e) {
       return LyricsResult.empty;
     }
+  }
+
+  /// 解码字节数组，自动检测编码
+  /// 优先尝试 UTF-8，失败则尝试 GBK
+  Future<String> _decodeBytes(Uint8List bytes) async {
+    // 尝试 UTF-8 解码
+    try {
+      final content = utf8.decode(bytes);
+      // 检查是否有乱码特征（替换字符）
+      if (!content.contains('�')) {
+        debugPrint('UTF-8 解码成功');
+        return content;
+      } else {
+        debugPrint('UTF-8 解码有乱码，尝试 GBK');
+      }
+    } catch (e) {
+      debugPrint('UTF-8 解码失败: $e');
+    }
+
+    // 尝试 GBK 解码（使用 charset_converter）
+    // Windows 使用 cp936 (代码页 936)，其他平台使用 gbk
+    final charsetNames = Platform.isWindows
+        ? ['cp936', 'gb2312', 'gbk']
+        : ['gbk', 'gb2312', 'cp936'];
+
+    for (final charset in charsetNames) {
+      try {
+        debugPrint('尝试 $charset 解码，字节数: ${bytes.length}');
+        final decoded = await CharsetConverter.decode(charset, bytes);
+        debugPrint('$charset 解码成功');
+        return decoded;
+      } catch (e) {
+        debugPrint('$charset 解码失败: $e');
+      }
+    }
+
+    // 回退：返回容错 UTF-8
+    debugPrint('回退到容错 UTF-8 解码');
+    return utf8.decode(bytes, allowMalformed: true);
+  }
+
+  /// 同步解码字节数组（仅支持 UTF-8）
+  String _decodeBytesSync(Uint8List bytes) {
+    try {
+      final content = utf8.decode(bytes);
+      if (!content.contains('�')) {
+        return content;
+      }
+    } catch (_) {}
+    return utf8.decode(bytes, allowMalformed: true);
   }
 
   /// 将歌词转换为 LRC 格式字符串

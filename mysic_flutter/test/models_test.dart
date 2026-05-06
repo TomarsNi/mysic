@@ -12,7 +12,7 @@ void main() {
         title: '测试歌曲',
         artist: '测试艺术家',
         album: '测试专辑',
-        duration: 180000, // 3分钟
+        duration: 180, // 3分钟（秒）
         filePath: '/path/to/song.mp3',
         albumArtPath: '/path/to/cover.jpg',
         dateAdded: 1713408000,
@@ -26,7 +26,7 @@ void main() {
       expect(testSong.title, '测试歌曲');
       expect(testSong.artist, '测试艺术家');
       expect(testSong.album, '测试专辑');
-      expect(testSong.duration, 180000);
+      expect(testSong.duration, 180);
       expect(testSong.filePath, '/path/to/song.mp3');
       expect(testSong.albumArtPath, '/path/to/cover.jpg');
     });
@@ -34,10 +34,10 @@ void main() {
     test('Song.formattedDuration should return correct format', () {
       expect(testSong.formattedDuration, '3:00');
 
-      final shortSong = testSong.copyWith(duration: 45000); // 45秒
+      final shortSong = testSong.copyWith(duration: 45); // 45秒
       expect(shortSong.formattedDuration, '0:45');
 
-      final longSong = testSong.copyWith(duration: 3723000); // 62分3秒
+      final longSong = testSong.copyWith(duration: 3723); // 62分3秒
       expect(longSong.formattedDuration, '62:03');
     });
 
@@ -75,7 +75,7 @@ void main() {
         'title': '新歌曲',
         'artist': '新艺术家',
         'album': '新专辑',
-        'duration': 240000,
+        'duration': 240, // 4分钟（秒）
         'file_path': '/new/path.mp3',
         'album_art_path': null,
         'date_added': null,
@@ -87,7 +87,7 @@ void main() {
       expect(song.id, 2);
       expect(song.title, '新歌曲');
       expect(song.artist, '新艺术家');
-      expect(song.duration, 240000);
+      expect(song.duration, 240);
     });
 
     test('Song equality should work correctly', () {
@@ -96,7 +96,7 @@ void main() {
         title: '测试歌曲',
         artist: '测试艺术家',
         album: '测试专辑',
-        duration: 180000,
+        duration: 180, // 3分钟（秒）
         filePath: '/path/to/song.mp3',
         createdAt: DateTime(2024, 4, 18),
         updatedAt: DateTime(2024, 4, 18),
@@ -122,7 +122,7 @@ void main() {
           id: 1,
           title: '歌曲1',
           artist: '艺术家1',
-          duration: 180000,
+          duration: 180, // 3分钟（秒）
           filePath: '/path/1.mp3',
           createdAt: DateTime(2024, 4, 18),
           updatedAt: DateTime(2024, 4, 18),
@@ -131,7 +131,7 @@ void main() {
           id: 2,
           title: '歌曲2',
           artist: '艺术家2',
-          duration: 240000,
+          duration: 240, // 4分钟（秒）
           filePath: '/path/2.mp3',
           createdAt: DateTime(2024, 4, 18),
           updatedAt: DateTime(2024, 4, 18),
@@ -164,8 +164,8 @@ void main() {
     });
 
     test('Playlist.totalDuration should calculate correctly', () {
-      // 180000 + 240000 = 420000 ms = 7分钟
-      expect(testPlaylist.totalDuration, 420000);
+      // 180 + 240 = 420 秒 = 7分钟
+      expect(testPlaylist.totalDuration, 420);
     });
 
     test('Playlist.formattedTotalDuration should return correct format', () {
@@ -176,7 +176,7 @@ void main() {
         Song(
           id: 3,
           title: '长歌曲',
-          duration: 3600000, // 1小时
+          duration: 3600, // 1小时（秒）
           filePath: '/path/3.mp3',
           createdAt: DateTime(2024, 4, 18),
           updatedAt: DateTime(2024, 4, 18),

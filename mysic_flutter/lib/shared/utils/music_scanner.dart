@@ -58,6 +58,9 @@ class MusicScanner {
   /// 从数据库获取所有歌曲
   Future<List<Song>> getAllSongs() => _platformScanner.getAllSongs();
 
+  /// 根据 ID 列表获取歌曲
+  Future<List<Song>> getSongsByIds(List<int> ids) => _platformScanner.getSongsByIds(ids);
+
   /// 从数据库获取歌曲数量
   Future<int> getSongCount() => _platformScanner.getSongCount();
 

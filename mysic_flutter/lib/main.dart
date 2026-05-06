@@ -599,12 +599,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         await playlistProvider.refresh();
         print('刷新 Provider 完成，allSongs 数量: ${playlistProvider.allSongs.length}');
 
-        // 只要有歌曲就检查/创建"本地音乐"歌单
-        if (playlistProvider.allSongs.isNotEmpty) {
-          await _ensureLocalMusicPlaylist(context, result.newAdded);
-        } else {
-          print('没有歌曲，跳过创建歌单');
-        }
+        // 同步到系统"本地音乐"歌单
+        await playlistProvider.syncToLocalMusicPlaylist(playlistProvider.allSongs);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -653,58 +649,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       _isScanning = false;
       _currentScanner = null;
     });
-  }
-
-  /// 确保存在"本地音乐"歌单，并将所有歌曲添加进去
-  Future<void> _ensureLocalMusicPlaylist(BuildContext context, int newSongCount) async {
-    final playlistProvider = context.read<PlaylistProvider>();
-    const localMusicPlaylistName = '本地音乐';
-
-    // 查找是否已存在"本地音乐"歌单
-    Playlist? localPlaylist;
-    try {
-      localPlaylist = playlistProvider.playlists.firstWhere(
-        (p) => p.name == localMusicPlaylistName,
-      );
-      print('找到已存在的本地音乐歌单: ${localPlaylist.id}');
-    } catch (_) {
-      // 不存在，需要创建
-      print('本地音乐歌单不存在，准备创建');
-    }
-
-    if (localPlaylist == null) {
-      // 创建"本地音乐"歌单
-      localPlaylist = await playlistProvider.createPlaylist(
-        name: localMusicPlaylistName,
-        description: '扫描本地音乐自动创建',
-      );
-      print('创建本地音乐歌单结果: id=${localPlaylist?.id}, name=${localPlaylist?.name}');
-    }
-
-    final playlistId = localPlaylist?.id;
-    if (playlistId == null) {
-      print('歌单 ID 为空，无法添加歌曲');
-      return;
-    }
-
-    // 获取所有歌曲并添加到歌单
-    final allSongs = playlistProvider.allSongs;
-    print('准备添加 ${allSongs.length} 首歌曲到歌单 $playlistId');
-
-    if (allSongs.isEmpty) {
-      print('allSongs 为空，尝试直接从数据库获取');
-      // 直接从数据库获取
-      final repository = PlaylistRepository();
-      final songs = await repository.getAllSongs();
-      print('从数据库获取到 ${songs.length} 首歌曲');
-      if (songs.isNotEmpty) {
-        final count = await playlistProvider.addSongsToPlaylist(playlistId, songs);
-        print('成功添加 $count 首歌曲到歌单');
-      }
-    } else {
-      final count = await playlistProvider.addSongsToPlaylist(playlistId, allSongs);
-      print('成功添加 $count 首歌曲到歌单');
-    }
   }
 
   void _openLyricsPage(BuildContext context) {
@@ -789,8 +733,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             // 添加到新创建的歌单
             await playlistProvider.addSongsToPlaylist(playlist.id!, scannedSongs);
 
-            // 添加到"本地音乐"歌单
-            await _ensureLocalMusicPlaylistForSongs(playlistProvider, scannedSongs);
+            // 同步到系统"本地音乐"歌单
+            await playlistProvider.syncToLocalMusicPlaylist(scannedSongs);
 
             // 刷新数据
             await playlistProvider.refresh();
@@ -816,39 +760,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         }
       },
     );
-  }
-
-  /// 确保存在"本地音乐"歌单，并将歌曲添加进去
-  Future<void> _ensureLocalMusicPlaylistForSongs(
-    PlaylistProvider playlistProvider,
-    List<Song> songs,
-  ) async {
-    if (songs.isEmpty) return;
-
-    const localMusicPlaylistName = '本地音乐';
-
-    // 查找是否已存在"本地音乐"歌单
-    Playlist? localPlaylist;
-    try {
-      localPlaylist = playlistProvider.playlists.firstWhere(
-        (p) => p.name == localMusicPlaylistName,
-      );
-    } catch (_) {
-      // 不存在，需要创建
-    }
-
-    if (localPlaylist == null) {
-      // 创建"本地音乐"歌单
-      localPlaylist = await playlistProvider.createPlaylist(
-        name: localMusicPlaylistName,
-        description: '扫描本地音乐自动创建',
-      );
-    }
-
-    final playlistId = localPlaylist?.id;
-    if (playlistId == null) return;
-
-    await playlistProvider.addSongsToPlaylist(playlistId, songs);
   }
 
   void _handleMiniPlayerMenuAction(BuildContext context, Song song, String value) {

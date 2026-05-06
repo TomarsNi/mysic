@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import '../models/song.dart';
 
 /// 播放器状态
@@ -130,6 +131,10 @@ class AudioPlayerService {
   Future<void> setPlaylist(List<Song> songs, {int startIndex = 0, bool autoPlay = false}) async {
     if (songs.isEmpty) return;
 
+    debugPrint('========== AudioPlayerService.setPlaylist 开始 ==========');
+    debugPrint('歌曲数量: ${songs.length}, startIndex: $startIndex, autoPlay: $autoPlay');
+    debugPrint('第一首歌: ${songs[startIndex].title}, 路径: ${songs[startIndex].filePath}');
+
     _playlist = List.from(songs);
     _currentIndex = startIndex;
 
@@ -139,12 +144,22 @@ class AudioPlayerService {
     _currentSongController.add(_currentSong);
 
     if (autoPlay) {
-      await _player.play(DeviceFileSource(songs[startIndex].filePath));
+      debugPrint('准备播放: ${songs[startIndex].filePath}');
+      // 先停止当前播放，再播放新歌曲
+      await _player.stop();
+      debugPrint('已停止当前播放');
+      try {
+        await _player.play(DeviceFileSource(songs[startIndex].filePath));
+        debugPrint('播放命令已执行，当前状态: ${_player.state}');
+      } catch (e) {
+        debugPrint('播放错误: $e');
+      }
       _updateState(MysicPlayerState.playing);
     } else {
       await _player.setSource(DeviceFileSource(songs[startIndex].filePath));
       _updateState(MysicPlayerState.ready);
     }
+    debugPrint('========== AudioPlayerService.setPlaylist 完成 ==========');
   }
 
   /// 播放

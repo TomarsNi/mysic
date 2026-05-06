@@ -3,6 +3,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:mysic_flutter/core/database/database_helper.dart';
 import 'package:mysic_flutter/shared/utils/scan_directory_provider.dart';
 import 'package:mysic_flutter/shared/utils/windows_music_scanner.dart';
+import 'package:mysic_flutter/shared/utils/platform_music_scanner.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,44 @@ void main() {
         final dirName = parts.isNotEmpty ? parts.last : '';
         expect(dirNames, contains(dirName));
       }
+    });
+  });
+
+  group('WindowsMusicScanner scanMusicInDirectory', () {
+    late DatabaseHelper dbHelper;
+
+    setUp(() async {
+      dbHelper = DatabaseHelper();
+      await dbHelper.deleteDatabase();
+    });
+
+    tearDown(() async {
+      await dbHelper.close();
+    });
+
+    test('should return error when scanning is in progress', () async {
+      final scanner = WindowsMusicScanner();
+      // 模拟正在扫描状态
+      scanner.updateState(ScanState.scanning);
+
+      final result = await scanner.scanMusicInDirectory('C:\\Music');
+
+      expect(result.isSuccess, isFalse);
+      expect(result.errorMessage, contains('扫描正在进行中'));
+
+      scanner.updateState(ScanState.idle);
+      await scanner.dispose();
+    });
+
+    test('should return empty result for non-existent directory', () async {
+      final scanner = WindowsMusicScanner();
+
+      final result = await scanner.scanMusicInDirectory('C:\\NonExistentDirectory12345');
+
+      expect(result.isSuccess, isTrue);
+      expect(result.totalFound, equals(0));
+
+      await scanner.dispose();
     });
   });
 }

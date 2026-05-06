@@ -14,8 +14,8 @@ class AppDrawer extends StatelessWidget {
   /// 歌单列表
   final List<Playlist> playlists;
 
-  /// 歌单点击回调
-  final void Function(Playlist)? onPlaylistTap;
+  /// 歌单点击回调（支持异步）
+  final Future<void> Function(Playlist)? onPlaylistTap;
 
   /// 扫描设置点击回调
   final VoidCallback? onScanSettingsTap;
@@ -336,9 +336,12 @@ class AppDrawer extends StatelessWidget {
                     return _PlaylistListTile(
                       playlist: playlist,
                       isSelected: isSelected,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        onPlaylistTap?.call(playlist);
+                      onTap: () async {
+                        // 先执行歌单切换，完成后再关闭抽屉
+                        await onPlaylistTap?.call(playlist);
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
                       },
                     );
                   },

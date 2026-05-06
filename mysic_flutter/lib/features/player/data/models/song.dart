@@ -6,7 +6,7 @@ class Song {
   final String title;
   final String? artist;
   final String? album;
-  final int? duration; // 毫秒
+  final int? duration; // 秒（audiotags 返回的单位）
   final String filePath;
   final String? albumArtPath;
   final String? albumArtBase64;
@@ -109,8 +109,8 @@ class Song {
   /// 格式化时长显示 (mm:ss)
   String get formattedDuration {
     if (duration == null) return '--:--';
-    final minutes = duration! ~/ 60000;
-    final seconds = (duration! % 60000) ~/ 1000;
+    final minutes = duration! ~/ 60;
+    final seconds = duration! % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 

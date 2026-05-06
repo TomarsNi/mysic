@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../player/data/models/song.dart';
 import '../../../player/presentation/providers/player_provider.dart';
+import '../../../player/presentation/widgets/progress_bar.dart';
 import '../../data/services/lyrics_parser.dart';
 
 /// 歌词页面
@@ -615,45 +616,19 @@ class _LyricsPageState extends State<LyricsPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 进度条 - 设计稿：h-1 高度
-              Container(
-                height: 4, // h-1 = 4px
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1), // bg-white/10
-                  borderRadius: BorderRadius.circular(2),
-                ),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: provider.duration != null && provider.duration!.inMilliseconds > 0
-                      ? (provider.position.inMilliseconds / provider.duration!.inMilliseconds).clamp(0.0, 1.0)
-                      : 0.0,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.accent,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // 时间显示
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _formatDuration(provider.position),
-                      style: const TextStyle(fontSize: 12, color: AppColors.muted),
-                    ),
-                    Text(
-                      provider.duration != null ? _formatDuration(provider.duration!) : '--:--',
-                      style: const TextStyle(fontSize: 12, color: AppColors.muted),
-                    ),
-                  ],
-                ),
+              // 进度条 - 使用与首页一致的 ProgressBar 组件
+              ProgressBar(
+                position: provider.position,
+                duration: provider.duration,
+                onSeek: (value) {
+                  if (provider.duration != null) {
+                    final seekPosition = Duration(
+                      milliseconds: (value * provider.duration!.inMilliseconds).round(),
+                    );
+                    provider.seek(seekPosition);
+                  }
+                },
+                enabled: provider.duration != null && provider.duration!.inMilliseconds > 0,
               ),
 
               const SizedBox(height: 12),
@@ -716,12 +691,7 @@ class _LyricsPageState extends State<LyricsPage> {
     );
   }
 
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
-}
 
 /// 歌词行组件
 /// 设计稿规范：

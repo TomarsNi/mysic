@@ -220,9 +220,10 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
       return ScanResult(
         totalFound: totalFound,
-        newAdded: result['newAdded']!,
-        duplicates: result['duplicates']!,
+        newAdded: result['newAdded']! as int,
+        duplicates: result['duplicates']! as int,
         scanDuration: stopwatch.elapsed,
+        newSongIds: result['newSongIds']! as List<int>,
       );
     } catch (e) {
       updateState(ScanState.error);
@@ -325,9 +326,10 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
       return ScanResult(
         totalFound: totalFound,
-        newAdded: result['newAdded']!,
-        duplicates: result['duplicates']!,
+        newAdded: result['newAdded']! as int,
+        duplicates: result['duplicates']! as int,
         scanDuration: stopwatch.elapsed,
+        newSongIds: result['newSongIds']! as List<int>,
       );
     } catch (e) {
       updateState(ScanState.error);
@@ -431,12 +433,14 @@ class MobileMusicScanner extends PlatformMusicScanner {
   }
 
   /// 保存歌曲到数据库（批量操作优化）
-  Future<Map<String, int>> _saveSongsToDatabase(List<File> songs) async {
+  /// 返回 Map 包含：newAdded（新增数量）、duplicates（重复数量）、newSongIds（新增歌曲ID列表）
+  Future<Map<String, dynamic>> _saveSongsToDatabase(List<File> songs) async {
     final db = await _dbHelper.database;
     int newAdded = 0;
     int duplicates = 0;
     int filtered = 0;
     int skipped = 0;
+    final newSongIds = <int>[];
     final now = DateTime.now();
     final nowIso = now.toIso8601String();
 
@@ -498,7 +502,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
               ? metadata.title
               : _cleanTitleFromFileName(fileName);
 
-          await txn.insert(
+          final songId = await txn.insert(
             DatabaseHelper.tableSongs,
             {
               'title': title,
@@ -512,13 +516,14 @@ class MobileMusicScanner extends PlatformMusicScanner {
               'updated_at': nowIso,
             },
           );
+          newSongIds.add(songId);
           newAdded++;
         }
       }
     });
 
     debugPrint('Mobile扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered, skipped=$skipped');
-    return {'newAdded': newAdded, 'duplicates': duplicates};
+    return {'newAdded': newAdded, 'duplicates': duplicates, 'newSongIds': newSongIds};
   }
 
   @override
@@ -538,6 +543,18 @@ class MobileMusicScanner extends PlatformMusicScanner {
     final maps = await db.query(
       DatabaseHelper.tableSongs,
       orderBy: 'title ASC',
+    );
+    return maps.map((map) => Song.fromMap(map)).toList();
+  }
+
+  /// 根据 ID 列表获取歌曲
+  @override
+  Future<List<Song>> getSongsByIds(List<int> ids) async {
+    if (ids.isEmpty) return [];
+    final db = await _dbHelper.database;
+    final maps = await db.query(
+      DatabaseHelper.tableSongs,
+      where: 'id IN (${ids.join(',')})',
     );
     return maps.map((map) => Song.fromMap(map)).toList();
   }

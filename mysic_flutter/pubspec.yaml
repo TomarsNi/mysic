@@ -75,6 +75,9 @@ dependencies:
   # 图片处理
   image: ^4.1.0
 
+  # 字符编码转换（用于歌词文件 GBK 编码）
+  charset_converter: ^2.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

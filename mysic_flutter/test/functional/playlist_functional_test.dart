@@ -438,7 +438,7 @@ void main() {
             id: 2,
             title: '歌曲2',
             artist: '艺术家',
-            duration: 330000, // 5分30秒
+            duration: 330, // 5分30秒（秒）
             filePath: '/path/song2.mp3',
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),

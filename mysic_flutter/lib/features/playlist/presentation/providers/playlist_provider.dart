@@ -19,6 +19,7 @@ class PlaylistProvider extends ChangeNotifier {
   int? _systemPlaylistId; // 系统歌单 ID 缓存
   bool _isLoading = false;
   String? _error;
+  bool _initialized = false; // 防止重复初始化
 
   PlaylistProvider({PlaylistRepository? repository})
       : _repository = repository ?? PlaylistRepository() {
@@ -42,6 +43,9 @@ class PlaylistProvider extends ChangeNotifier {
 
   /// 加载初始数据
   Future<void> _loadData() async {
+    if (_initialized) return; // 防止重复初始化
+    _initialized = true;
+
     _setLoading(true);
     try {
       // 确保系统歌单存在
@@ -63,6 +67,10 @@ class PlaylistProvider extends ChangeNotifier {
   /// 加载所有歌单
   Future<void> _loadPlaylists() async {
     _playlists = await _repository.getAllPlaylistsWithSongs();
+    debugPrint('加载歌单列表，数量: ${_playlists.length}');
+    for (final p in _playlists) {
+      debugPrint('  歌单: id=${p.id}, name=${p.name}, isSystem=${p.isSystem}');
+    }
     notifyListeners();
   }
 
@@ -80,16 +88,35 @@ class PlaylistProvider extends ChangeNotifier {
 
   /// 确保系统歌单存在
   Future<void> _ensureSystemPlaylistExists() async {
+    debugPrint('========== _ensureSystemPlaylistExists 开始 ==========');
+
+    // 先检查是否已有系统歌单
     final systemPlaylist = await _repository.getSystemPlaylist();
-    if (systemPlaylist == null) {
-      final created = await _repository.createSystemPlaylist(
-        name: '本地音乐',
-        description: '自动同步本地扫描的所有音乐',
-      );
-      _systemPlaylistId = created.id;
-    } else {
+    debugPrint('系统歌单查询结果: ${systemPlaylist?.id} - ${systemPlaylist?.name}');
+    if (systemPlaylist != null) {
       _systemPlaylistId = systemPlaylist.id;
+      debugPrint('已存在系统歌单，ID: $_systemPlaylistId');
+      return;
     }
+
+    // 检查是否存在名为"本地音乐"的普通歌单，如果有则升级为系统歌单
+    final existingPlaylist = await _repository.getLocalMusicPlaylist();
+    debugPrint('本地音乐歌单查询结果: ${existingPlaylist?.id} - ${existingPlaylist?.name}');
+    if (existingPlaylist != null) {
+      await _repository.upgradeToSystemPlaylist(existingPlaylist.id!);
+      _systemPlaylistId = existingPlaylist.id;
+      debugPrint('升级现有歌单为系统歌单，ID: $_systemPlaylistId');
+      return;
+    }
+
+    // 都不存在，创建新的系统歌单
+    final created = await _repository.createSystemPlaylist(
+      name: '本地音乐',
+      description: '自动同步本地扫描的所有音乐',
+    );
+    _systemPlaylistId = created.id;
+    debugPrint('创建新的系统歌单，ID: $_systemPlaylistId');
+    debugPrint('========== _ensureSystemPlaylistExists 结束 ==========');
   }
 
   /// 加载排除歌曲 ID 列表

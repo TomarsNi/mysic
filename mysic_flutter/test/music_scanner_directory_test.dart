@@ -71,6 +71,9 @@ class _TestScanner extends PlatformMusicScanner {
   Future<List<Song>> getAllSongs() async => [];
 
   @override
+  Future<List<Song>> getSongsByIds(List<int> ids) async => [];
+
+  @override
   Future<int> getSongCount() async => 0;
 
   @override

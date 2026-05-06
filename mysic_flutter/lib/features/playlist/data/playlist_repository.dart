@@ -63,6 +63,34 @@ class PlaylistRepository {
     return playlist.copyWith(songs: songs);
   }
 
+  /// 获取名为"本地音乐"的歌单（无论是否为系统歌单）
+  Future<Playlist?> getLocalMusicPlaylist() async {
+    final db = await _db;
+    final List<Map<String, dynamic>> maps = await db.query(
+      DatabaseHelper.tablePlaylists,
+      where: 'name = ?',
+      whereArgs: ['本地音乐'],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+
+    final playlist = Playlist.fromMap(maps.first);
+    final songs = await getSongsInPlaylist(playlist.id!);
+    return playlist.copyWith(songs: songs);
+  }
+
+  /// 将歌单升级为系统歌单
+  Future<void> upgradeToSystemPlaylist(int playlistId) async {
+    final db = await _db;
+    await db.update(
+      DatabaseHelper.tablePlaylists,
+      {'is_system': 1},
+      where: 'id = ?',
+      whereArgs: [playlistId],
+    );
+  }
+
   /// 获取系统歌单 ID
   Future<int?> getSystemPlaylistId() async {
     final db = await _db;

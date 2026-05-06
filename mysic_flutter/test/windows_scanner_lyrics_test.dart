@@ -52,4 +52,34 @@ void main() {
       expect(name, '告白气球');
     });
   });
+
+  group('_cleanTitleFromFileName', () {
+    test('移除扩展名', () {
+      var name = '告白气球.mp3';
+      name = name.replaceAll(RegExp(r'\.[^.]+$'), '');
+      expect(name, '告白气球');
+    });
+
+    test('移除序号前缀（点分隔）', () {
+      var name = '01. 告白气球.mp3';
+      name = name.replaceAll(RegExp(r'\.[^.]+$'), '');
+      name = name.replaceFirst(RegExp(r'^\d+[\s.\-_]+'), '');
+      expect(name.trim(), '告白气球');
+    });
+
+    test('移除序号前缀（短横线分隔）', () {
+      var name = '1-告白气球.mp3';
+      name = name.replaceAll(RegExp(r'\.[^.]+$'), '');
+      name = name.replaceFirst(RegExp(r'^\d+[\s.\-_]+'), '');
+      expect(name.trim(), '告白气球');
+    });
+
+    test('移除序号前缀（无分隔符）', () {
+      var name = '01告白气球.mp3';
+      name = name.replaceAll(RegExp(r'\.[^.]+$'), '');
+      // 使用可选的分隔符匹配，支持无分隔符情况
+      name = name.replaceFirst(RegExp(r'^\d+[\s.\-_]*'), '');
+      expect(name.trim(), '告白气球');
+    });
+  });
 }

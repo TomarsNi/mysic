@@ -83,19 +83,31 @@ class PlayerProvider extends ChangeNotifier {
       return;
     }
 
+    debugPrint('========== _loadLyricsForSong 开始 ==========');
+    debugPrint('歌曲: ${song.title}, id: ${song.id}');
+    debugPrint('lyricsPath: ${song.lyricsPath}');
+
     // 1. 优先从 songs.lyrics_path 读取（应用目录内的 .lrc 文件）
     if (song.lyricsPath != null && song.lyricsPath!.isNotEmpty) {
+      debugPrint('尝试从 lyrics_path 读取: ${song.lyricsPath}');
       final lyricsFile = File(song.lyricsPath!);
       if (await lyricsFile.exists()) {
+        debugPrint('歌词文件存在，开始解析');
         _currentLyrics = await _lyricsParser.parseFile(song.lyricsPath!);
         if (_currentLyrics.isValid) {
+          debugPrint('歌词解析成功，共 ${_currentLyrics.lines.length} 行');
           notifyListeners();
           return;
+        } else {
+          debugPrint('歌词解析失败');
         }
+      } else {
+        debugPrint('歌词文件不存在: ${song.lyricsPath}');
       }
     }
 
     // 2. 从数据库 lyrics 表加载
+    debugPrint('尝试从数据库 lyrics 表加载');
     final db = await DatabaseHelper().database;
     final dbResult = await db.query(
       DatabaseHelper.tableLyrics,
@@ -104,21 +116,30 @@ class PlayerProvider extends ChangeNotifier {
     );
 
     if (dbResult.isNotEmpty) {
+      debugPrint('数据库中有歌词记录');
       final lrcContent = dbResult.first['lrc_content'] as String?;
       if (lrcContent != null && lrcContent.isNotEmpty) {
         _currentLyrics = _lyricsParser.parse(lrcContent);
+        debugPrint('从数据库加载歌词: ${_currentLyrics.isValid ? "成功" : "失败"}');
         notifyListeners();
         return;
       }
+    } else {
+      debugPrint('数据库中无歌词记录');
     }
 
     // 3. 从文件系统查找同名 .lrc 文件
+    debugPrint('尝试从文件系统查找同名 .lrc 文件');
     final lyricsPath = _lyricsParser.findLyricsFile(song.filePath);
     if (lyricsPath != null) {
+      debugPrint('找到歌词文件: $lyricsPath');
       _currentLyrics = await _lyricsParser.parseFile(lyricsPath);
+      debugPrint('歌词解析: ${_currentLyrics.isValid ? "成功" : "失败"}');
     } else {
+      debugPrint('未找到同名歌词文件');
       _currentLyrics = LyricsResult.empty;
     }
+    debugPrint('========== _loadLyricsForSong 结束 ==========');
     notifyListeners();
   }
 
@@ -192,11 +213,18 @@ class PlayerProvider extends ChangeNotifier {
 
   /// 设置播放列表
   Future<void> setPlaylist(List<Song> songs, {int startIndex = 0, bool autoPlay = false}) async {
+    debugPrint('========== PlayerProvider.setPlaylist 开始 ==========');
+    debugPrint('传入歌曲数量: ${songs.length}, startIndex: $startIndex, autoPlay: $autoPlay');
+    if (songs.isNotEmpty) {
+      debugPrint('第一首歌: ${songs.first.title}, 路径: ${songs.first.filePath}');
+    }
+
     _playlist = List.from(songs);
     _currentIndex = startIndex;
     notifyListeners();
 
     await _audioPlayerService.setPlaylist(songs, startIndex: startIndex, autoPlay: autoPlay);
+    debugPrint('========== PlayerProvider.setPlaylist 完成 ==========');
   }
 
   /// 播放
