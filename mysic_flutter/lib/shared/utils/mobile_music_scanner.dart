@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:audiotags/audiotags.dart';
 import 'package:flutter/foundation.dart';
 import 'package:on_audio_query/on_audio_query.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
 import 'platform_music_scanner.dart';
@@ -13,6 +14,9 @@ class MobileMusicScanner extends PlatformMusicScanner {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   final ScanDirectoryProvider _directoryProvider = ScanDirectoryProvider();
   final OnAudioQuery _audioQuery = OnAudioQuery();
+
+  /// 封面缓存目录路径
+  String? _albumArtDirectory;
 
   /// 最小时长（秒）- 2分45秒 = 165秒
   static const int _minDurationSec = 165;
@@ -160,6 +164,56 @@ class MobileMusicScanner extends PlatformMusicScanner {
       }
     }
     return roots;
+  }
+
+  /// 获取或创建封面缓存目录
+  Future<String> _ensureAlbumArtDirectory() async {
+    if (_albumArtDirectory != null) {
+      return _albumArtDirectory!;
+    }
+
+    final appDir = await getApplicationDocumentsDirectory();
+    final artDir = Directory('${appDir.path}/album_art');
+    if (!await artDir.exists()) {
+      await artDir.create(recursive: true);
+    }
+    _albumArtDirectory = artDir.path;
+    return _albumArtDirectory!;
+  }
+
+  /// 获取歌曲封面并保存为文件
+  ///
+  /// [songId] 数据库歌曲 ID
+  /// [mediaId] MediaStore 歌曲 ID
+  /// 返回封面文件路径，获取失败返回 null
+  Future<String?> _fetchAndSaveArtwork(int songId, int mediaId) async {
+    try {
+      // 使用 on_audio_query 获取封面
+      final artwork = await _audioQuery.queryArtwork(
+        mediaId,
+        ArtworkType.AUDIO,
+        quality: 100, // 原始质量
+      );
+
+      if (artwork == null || artwork.isEmpty) {
+        debugPrint('歌曲无封面: songId=$songId, mediaId=$mediaId');
+        return null;
+      }
+
+      // 确保目录存在
+      final artDir = await _ensureAlbumArtDirectory();
+
+      // 保存为文件
+      final filePath = '$artDir/$songId.jpg';
+      final file = File(filePath);
+      await file.writeAsBytes(artwork);
+
+      debugPrint('封面保存成功: $filePath (${artwork.length} bytes)');
+      return filePath;
+    } catch (e) {
+      debugPrint('获取封面失败: songId=$songId, mediaId=$mediaId, error=$e');
+      return null;
+    }
   }
 
   /// 测试用：获取扫描根目录
@@ -476,6 +530,8 @@ class MobileMusicScanner extends PlatformMusicScanner {
     int duplicates = 0;
     int filtered = 0;
     final newSongIds = <int>[];
+    // 记录 songId 和 mediaId 的映射关系，用于后续获取封面
+    final songMediaIdMap = <int, int>{};
     final now = DateTime.now();
     final nowIso = now.toIso8601String();
 
@@ -537,10 +593,39 @@ class MobileMusicScanner extends PlatformMusicScanner {
             },
           );
           newSongIds.add(songId);
+          // 记录映射关系
+          songMediaIdMap[songId] = mediaSong.id;
           newAdded++;
         }
       }
     });
+
+    // 4. 批量获取封面（事务外执行）
+    if (!isCancelled && newSongIds.isNotEmpty) {
+      debugPrint('开始获取封面，共 ${songMediaIdMap.length} 首');
+      int artCount = 0;
+      for (final entry in songMediaIdMap.entries) {
+        if (isCancelled) break;
+
+        final songId = entry.key;
+        final mediaId = entry.value;
+
+        final artPath = await _fetchAndSaveArtwork(songId, mediaId);
+        if (artPath != null) {
+          await db.update(
+            DatabaseHelper.tableSongs,
+            {
+              'album_art_path': artPath,
+              'updated_at': DateTime.now().toIso8601String(),
+            },
+            where: 'id = ?',
+            whereArgs: [songId],
+          );
+          artCount++;
+        }
+      }
+      debugPrint('封面获取完成: $artCount/${songMediaIdMap.length}');
+    }
 
     debugPrint('MediaStore扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered');
     return {'newAdded': newAdded, 'duplicates': duplicates, 'newSongIds': newSongIds};
