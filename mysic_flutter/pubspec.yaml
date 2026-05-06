@@ -77,6 +77,7 @@ dependencies:
 
   # 字符编码转换（用于歌词文件 GBK 编码）
   charset_converter: ^2.2.1
+  on_audio_query: ^2.9.0
 
 dev_dependencies:
   flutter_test:
