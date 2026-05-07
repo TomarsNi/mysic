@@ -7,6 +7,7 @@ import '../../data/repositories/song_repository.dart';
 import '../../../lyrics/data/services/lyrics_parser.dart';
 import '../../../playlist/data/playlist_repository.dart';
 import '../../../../core/database/database_helper.dart';
+import '../../../settings/data/play_mode_preference.dart';
 
 /// 播放器状态管理 Provider
 /// 使用 ChangeNotifier 管理播放器状态，供 UI 层使用
@@ -49,6 +50,9 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> _init() async {
     await _audioPlayerService.initialize();
 
+    // 加载持久化的播放模式
+    await _loadPlayMode();
+
     // 监听播放器状态变化
     _audioPlayerService.stateStream.listen((state) {
       _playerState = state;
@@ -70,10 +74,29 @@ class PlayerProvider extends ChangeNotifier {
     // 监听当前歌曲变化
     _audioPlayerService.currentSongStream.listen((song) {
       _currentSong = song;
+      // 保存最后播放的歌曲 ID
+      if (song?.id != null) {
+        PlayModePreference.saveLastSongId(song!.id!);
+      }
       // 加载歌词
       _loadLyricsForSong(song);
       notifyListeners();
     });
+  }
+
+  /// 加载持久化的播放模式
+  Future<void> _loadPlayMode() async {
+    final mode = await PlayModePreference.load();
+    _isShuffleMode = mode.shuffle;
+    _loopMode = mode.loopMode == 'all' ? MysicLoopMode.all : MysicLoopMode.off;
+
+    // 同步到 AudioPlayerService
+    if (_isShuffleMode) {
+      await _audioPlayerService.toggleShuffleMode();
+    }
+    if (_loopMode != MysicLoopMode.off) {
+      await _audioPlayerService.setLoopMode(_loopMode);
+    }
   }
 
   /// 加载当前歌曲的歌词
@@ -305,6 +328,7 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> toggleShuffleMode() async {
     await _audioPlayerService.toggleShuffleMode();
     _isShuffleMode = _audioPlayerService.isShuffleMode;
+    await _savePlayMode();
     notifyListeners();
   }
 
@@ -312,6 +336,7 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> setLoopMode(MysicLoopMode mode) async {
     await _audioPlayerService.setLoopMode(mode);
     _loopMode = mode;
+    await _savePlayMode();
     notifyListeners();
   }
 
@@ -319,7 +344,16 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> toggleLoopMode() async {
     await _audioPlayerService.toggleLoopMode();
     _loopMode = _audioPlayerService.loopMode;
+    await _savePlayMode();
     notifyListeners();
+  }
+
+  /// 保存播放模式到持久化存储
+  Future<void> _savePlayMode() async {
+    await PlayModePreference.save(
+      shuffle: _isShuffleMode,
+      loopMode: _loopMode == MysicLoopMode.all ? 'all' : 'off',
+    );
   }
 
   /// 添加歌曲到播放列表末尾
