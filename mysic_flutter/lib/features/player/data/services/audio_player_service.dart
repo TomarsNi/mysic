@@ -202,7 +202,9 @@ class AudioPlayerService {
 
     _currentSong = _playlist[_currentIndex];
     _currentSongController.add(_currentSong);
+    _updateState(MysicPlayerState.loading);
     await _player.play(DeviceFileSource(_currentSong!.filePath));
+    _updateState(MysicPlayerState.playing);
   }
 
   /// 播放上一首
@@ -220,7 +222,9 @@ class AudioPlayerService {
 
     _currentSong = _playlist[_currentIndex];
     _currentSongController.add(_currentSong);
+    _updateState(MysicPlayerState.loading);
     await _player.play(DeviceFileSource(_currentSong!.filePath));
+    _updateState(MysicPlayerState.playing);
   }
 
   /// 跳转到指定位置
@@ -235,7 +239,9 @@ class AudioPlayerService {
     _currentIndex = index;
     _currentSong = _playlist[_currentIndex];
     _currentSongController.add(_currentSong);
+    _updateState(MysicPlayerState.loading);
     await _player.play(DeviceFileSource(_currentSong!.filePath));
+    _updateState(MysicPlayerState.playing);
   }
 
   /// 设置播放速度
