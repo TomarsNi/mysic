@@ -153,7 +153,7 @@ class _E2ETestAppState extends State<E2ETestApp> {
 
     // 测试 7: 循环模式切换
     await _test('循环模式切换', () async {
-      final modes = [MysicLoopMode.off, MysicLoopMode.one, MysicLoopMode.all];
+      final modes = [MysicLoopMode.off, MysicLoopMode.all];
 
       for (final mode in modes) {
         await _playerProvider.setLoopMode(mode);

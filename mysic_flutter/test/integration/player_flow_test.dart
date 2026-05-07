@@ -69,8 +69,7 @@ void main() {
       test('应该能够正确切换循环模式', () {
         // 测试循环模式枚举
         expect(MysicLoopMode.off.index, equals(0));
-        expect(MysicLoopMode.one.index, equals(1));
-        expect(MysicLoopMode.all.index, equals(2));
+        expect(MysicLoopMode.all.index, equals(1));
       });
 
       test('应该能够正确表示播放器状态', () {

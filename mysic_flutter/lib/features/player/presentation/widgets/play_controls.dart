@@ -226,24 +226,12 @@ class ExtendedControls extends StatelessWidget {
 
         // 循环模式按钮
         _ModeButton(
-          icon: _getLoopIcon(),
-          isActive: loopMode != MysicLoopMode.off,
+          icon: Icons.repeat_rounded,
+          isActive: loopMode == MysicLoopMode.all,
           onPressed: onToggleLoop,
-          badge: loopMode == MysicLoopMode.one ? '1' : null,
         ),
       ],
     );
-  }
-
-  IconData _getLoopIcon() {
-    switch (loopMode) {
-      case MysicLoopMode.off:
-        return Icons.repeat_rounded;
-      case MysicLoopMode.one:
-        return Icons.repeat_one_rounded;
-      case MysicLoopMode.all:
-        return Icons.repeat_rounded;
-    }
   }
 }
 
@@ -252,13 +240,11 @@ class _ModeButton extends StatelessWidget {
   final IconData icon;
   final bool isActive;
   final VoidCallback onPressed;
-  final String? badge;
 
   const _ModeButton({
     required this.icon,
     required this.isActive,
     required this.onPressed,
-    this.badge,
   });
 
   @override
@@ -272,34 +258,10 @@ class _ModeButton extends StatelessWidget {
           width: 48,
           height: 48,
           alignment: Alignment.center,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 24,
-                color: isActive ? AppColors.accent : AppColors.muted,
-              ),
-              if (badge != null)
-                Positioned(
-                  bottom: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: isActive ? AppColors.accent : AppColors.muted,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      badge!,
-                      style: const TextStyle(
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+          child: Icon(
+            icon,
+            size: 24,
+            color: isActive ? AppColors.accent : AppColors.muted,
           ),
         ),
       ),

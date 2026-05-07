@@ -17,7 +17,6 @@ enum MysicPlayerState {
 /// 循环模式
 enum MysicLoopMode {
   off,   // 关闭循环
-  one,   // 单曲循环
   all,   // 列表循环
 }
 
@@ -259,13 +258,10 @@ class AudioPlayerService {
     _loopMode = mode;
   }
 
-  /// 切换循环模式 (关闭 -> 单曲循环 -> 列表循环 -> 关闭)
+  /// 切换循环模式 (关闭 -> 列表循环 -> 关闭)
   Future<void> toggleLoopMode() async {
     switch (_loopMode) {
       case MysicLoopMode.off:
-        await setLoopMode(MysicLoopMode.one);
-        break;
-      case MysicLoopMode.one:
         await setLoopMode(MysicLoopMode.all);
         break;
       case MysicLoopMode.all:
@@ -276,11 +272,7 @@ class AudioPlayerService {
 
   /// 歌曲播放完成回调
   void _onSongCompleted() {
-    if (_loopMode == MysicLoopMode.one) {
-      // 单曲循环：重新播放
-      _player.seek(Duration.zero);
-      _player.resume();
-    } else if (_currentIndex < _playlist.length - 1 || _loopMode == MysicLoopMode.all) {
+    if (_currentIndex < _playlist.length - 1 || _loopMode == MysicLoopMode.all) {
       // 自动播放下一首
       next();
     } else {

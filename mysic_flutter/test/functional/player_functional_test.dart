@@ -87,9 +87,6 @@ void main() {
       test('循环模式应可设置', () async {
         expect(service.loopMode, MysicLoopMode.off);
 
-        await service.setLoopMode(MysicLoopMode.one);
-        expect(service.loopMode, MysicLoopMode.one);
-
         await service.setLoopMode(MysicLoopMode.all);
         expect(service.loopMode, MysicLoopMode.all);
 
@@ -98,11 +95,8 @@ void main() {
       });
 
       test('循环模式应可循环切换', () async {
-        // off -> one -> all -> off
+        // off -> all -> off
         expect(service.loopMode, MysicLoopMode.off);
-
-        await service.toggleLoopMode();
-        expect(service.loopMode, MysicLoopMode.one);
 
         await service.toggleLoopMode();
         expect(service.loopMode, MysicLoopMode.all);
@@ -212,9 +206,6 @@ void main() {
 
       test('循环模式应可设置', () async {
         expect(provider.loopMode, MysicLoopMode.off);
-
-        await provider.setLoopMode(MysicLoopMode.one);
-        expect(provider.loopMode, MysicLoopMode.one);
 
         await provider.setLoopMode(MysicLoopMode.all);
         expect(provider.loopMode, MysicLoopMode.all);

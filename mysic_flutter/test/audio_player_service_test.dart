@@ -58,8 +58,7 @@ void main() {
 
     test('MysicLoopMode enum should have correct values', () {
       expect(MysicLoopMode.off.index, 0);
-      expect(MysicLoopMode.one.index, 1);
-      expect(MysicLoopMode.all.index, 2);
+      expect(MysicLoopMode.all.index, 1);
     });
 
     test('MysicPlayerState enum should have correct values', () {
@@ -99,9 +98,6 @@ void main() {
     test('SetLoopMode should change loop mode', () async {
       expect(service.loopMode, MysicLoopMode.off);
 
-      await service.setLoopMode(MysicLoopMode.one);
-      expect(service.loopMode, MysicLoopMode.one);
-
       await service.setLoopMode(MysicLoopMode.all);
       expect(service.loopMode, MysicLoopMode.all);
 
@@ -111,9 +107,6 @@ void main() {
 
     test('ToggleLoopMode should cycle through loop modes', () async {
       expect(service.loopMode, MysicLoopMode.off);
-
-      await service.toggleLoopMode();
-      expect(service.loopMode, MysicLoopMode.one);
 
       await service.toggleLoopMode();
       expect(service.loopMode, MysicLoopMode.all);

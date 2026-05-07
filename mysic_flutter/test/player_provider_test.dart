@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mysic_flutter/features/player/presentation/providers/player_provider.dart';
 import 'package:mysic_flutter/features/player/data/models/song.dart';
 import 'package:mysic_flutter/features/player/data/services/audio_player_service.dart';
@@ -10,6 +11,7 @@ void main() {
     late PlayerProvider provider;
 
     setUp(() {
+      SharedPreferences.setMockInitialValues({});
       provider = PlayerProvider();
     });
 
@@ -68,9 +70,6 @@ void main() {
     test('SetLoopMode should change loop mode', () async {
       expect(provider.loopMode, MysicLoopMode.off);
 
-      await provider.setLoopMode(MysicLoopMode.one);
-      expect(provider.loopMode, MysicLoopMode.one);
-
       await provider.setLoopMode(MysicLoopMode.all);
       expect(provider.loopMode, MysicLoopMode.all);
 
@@ -80,9 +79,6 @@ void main() {
 
     test('ToggleLoopMode should cycle through loop modes', () async {
       expect(provider.loopMode, MysicLoopMode.off);
-
-      await provider.toggleLoopMode();
-      expect(provider.loopMode, MysicLoopMode.one);
 
       await provider.toggleLoopMode();
       expect(provider.loopMode, MysicLoopMode.all);

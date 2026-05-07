@@ -160,23 +160,12 @@ class AppDrawer extends StatelessWidget {
                     child: _ModeButton(
                       icon: Icons.repeat_rounded,
                       label: '循环',
-                      isSelected: playerProvider.loopMode != MysicLoopMode.off,
-                      onTap: () {
-                        final currentLoop = playerProvider.loopMode;
-                        MysicLoopMode nextLoop;
-                        switch (currentLoop) {
-                          case MysicLoopMode.off:
-                            nextLoop = MysicLoopMode.all;
-                            break;
-                          case MysicLoopMode.all:
-                            nextLoop = MysicLoopMode.one;
-                            break;
-                          case MysicLoopMode.one:
-                            nextLoop = MysicLoopMode.off;
-                            break;
-                        }
-                        _setPlayMode(context, shuffle: false, loop: nextLoop);
-                      },
+                      isSelected: playerProvider.loopMode == MysicLoopMode.all,
+                      onTap: () => _setPlayMode(
+                        context,
+                        shuffle: false,
+                        loop: MysicLoopMode.all,
+                      ),
                     ),
                   ),
                 ],
@@ -193,6 +182,13 @@ class AppDrawer extends StatelessWidget {
     required MysicLoopMode loop,
   }) {
     final playerProvider = context.read<PlayerProvider>();
+
+    // 如果目标模式与当前相同，不做任何操作
+    final isCurrentMode = (shuffle == playerProvider.isShuffleMode) &&
+        (loop == playerProvider.loopMode);
+    if (isCurrentMode) {
+      return;
+    }
 
     // Handle shuffle mode
     if (shuffle && !playerProvider.isShuffleMode) {

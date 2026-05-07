@@ -154,14 +154,14 @@ void main() {
       expect(find.byIcon(Icons.shuffle_rounded), findsOneWidget);
     });
 
-    testWidgets('shows repeat_one icon when loop mode is one',
+    testWidgets('shows active state when loop mode is all',
         (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: ExtendedControls(
               isShuffleMode: false,
-              loopMode: MysicLoopMode.one,
+              loopMode: MysicLoopMode.all,
               onToggleShuffle: () {},
               onToggleLoop: () {},
             ),
@@ -169,26 +169,8 @@ void main() {
         ),
       );
 
-      // 应该显示单曲循环图标
-      expect(find.byIcon(Icons.repeat_one_rounded), findsOneWidget);
-    });
-
-    testWidgets('shows badge when loop mode is one', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ExtendedControls(
-              isShuffleMode: false,
-              loopMode: MysicLoopMode.one,
-              onToggleShuffle: () {},
-              onToggleLoop: () {},
-            ),
-          ),
-        ),
-      );
-
-      // 应该显示 "1" 徽章
-      expect(find.text('1'), findsOneWidget);
+      // 应该显示循环图标
+      expect(find.byIcon(Icons.repeat_rounded), findsOneWidget);
     });
 
     testWidgets('calls onToggleShuffle when shuffle button tapped',
