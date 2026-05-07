@@ -30,6 +30,7 @@ import 'shared/widgets/playlist_queue_sheet.dart';
 import 'shared/utils/music_scanner.dart';
 import 'shared/utils/scan_directory_provider.dart';
 import 'features/playlist/data/playlist_repository.dart';
+import 'features/settings/data/play_mode_preference.dart';
 import 'features/player/data/models/song.dart';
 import 'features/player/data/models/playlist.dart';
 import 'features/player/presentation/widgets/album_cover.dart';
@@ -148,8 +149,20 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final songs = playlistProvider.selectedPlaylistSongs;
     if (songs.isEmpty) return;
 
-    // 4. 播放歌单（与用户点击歌单逻辑一致）
-    await playerProvider.setPlaylist(songs, autoPlay: true);
+    // 4. 尝试恢复最后播放的歌曲
+    final lastSongId = await PlayModePreference.loadLastSongId();
+    int startIndex = 0;
+
+    if (lastSongId != null) {
+      // 查找歌曲在歌单中的位置
+      final index = songs.indexWhere((s) => s.id == lastSongId);
+      if (index != -1) {
+        startIndex = index;
+      }
+    }
+
+    // 5. 播放歌单
+    await playerProvider.setPlaylist(songs, startIndex: startIndex, autoPlay: true);
   }
 
   @override
