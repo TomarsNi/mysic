@@ -1,7 +1,13 @@
 import 'dart:async';
-import 'package:audioplayers/audioplayers.dart';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/song.dart';
+
+// 条件导入：移动端使用 just_audio，Windows 使用 audioplayers
+import 'package:just_audio/just_audio.dart' as just_audio;
+import 'package:audio_service/audio_service.dart';
+import 'package:audioplayers/audioplayers.dart' as audioplayers;
+import 'audio_handler.dart';
 
 /// 播放器状态
 enum MysicPlayerState {
@@ -21,9 +27,11 @@ enum MysicLoopMode {
 }
 
 /// 音频播放服务
-/// 使用 audioplayers 实现音频播放核心功能
+/// 使用混合方案：
+/// - Android/iOS: just_audio + audio_service（后台播放支持）
+/// - Windows: audioplayers（原生支持）
 class AudioPlayerService {
-  final AudioPlayer _player = AudioPlayer();
+  // 公共状态
   MysicPlayerState _state = MysicPlayerState.idle;
   Song? _currentSong;
   List<Song> _playlist = [];
@@ -38,6 +46,11 @@ class AudioPlayerService {
   final _positionController = StreamController<Duration>.broadcast();
   final _durationController = StreamController<Duration?>.broadcast();
   final _currentSongController = StreamController<Song?>.broadcast();
+
+  // 平台特定播放器
+  just_audio.AudioPlayer? _justAudioPlayer;        // 移动端
+  MysicAudioHandler? _audioHandler;     // 移动端后台服务
+  audioplayers.AudioPlayer? _audioplayersPlayer;     // Windows
 
   // 公开的流
   Stream<MysicPlayerState> get stateStream => _stateController.stream;
@@ -59,41 +72,117 @@ class AudioPlayerService {
   /// 初始化音频播放服务
   Future<void> initialize() async {
     debugPrint('========== AudioPlayerService.initialize ==========');
+    debugPrint('Platform: ${Platform.operatingSystem}');
+
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _initMobile();
+    } else {
+      await _initWindows();
+    }
+  }
+
+  // ========== 移动端初始化（just_audio + audio_service）==========
+  Future<void> _initMobile() async {
+    debugPrint('使用 just_audio + audio_service');
+
+    _justAudioPlayer = just_audio.AudioPlayer();
+
+    // 初始化 AudioHandler（后台播放服务）
+    _audioHandler = await AudioService.init(
+      builder: () => MysicAudioHandler(
+        _justAudioPlayer!,
+        onSongCompleted: _onSongCompleted,
+      ),
+      config: const AudioServiceConfig(
+        androidNotificationChannelId: 'com.mysic.app.audio',
+        androidNotificationChannelName: 'Mysic 播放器',
+        androidNotificationOngoing: true,
+        androidStopForegroundOnPause: true,
+      ),
+    );
 
     // 监听播放器状态
-    _player.onPlayerStateChanged.listen((state) {
-      debugPrint('AudioPlayer state: $state');
+    _justAudioPlayer!.playerStateStream.listen((state) {
+      _handleMobilePlayerState(state);
+    });
+
+    // 监听播放位置
+    _justAudioPlayer!.positionStream.listen((position) {
+      _position = position;
+      _positionController.add(position);
+    });
+
+    // 监听歌曲时长
+    _justAudioPlayer!.durationStream.listen((duration) {
+      _duration = duration;
+      _durationController.add(duration);
+      debugPrint('Duration changed: $duration');
+    });
+
+    debugPrint('移动端播放器初始化完成');
+  }
+
+  void _handleMobilePlayerState(just_audio.PlayerState state) {
+    debugPrint('just_audio state: ${state.processingState}, playing: ${state.playing}');
+    switch (state.processingState) {
+      case just_audio.ProcessingState.idle:
+        _updateState(MysicPlayerState.idle);
+        break;
+      case just_audio.ProcessingState.loading:
+      case just_audio.ProcessingState.buffering:
+        _updateState(MysicPlayerState.loading);
+        break;
+      case just_audio.ProcessingState.ready:
+        _updateState(state.playing ? MysicPlayerState.playing : MysicPlayerState.ready);
+        break;
+      case just_audio.ProcessingState.completed:
+        // completed 状态由 processingStateStream 单独处理
+        break;
+    }
+  }
+
+  // ========== Windows 初始化（audioplayers）==========
+  Future<void> _initWindows() async {
+    debugPrint('使用 audioplayers');
+
+    _audioplayersPlayer = audioplayers.AudioPlayer();
+
+    // 监听播放器状态
+    _audioplayersPlayer!.onPlayerStateChanged.listen((state) {
+      debugPrint('audioplayers state: $state');
       switch (state) {
-        case PlayerState.stopped:
+        case audioplayers.PlayerState.stopped:
           _updateState(MysicPlayerState.idle);
           break;
-        case PlayerState.playing:
+        case audioplayers.PlayerState.playing:
           _updateState(MysicPlayerState.playing);
           break;
-        case PlayerState.paused:
+        case audioplayers.PlayerState.paused:
           _updateState(MysicPlayerState.paused);
           break;
-        case PlayerState.completed:
+        case audioplayers.PlayerState.completed:
           _onSongCompleted();
           break;
-        case PlayerState.disposed:
+        case audioplayers.PlayerState.disposed:
           _updateState(MysicPlayerState.idle);
           break;
       }
     });
 
     // 监听播放位置
-    _player.onPositionChanged.listen((position) {
+    _audioplayersPlayer!.onPositionChanged.listen((position) {
       _position = position;
       _positionController.add(position);
     });
 
     // 监听歌曲时长
-    _player.onDurationChanged.listen((duration) {
+    _audioplayersPlayer!.onDurationChanged.listen((duration) {
       _duration = duration;
       _durationController.add(duration);
       debugPrint('Duration changed: $duration');
     });
+
+    debugPrint('Windows 播放器初始化完成');
   }
 
   /// 更新状态
@@ -104,6 +193,8 @@ class AudioPlayerService {
     }
   }
 
+  // ========== 播放控制（统一 API）==========
+
   /// 播放歌曲
   Future<void> playSong(Song song) async {
     try {
@@ -111,9 +202,15 @@ class AudioPlayerService {
       _currentSong = song;
       _currentSongController.add(_currentSong);
 
-      await _player.play(DeviceFileSource(song.filePath));
+      if (Platform.isAndroid || Platform.isIOS) {
+        await _justAudioPlayer!.setFilePath(song.filePath);
+        await _justAudioPlayer!.play();
+      } else {
+        await _audioplayersPlayer!.play(audioplayers.DeviceFileSource(song.filePath));
+      }
+
       _updateState(MysicPlayerState.playing);
-    } on Exception catch (e) {
+    } catch (e) {
       _updateState(MysicPlayerState.error);
       debugPrint('播放失败: $e');
       rethrow;
@@ -132,29 +229,45 @@ class AudioPlayerService {
     _currentSong = songs[startIndex];
     _currentSongController.add(_currentSong);
 
-    debugPrint('准备播放: ${songs[startIndex].filePath}');
+    // 同步到 AudioHandler（移动端）
+    if (_audioHandler != null) {
+      await _audioHandler!.setPlaylist(songs, startIndex: startIndex);
+    }
+
+    _updateState(MysicPlayerState.loading);
+
     try {
-      _updateState(MysicPlayerState.loading);
+      if (Platform.isAndroid || Platform.isIOS) {
+        // 移动端：just_audio
+        await _justAudioPlayer!.stop();
+        await _justAudioPlayer!.setFilePath(songs[startIndex].filePath);
 
-      // 先停止当前播放
-      await _player.stop();
-
-      // 加载新文件
-      await _player.setSource(DeviceFileSource(songs[startIndex].filePath));
-
-      // 等待时长加载
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      if (autoPlay) {
-        await _player.resume();
-        _updateState(MysicPlayerState.playing);
-        debugPrint('播放命令已执行，状态已更新为 playing');
+        if (autoPlay) {
+          await _justAudioPlayer!.play();
+          _updateState(MysicPlayerState.playing);
+          debugPrint('播放命令已执行，状态已更新为 playing');
+        } else {
+          _updateState(MysicPlayerState.ready);
+        }
       } else {
-        _updateState(MysicPlayerState.ready);
+        // Windows：audioplayers
+        await _audioplayersPlayer!.stop();
+        await _audioplayersPlayer!.setSource(audioplayers.DeviceFileSource(songs[startIndex].filePath));
+
+        // 等待时长加载
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        if (autoPlay) {
+          await _audioplayersPlayer!.resume();
+          _updateState(MysicPlayerState.playing);
+          debugPrint('播放命令已执行，状态已更新为 playing');
+        } else {
+          _updateState(MysicPlayerState.ready);
+        }
       }
 
       debugPrint('========== AudioPlayerService.setPlaylist 完成，state=$_state, duration=$_duration ==========');
-    } on Exception catch (e) {
+    } catch (e) {
       debugPrint('播放错误: $e');
       _updateState(MysicPlayerState.error);
       rethrow;
@@ -163,17 +276,29 @@ class AudioPlayerService {
 
   /// 播放
   Future<void> play() async {
-    await _player.resume();
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _justAudioPlayer!.play();
+    } else {
+      await _audioplayersPlayer!.resume();
+    }
   }
 
   /// 暂停
   Future<void> pause() async {
-    await _player.pause();
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _justAudioPlayer!.pause();
+    } else {
+      await _audioplayersPlayer!.pause();
+    }
   }
 
   /// 停止
   Future<void> stop() async {
-    await _player.stop();
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _justAudioPlayer!.stop();
+    } else {
+      await _audioplayersPlayer!.stop();
+    }
     _currentSong = null;
     _currentIndex = -1;
     _position = Duration.zero;
@@ -203,9 +328,15 @@ class AudioPlayerService {
     _currentSongController.add(_currentSong);
     _updateState(MysicPlayerState.loading);
 
-    await _player.stop();
-    await _player.setSource(DeviceFileSource(_currentSong!.filePath));
-    await _player.resume();
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _justAudioPlayer!.stop();
+      await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
+      await _justAudioPlayer!.play();
+    } else {
+      await _audioplayersPlayer!.stop();
+      await _audioplayersPlayer!.setSource(audioplayers.DeviceFileSource(_currentSong!.filePath));
+      await _audioplayersPlayer!.resume();
+    }
     _updateState(MysicPlayerState.playing);
   }
 
@@ -218,7 +349,11 @@ class AudioPlayerService {
     } else if (_loopMode == MysicLoopMode.all) {
       _currentIndex = _playlist.length - 1;
     } else {
-      await _player.seek(Duration.zero);
+      if (Platform.isAndroid || Platform.isIOS) {
+        await _justAudioPlayer!.seek(Duration.zero);
+      } else {
+        await _audioplayersPlayer!.seek(Duration.zero);
+      }
       return;
     }
 
@@ -226,15 +361,25 @@ class AudioPlayerService {
     _currentSongController.add(_currentSong);
     _updateState(MysicPlayerState.loading);
 
-    await _player.stop();
-    await _player.setSource(DeviceFileSource(_currentSong!.filePath));
-    await _player.resume();
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _justAudioPlayer!.stop();
+      await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
+      await _justAudioPlayer!.play();
+    } else {
+      await _audioplayersPlayer!.stop();
+      await _audioplayersPlayer!.setSource(audioplayers.DeviceFileSource(_currentSong!.filePath));
+      await _audioplayersPlayer!.resume();
+    }
     _updateState(MysicPlayerState.playing);
   }
 
   /// 跳转到指定位置
   Future<void> seek(Duration position) async {
-    await _player.seek(position);
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _justAudioPlayer!.seek(position);
+    } else {
+      await _audioplayersPlayer!.seek(position);
+    }
     _position = position;
     _positionController.add(position);
   }
@@ -248,15 +393,25 @@ class AudioPlayerService {
     _currentSongController.add(_currentSong);
     _updateState(MysicPlayerState.loading);
 
-    await _player.stop();
-    await _player.setSource(DeviceFileSource(_currentSong!.filePath));
-    await _player.resume();
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _justAudioPlayer!.stop();
+      await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
+      await _justAudioPlayer!.play();
+    } else {
+      await _audioplayersPlayer!.stop();
+      await _audioplayersPlayer!.setSource(audioplayers.DeviceFileSource(_currentSong!.filePath));
+      await _audioplayersPlayer!.resume();
+    }
     _updateState(MysicPlayerState.playing);
   }
 
   /// 设置播放速度
   Future<void> setSpeed(double speed) async {
-    await _player.setPlaybackRate(speed);
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _justAudioPlayer!.setSpeed(speed);
+    } else {
+      await _audioplayersPlayer!.setPlaybackRate(speed);
+    }
   }
 
   /// 切换随机模式
@@ -267,9 +422,17 @@ class AudioPlayerService {
   /// 设置循环模式
   Future<void> setLoopMode(MysicLoopMode mode) async {
     _loopMode = mode;
-    await _player.setReleaseMode(
-      mode == MysicLoopMode.all ? ReleaseMode.loop : ReleaseMode.stop,
-    );
+    _audioHandler?.setLoopMode(mode == MysicLoopMode.all);
+
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _justAudioPlayer!.setLoopMode(
+        mode == MysicLoopMode.all ? just_audio.LoopMode.all : just_audio.LoopMode.off,
+      );
+    } else {
+      await _audioplayersPlayer!.setReleaseMode(
+        mode == MysicLoopMode.all ? audioplayers.ReleaseMode.loop : audioplayers.ReleaseMode.stop,
+      );
+    }
   }
 
   /// 切换循环模式
@@ -286,9 +449,14 @@ class AudioPlayerService {
 
   /// 歌曲播放完成回调
   void _onSongCompleted() {
+    debugPrint('========== _onSongCompleted ==========');
+    debugPrint('currentIndex: $_currentIndex, playlist length: ${_playlist.length}, loopMode: $_loopMode');
+
     if (_currentIndex < _playlist.length - 1 || _loopMode == MysicLoopMode.all) {
+      debugPrint('准备播放下一首');
       next();
     } else {
+      debugPrint('播放列表结束');
       _updateState(MysicPlayerState.completed);
     }
   }
@@ -315,6 +483,7 @@ class AudioPlayerService {
       _currentSong = updatedSong;
       _currentSongController.add(_currentSong);
     }
+    _audioHandler?.updateSong(updatedSong);
   }
 
   /// 从播放列表移除歌曲
@@ -337,29 +506,46 @@ class AudioPlayerService {
 
         if (wasPlaying) {
           _updateState(MysicPlayerState.loading);
-          await _player.stop();
-          await _player.setSource(DeviceFileSource(_currentSong!.filePath));
-          await _player.resume();
+          if (Platform.isAndroid || Platform.isIOS) {
+            await _justAudioPlayer!.stop();
+            await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
+            await _justAudioPlayer!.play();
+          } else {
+            await _audioplayersPlayer!.stop();
+            await _audioplayersPlayer!.setSource(audioplayers.DeviceFileSource(_currentSong!.filePath));
+            await _audioplayersPlayer!.resume();
+          }
         } else {
-          await _player.stop();
-          await _player.setSource(DeviceFileSource(_currentSong!.filePath));
+          if (Platform.isAndroid || Platform.isIOS) {
+            await _justAudioPlayer!.stop();
+            await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
+          } else {
+            await _audioplayersPlayer!.stop();
+            await _audioplayersPlayer!.setSource(audioplayers.DeviceFileSource(_currentSong!.filePath));
+          }
           _updateState(MysicPlayerState.ready);
         }
       } else {
         _currentIndex = -1;
         _currentSong = null;
         _currentSongController.add(null);
-        await _player.stop();
+        if (Platform.isAndroid || Platform.isIOS) {
+          await _justAudioPlayer!.stop();
+        } else {
+          await _audioplayersPlayer!.stop();
+        }
         _updateState(MysicPlayerState.idle);
       }
     }
 
+    _audioHandler?.removeSong(index);
     return _playlist.isEmpty;
   }
 
   /// 释放资源
   Future<void> dispose() async {
-    await _player.dispose();
+    await _justAudioPlayer?.dispose();
+    await _audioplayersPlayer?.dispose();
     await _stateController.close();
     await _positionController.close();
     await _durationController.close();
