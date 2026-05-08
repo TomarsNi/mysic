@@ -19,7 +19,6 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
 
   // Stream 订阅管理
   StreamSubscription<PlayerState>? _playerStateSubscription;
-  StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<Duration?>? _durationSubscription;
 
   MysicAudioHandler(this._player) {
@@ -35,11 +34,6 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
       }
     });
 
-    // 监听播放位置
-    _positionSubscription = _player.positionStream.listen((position) {
-      // 更新通知栏进度
-    });
-
     // 监听歌曲时长
     _durationSubscription = _player.durationStream.listen((duration) {
       _updateMediaItem(duration);
@@ -49,7 +43,6 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
   /// 释放资源
   void dispose() {
     _playerStateSubscription?.cancel();
-    _positionSubscription?.cancel();
     _durationSubscription?.cancel();
   }
 
@@ -161,7 +154,7 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
       await _player.setFilePath(song.filePath);
       await _player.play();
       _updateMediaItem(_player.duration);
-    } catch (e) {
+    } on Exception catch (e) {
       // 加载失败，跳到下一首
       debugPrint('播放失败: $e');
       if (_currentIndex < _playlist.length - 1) {
