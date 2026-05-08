@@ -242,7 +242,7 @@ void main() {
   group('CreatePlaylistDialog', () {
     Future<void> pumpCreatePlaylistDialog(
       WidgetTester tester, {
-      void Function(String name, String? description, List<Song>? scannedSongs, String? scannedDirectory)? onCreate,
+      Future<void> Function(String name, String? description, List<Song>? scannedSongs, String? scannedDirectory)? onCreate,
     }) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -311,7 +311,7 @@ void main() {
 
       await pumpCreatePlaylistDialog(
         tester,
-        onCreate: (name, description, scannedSongs, scannedDirectory) {
+        onCreate: (name, description, scannedSongs, scannedDirectory) async {
           createdName = name;
           createdDescription = description;
           createdSongs = scannedSongs;
@@ -336,7 +336,7 @@ void main() {
 
       await pumpCreatePlaylistDialog(
         tester,
-        onCreate: (name, description, scannedSongs, scannedDirectory) {
+        onCreate: (name, description, scannedSongs, scannedDirectory) async {
           createdName = name;
           createdDescription = description;
           createdSongs = scannedSongs;
@@ -368,7 +368,7 @@ void main() {
   group('CreatePlaylistDialog with directory selection', () {
     Future<void> pumpCreatePlaylistDialog(
       WidgetTester tester, {
-      void Function(String name, String? description, List<Song>? scannedSongs, String? scannedDirectory)? onCreate,
+      Future<void> Function(String name, String? description, List<Song>? scannedSongs, String? scannedDirectory)? onCreate,
     }) async {
       await tester.pumpWidget(
         MaterialApp(
