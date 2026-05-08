@@ -255,7 +255,14 @@ class PlayerProvider extends ChangeNotifier {
     notifyListeners();
 
     await _audioPlayerService.setPlaylist(songs, startIndex: startIndex, autoPlay: autoPlay);
-    debugPrint('========== PlayerProvider.setPlaylist 完成 ==========');
+
+    // 同步状态和时长（确保 UI 立即更新）
+    _playerState = _audioPlayerService.state;
+    _duration = _audioPlayerService.duration;
+    _position = _audioPlayerService.position;
+    notifyListeners();
+
+    debugPrint('========== PlayerProvider.setPlaylist 完成，state=$_playerState, duration=$_duration ==========');
   }
 
   /// 播放

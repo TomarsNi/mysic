@@ -1,10 +1,7 @@
 import 'dart:async';
-import 'package:audio_service/audio_service.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:io';
 import '../models/song.dart';
-import 'audio_handler.dart';
 
 /// 播放器状态
 enum MysicPlayerState {
@@ -24,16 +21,17 @@ enum MysicLoopMode {
 }
 
 /// 音频播放服务
-/// 使用 just_audio + audio_service 实现音频播放核心功能
+/// 使用 audioplayers 实现音频播放核心功能
 class AudioPlayerService {
   final AudioPlayer _player = AudioPlayer();
-  MysicAudioHandler? _audioHandler;
   MysicPlayerState _state = MysicPlayerState.idle;
   Song? _currentSong;
   List<Song> _playlist = [];
   int _currentIndex = -1;
   bool _isShuffleMode = false;
   MysicLoopMode _loopMode = MysicLoopMode.off;
+  Duration _position = Duration.zero;
+  Duration? _duration;
 
   // 状态流控制器
   final _stateController = StreamController<MysicPlayerState>.broadcast();
@@ -50,8 +48,8 @@ class AudioPlayerService {
   // 当前状态
   MysicPlayerState get state => _state;
   Song? get currentSong => _currentSong;
-  Duration get position => _player.position;
-  Duration? get duration => _player.duration;
+  Duration get position => _position;
+  Duration? get duration => _duration;
   bool get isPlaying => _state == MysicPlayerState.playing;
   bool get isShuffleMode => _isShuffleMode;
   MysicLoopMode get loopMode => _loopMode;
@@ -60,62 +58,42 @@ class AudioPlayerService {
 
   /// 初始化音频播放服务
   Future<void> initialize() async {
-    // 仅在移动平台初始化 AudioHandler（Windows 不支持 audio_service）
-    if (Platform.isAndroid || Platform.isIOS) {
-      _audioHandler = await AudioService.init(
-        builder: () => MysicAudioHandler(_player),
-        config: const AudioServiceConfig(
-          androidNotificationChannelId: 'com.mysic.app.audio',
-          androidNotificationChannelName: 'Mysic 播放器',
-          androidNotificationOngoing: true,
-          androidStopForegroundOnPause: true,
-        ),
-      );
-    }
+    debugPrint('========== AudioPlayerService.initialize ==========');
 
     // 监听播放器状态
-    _player.playerStateStream.listen((state) {
-      _handlePlayerStateChange(state);
+    _player.onPlayerStateChanged.listen((state) {
+      debugPrint('AudioPlayer state: $state');
+      switch (state) {
+        case PlayerState.stopped:
+          _updateState(MysicPlayerState.idle);
+          break;
+        case PlayerState.playing:
+          _updateState(MysicPlayerState.playing);
+          break;
+        case PlayerState.paused:
+          _updateState(MysicPlayerState.paused);
+          break;
+        case PlayerState.completed:
+          _onSongCompleted();
+          break;
+        case PlayerState.disposed:
+          _updateState(MysicPlayerState.idle);
+          break;
+      }
     });
 
     // 监听播放位置
-    _player.positionStream.listen((position) {
+    _player.onPositionChanged.listen((position) {
+      _position = position;
       _positionController.add(position);
     });
 
     // 监听歌曲时长
-    _player.durationStream.listen((duration) {
+    _player.onDurationChanged.listen((duration) {
+      _duration = duration;
       _durationController.add(duration);
+      debugPrint('Duration changed: $duration');
     });
-
-    // 监听播放完成
-    _player.processingStateStream.listen((state) {
-      if (state == ProcessingState.completed) {
-        _onSongCompleted();
-      }
-    });
-  }
-
-  /// 处理播放器状态变化
-  void _handlePlayerStateChange(PlayerState state) {
-    debugPrint('PlayerState: processingState=${state.processingState}, playing=${state.playing}');
-    switch (state.processingState) {
-      case ProcessingState.idle:
-        _updateState(MysicPlayerState.idle);
-        break;
-      case ProcessingState.loading:
-      case ProcessingState.buffering:
-        _updateState(MysicPlayerState.loading);
-        break;
-      case ProcessingState.ready:
-        final newState = state.playing ? MysicPlayerState.playing : MysicPlayerState.paused;
-        debugPrint('ready状态: playing=${state.playing}, newState=$newState');
-        _updateState(newState);
-        break;
-      case ProcessingState.completed:
-        _updateState(MysicPlayerState.completed);
-        break;
-    }
   }
 
   /// 更新状态
@@ -133,9 +111,7 @@ class AudioPlayerService {
       _currentSong = song;
       _currentSongController.add(_currentSong);
 
-      await _player.setFilePath(song.filePath);
-      await _player.play();
-
+      await _player.play(DeviceFileSource(song.filePath));
       _updateState(MysicPlayerState.playing);
     } on Exception catch (e) {
       _updateState(MysicPlayerState.error);
@@ -153,31 +129,41 @@ class AudioPlayerService {
 
     _playlist = List.from(songs);
     _currentIndex = startIndex;
-
-    // 同步到 AudioHandler
-    await _audioHandler?.setPlaylist(songs, startIndex: startIndex);
-
     _currentSong = songs[startIndex];
     _currentSongController.add(_currentSong);
 
-    if (autoPlay) {
-      debugPrint('准备播放: ${songs[startIndex].filePath}');
-      try {
-        await _player.setFilePath(songs[startIndex].filePath);
-        await _player.play();
-        debugPrint('播放命令已执行');
-      } on Exception catch (e) {
-        debugPrint('播放错误: $e');
+    debugPrint('准备播放: ${songs[startIndex].filePath}');
+    try {
+      _updateState(MysicPlayerState.loading);
+
+      // 先停止当前播放
+      await _player.stop();
+
+      // 加载新文件
+      await _player.setSource(DeviceFileSource(songs[startIndex].filePath));
+
+      // 等待时长加载
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      if (autoPlay) {
+        await _player.resume();
+        _updateState(MysicPlayerState.playing);
+        debugPrint('播放命令已执行，状态已更新为 playing');
+      } else {
+        _updateState(MysicPlayerState.ready);
       }
-    } else {
-      await _player.setFilePath(songs[startIndex].filePath);
+
+      debugPrint('========== AudioPlayerService.setPlaylist 完成，state=$_state, duration=$_duration ==========');
+    } on Exception catch (e) {
+      debugPrint('播放错误: $e');
+      _updateState(MysicPlayerState.error);
+      rethrow;
     }
-    debugPrint('========== AudioPlayerService.setPlaylist 完成 ==========');
   }
 
   /// 播放
   Future<void> play() async {
-    await _player.play();
+    await _player.resume();
   }
 
   /// 暂停
@@ -190,6 +176,8 @@ class AudioPlayerService {
     await _player.stop();
     _currentSong = null;
     _currentIndex = -1;
+    _position = Duration.zero;
+    _duration = null;
     _currentSongController.add(null);
     _updateState(MysicPlayerState.idle);
   }
@@ -214,8 +202,10 @@ class AudioPlayerService {
     _currentSong = _playlist[_currentIndex];
     _currentSongController.add(_currentSong);
     _updateState(MysicPlayerState.loading);
-    await _player.setFilePath(_currentSong!.filePath);
-    await _player.play();
+
+    await _player.stop();
+    await _player.setSource(DeviceFileSource(_currentSong!.filePath));
+    await _player.resume();
     _updateState(MysicPlayerState.playing);
   }
 
@@ -235,14 +225,18 @@ class AudioPlayerService {
     _currentSong = _playlist[_currentIndex];
     _currentSongController.add(_currentSong);
     _updateState(MysicPlayerState.loading);
-    await _player.setFilePath(_currentSong!.filePath);
-    await _player.play();
+
+    await _player.stop();
+    await _player.setSource(DeviceFileSource(_currentSong!.filePath));
+    await _player.resume();
     _updateState(MysicPlayerState.playing);
   }
 
   /// 跳转到指定位置
   Future<void> seek(Duration position) async {
     await _player.seek(position);
+    _position = position;
+    _positionController.add(position);
   }
 
   /// 跳转到指定歌曲
@@ -253,14 +247,16 @@ class AudioPlayerService {
     _currentSong = _playlist[_currentIndex];
     _currentSongController.add(_currentSong);
     _updateState(MysicPlayerState.loading);
-    await _player.setFilePath(_currentSong!.filePath);
-    await _player.play();
+
+    await _player.stop();
+    await _player.setSource(DeviceFileSource(_currentSong!.filePath));
+    await _player.resume();
     _updateState(MysicPlayerState.playing);
   }
 
   /// 设置播放速度
   Future<void> setSpeed(double speed) async {
-    await _player.setSpeed(speed);
+    await _player.setPlaybackRate(speed);
   }
 
   /// 切换随机模式
@@ -271,7 +267,9 @@ class AudioPlayerService {
   /// 设置循环模式
   Future<void> setLoopMode(MysicLoopMode mode) async {
     _loopMode = mode;
-    _audioHandler?.setLoopMode(mode == MysicLoopMode.all);
+    await _player.setReleaseMode(
+      mode == MysicLoopMode.all ? ReleaseMode.loop : ReleaseMode.stop,
+    );
   }
 
   /// 切换循环模式
@@ -339,10 +337,12 @@ class AudioPlayerService {
 
         if (wasPlaying) {
           _updateState(MysicPlayerState.loading);
-          await _player.setFilePath(_currentSong!.filePath);
-          await _player.play();
+          await _player.stop();
+          await _player.setSource(DeviceFileSource(_currentSong!.filePath));
+          await _player.resume();
         } else {
-          await _player.setFilePath(_currentSong!.filePath);
+          await _player.stop();
+          await _player.setSource(DeviceFileSource(_currentSong!.filePath));
           _updateState(MysicPlayerState.ready);
         }
       } else {
