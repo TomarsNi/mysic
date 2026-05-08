@@ -244,6 +244,14 @@ class PlayerProvider extends ChangeNotifier {
 
     _playlist = List.from(songs);
     _currentIndex = startIndex;
+
+    // 立即更新当前歌曲，不等待异步流事件
+    if (songs.isNotEmpty && startIndex >= 0 && startIndex < songs.length) {
+      _currentSong = songs[startIndex];
+      // 加载歌词
+      _loadLyricsForSong(_currentSong);
+    }
+
     notifyListeners();
 
     await _audioPlayerService.setPlaylist(songs, startIndex: startIndex, autoPlay: autoPlay);
