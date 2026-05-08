@@ -98,6 +98,7 @@ class AudioPlayerService {
 
   /// 处理播放器状态变化
   void _handlePlayerStateChange(PlayerState state) {
+    debugPrint('PlayerState: processingState=${state.processingState}, playing=${state.playing}');
     switch (state.processingState) {
       case ProcessingState.idle:
         _updateState(MysicPlayerState.idle);
@@ -107,7 +108,9 @@ class AudioPlayerService {
         _updateState(MysicPlayerState.loading);
         break;
       case ProcessingState.ready:
-        _updateState(state.playing ? MysicPlayerState.playing : MysicPlayerState.ready);
+        final newState = state.playing ? MysicPlayerState.playing : MysicPlayerState.paused;
+        debugPrint('ready状态: playing=${state.playing}, newState=$newState');
+        _updateState(newState);
         break;
       case ProcessingState.completed:
         _updateState(MysicPlayerState.completed);
@@ -154,8 +157,6 @@ class AudioPlayerService {
     // 同步到 AudioHandler
     await _audioHandler?.setPlaylist(songs, startIndex: startIndex);
 
-    _updateState(MysicPlayerState.loading);
-
     _currentSong = songs[startIndex];
     _currentSongController.add(_currentSong);
 
@@ -168,10 +169,8 @@ class AudioPlayerService {
       } on Exception catch (e) {
         debugPrint('播放错误: $e');
       }
-      _updateState(MysicPlayerState.playing);
     } else {
       await _player.setFilePath(songs[startIndex].filePath);
-      _updateState(MysicPlayerState.ready);
     }
     debugPrint('========== AudioPlayerService.setPlaylist 完成 ==========');
   }
