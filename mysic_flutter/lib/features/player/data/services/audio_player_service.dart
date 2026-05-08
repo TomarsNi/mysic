@@ -1,7 +1,9 @@
 import 'dart:async';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:audio_service/audio_service.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/song.dart';
+import 'audio_handler.dart';
 
 /// 播放器状态
 enum MysicPlayerState {
@@ -16,14 +18,15 @@ enum MysicPlayerState {
 
 /// 循环模式
 enum MysicLoopMode {
-  off,   // 关闭循环
-  all,   // 列表循环
+  off,
+  all,
 }
 
 /// 音频播放服务
-/// 使用 audioplayers 实现音频播放核心功能
+/// 使用 just_audio + audio_service 实现音频播放核心功能
 class AudioPlayerService {
-  final AudioPlayer _player = AudioPlayer();
+  late final AudioPlayer _player;
+  MysicAudioHandler? _audioHandler;
   MysicPlayerState _state = MysicPlayerState.idle;
   Song? _currentSong;
   List<Song> _playlist = [];
@@ -46,58 +49,67 @@ class AudioPlayerService {
   // 当前状态
   MysicPlayerState get state => _state;
   Song? get currentSong => _currentSong;
-  Duration get position => _position;
-  Duration? get duration => _duration;
+  Duration get position => _player.position;
+  Duration? get duration => _player.duration;
   bool get isPlaying => _state == MysicPlayerState.playing;
   bool get isShuffleMode => _isShuffleMode;
   MysicLoopMode get loopMode => _loopMode;
   List<Song> get playlist => List.unmodifiable(_playlist);
   int get currentIndex => _currentIndex;
 
-  Duration _position = Duration.zero;
-  Duration? _duration;
-
   /// 初始化音频播放服务
   Future<void> initialize() async {
+    _player = AudioPlayer();
+
+    // 初始化 AudioHandler
+    _audioHandler = await AudioService.init(
+      builder: () => MysicAudioHandler(_player),
+      config: const AudioServiceConfig(
+        androidNotificationChannelId: 'com.mysic.app.audio',
+        androidNotificationChannelName: 'Mysic 播放器',
+        androidNotificationOngoing: true,
+        androidStopForegroundOnPause: true,
+      ),
+    );
+
     // 监听播放器状态
-    _player.onPlayerStateChanged.listen((state) {
+    _player.playerStateStream.listen((state) {
       _handlePlayerStateChange(state);
     });
 
     // 监听播放位置
-    _player.onPositionChanged.listen((position) {
-      _position = position;
+    _player.positionStream.listen((position) {
       _positionController.add(position);
     });
 
     // 监听歌曲时长
-    _player.onDurationChanged.listen((duration) {
-      _duration = duration;
+    _player.durationStream.listen((duration) {
       _durationController.add(duration);
     });
 
     // 监听播放完成
-    _player.onPlayerComplete.listen((_) {
-      _onSongCompleted();
+    _player.processingStateStream.listen((state) {
+      if (state == ProcessingState.completed) {
+        _onSongCompleted();
+      }
     });
   }
 
   /// 处理播放器状态变化
   void _handlePlayerStateChange(PlayerState state) {
-    switch (state) {
-      case PlayerState.playing:
-        _updateState(MysicPlayerState.playing);
-        break;
-      case PlayerState.paused:
-        _updateState(MysicPlayerState.paused);
-        break;
-      case PlayerState.stopped:
+    switch (state.processingState) {
+      case ProcessingState.idle:
         _updateState(MysicPlayerState.idle);
         break;
-      case PlayerState.completed:
-        _updateState(MysicPlayerState.completed);
+      case ProcessingState.loading:
+      case ProcessingState.buffering:
+        _updateState(MysicPlayerState.loading);
         break;
-      default:
+      case ProcessingState.ready:
+        _updateState(state.playing ? MysicPlayerState.playing : MysicPlayerState.ready);
+        break;
+      case ProcessingState.completed:
+        _updateState(MysicPlayerState.completed);
         break;
     }
   }
@@ -117,11 +129,13 @@ class AudioPlayerService {
       _currentSong = song;
       _currentSongController.add(_currentSong);
 
-      await _player.play(DeviceFileSource(song.filePath));
+      await _player.setFilePath(song.filePath);
+      await _player.play();
 
       _updateState(MysicPlayerState.playing);
-    } catch (e) {
+    } on Exception catch (e) {
       _updateState(MysicPlayerState.error);
+      debugPrint('播放失败: $e');
       rethrow;
     }
   }
@@ -132,10 +146,12 @@ class AudioPlayerService {
 
     debugPrint('========== AudioPlayerService.setPlaylist 开始 ==========');
     debugPrint('歌曲数量: ${songs.length}, startIndex: $startIndex, autoPlay: $autoPlay');
-    debugPrint('第一首歌: ${songs[startIndex].title}, 路径: ${songs[startIndex].filePath}');
 
     _playlist = List.from(songs);
     _currentIndex = startIndex;
+
+    // 同步到 AudioHandler
+    await _audioHandler?.setPlaylist(songs, startIndex: startIndex);
 
     _updateState(MysicPlayerState.loading);
 
@@ -144,18 +160,16 @@ class AudioPlayerService {
 
     if (autoPlay) {
       debugPrint('准备播放: ${songs[startIndex].filePath}');
-      // 先停止当前播放，再播放新歌曲
-      await _player.stop();
-      debugPrint('已停止当前播放');
       try {
-        await _player.play(DeviceFileSource(songs[startIndex].filePath));
-        debugPrint('播放命令已执行，当前状态: ${_player.state}');
-      } catch (e) {
+        await _player.setFilePath(songs[startIndex].filePath);
+        await _player.play();
+        debugPrint('播放命令已执行');
+      } on Exception catch (e) {
         debugPrint('播放错误: $e');
       }
       _updateState(MysicPlayerState.playing);
     } else {
-      await _player.setSource(DeviceFileSource(songs[startIndex].filePath));
+      await _player.setFilePath(songs[startIndex].filePath);
       _updateState(MysicPlayerState.ready);
     }
     debugPrint('========== AudioPlayerService.setPlaylist 完成 ==========');
@@ -163,7 +177,7 @@ class AudioPlayerService {
 
   /// 播放
   Future<void> play() async {
-    await _player.resume();
+    await _player.play();
   }
 
   /// 暂停
@@ -185,24 +199,23 @@ class AudioPlayerService {
     if (_playlist.isEmpty) return;
 
     if (_isShuffleMode) {
-      // 随机模式：随机选择下一首
       final randomIndex = _getRandomIndex();
       _currentIndex = randomIndex;
     } else {
-      // 顺序模式
       if (_currentIndex < _playlist.length - 1) {
         _currentIndex++;
       } else if (_loopMode == MysicLoopMode.all) {
         _currentIndex = 0;
       } else {
-        return; // 已是最后一首且未开启列表循环
+        return;
       }
     }
 
     _currentSong = _playlist[_currentIndex];
     _currentSongController.add(_currentSong);
     _updateState(MysicPlayerState.loading);
-    await _player.play(DeviceFileSource(_currentSong!.filePath));
+    await _player.setFilePath(_currentSong!.filePath);
+    await _player.play();
     _updateState(MysicPlayerState.playing);
   }
 
@@ -222,7 +235,8 @@ class AudioPlayerService {
     _currentSong = _playlist[_currentIndex];
     _currentSongController.add(_currentSong);
     _updateState(MysicPlayerState.loading);
-    await _player.play(DeviceFileSource(_currentSong!.filePath));
+    await _player.setFilePath(_currentSong!.filePath);
+    await _player.play();
     _updateState(MysicPlayerState.playing);
   }
 
@@ -239,13 +253,14 @@ class AudioPlayerService {
     _currentSong = _playlist[_currentIndex];
     _currentSongController.add(_currentSong);
     _updateState(MysicPlayerState.loading);
-    await _player.play(DeviceFileSource(_currentSong!.filePath));
+    await _player.setFilePath(_currentSong!.filePath);
+    await _player.play();
     _updateState(MysicPlayerState.playing);
   }
 
   /// 设置播放速度
   Future<void> setSpeed(double speed) async {
-    await _player.setPlaybackRate(speed);
+    await _player.setSpeed(speed);
   }
 
   /// 切换随机模式
@@ -256,9 +271,10 @@ class AudioPlayerService {
   /// 设置循环模式
   Future<void> setLoopMode(MysicLoopMode mode) async {
     _loopMode = mode;
+    _audioHandler?.setLoopMode(mode == MysicLoopMode.all);
   }
 
-  /// 切换循环模式 (关闭 -> 列表循环 -> 关闭)
+  /// 切换循环模式
   Future<void> toggleLoopMode() async {
     switch (_loopMode) {
       case MysicLoopMode.off:
@@ -273,10 +289,8 @@ class AudioPlayerService {
   /// 歌曲播放完成回调
   void _onSongCompleted() {
     if (_currentIndex < _playlist.length - 1 || _loopMode == MysicLoopMode.all) {
-      // 自动播放下一首
       next();
     } else {
-      // 播放完成
       _updateState(MysicPlayerState.completed);
     }
   }
@@ -306,7 +320,6 @@ class AudioPlayerService {
   }
 
   /// 从播放列表移除歌曲
-  /// 返回移除后的播放列表是否为空
   Future<bool> removeFromPlaylist(int index) async {
     if (index < 0 || index >= _playlist.length) return false;
 
@@ -314,11 +327,9 @@ class AudioPlayerService {
     final wasPlaying = _state == MysicPlayerState.playing;
     _playlist.removeAt(index);
 
-    // 调整当前索引
     if (index < _currentIndex) {
       _currentIndex--;
     } else if (wasPlayingCurrent) {
-      // 如果移除的是当前播放的歌曲
       if (_playlist.isNotEmpty) {
         if (_currentIndex >= _playlist.length) {
           _currentIndex = _playlist.length - 1;
@@ -327,16 +338,14 @@ class AudioPlayerService {
         _currentSongController.add(_currentSong);
 
         if (wasPlaying) {
-          // 之前在播放，继续播放下一首
           _updateState(MysicPlayerState.loading);
-          _player.play(DeviceFileSource(_currentSong!.filePath));
+          await _player.setFilePath(_currentSong!.filePath);
+          await _player.play();
         } else {
-          // 之前未播放，只加载不播放
-          _player.setSource(DeviceFileSource(_currentSong!.filePath));
+          await _player.setFilePath(_currentSong!.filePath);
           _updateState(MysicPlayerState.ready);
         }
       } else {
-        // 播放列表为空，停止播放
         _currentIndex = -1;
         _currentSong = null;
         _currentSongController.add(null);
