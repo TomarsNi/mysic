@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/song.dart';
 
@@ -14,32 +17,40 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
   // 循环模式
   bool _loopMode = false;
 
+  // Stream 订阅管理
+  StreamSubscription<PlayerState>? _playerStateSubscription;
+  StreamSubscription<Duration>? _positionSubscription;
+  StreamSubscription<Duration?>? _durationSubscription;
+
   MysicAudioHandler(this._player) {
     _init();
   }
 
   void _init() {
-    // 监听播放状态
-    _player.playerStateStream.listen((state) {
+    // 监听播放状态（合并状态更新和播放完成监听）
+    _playerStateSubscription = _player.playerStateStream.listen((state) {
       _updatePlaybackState();
-    });
-
-    // 监听播放位置
-    _player.positionStream.listen((position) {
-      // 更新通知栏进度
-    });
-
-    // 监听歌曲时长
-    _player.durationStream.listen((duration) {
-      _updateMediaItem(duration);
-    });
-
-    // 监听播放完成
-    _player.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed) {
         _onSongCompleted();
       }
     });
+
+    // 监听播放位置
+    _positionSubscription = _player.positionStream.listen((position) {
+      // 更新通知栏进度
+    });
+
+    // 监听歌曲时长
+    _durationSubscription = _player.durationStream.listen((duration) {
+      _updateMediaItem(duration);
+    });
+  }
+
+  /// 释放资源
+  void dispose() {
+    _playerStateSubscription?.cancel();
+    _positionSubscription?.cancel();
+    _durationSubscription?.cancel();
   }
 
   void _updatePlaybackState() {
@@ -146,9 +157,18 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
   Future<void> _playCurrentSong() async {
     if (_currentIndex < 0 || _currentIndex >= _playlist.length) return;
     final song = _playlist[_currentIndex];
-    await _player.setFilePath(song.filePath);
-    await _player.play();
-    _updateMediaItem(_player.duration);
+    try {
+      await _player.setFilePath(song.filePath);
+      await _player.play();
+      _updateMediaItem(_player.duration);
+    } catch (e) {
+      // 加载失败，跳到下一首
+      debugPrint('播放失败: $e');
+      if (_currentIndex < _playlist.length - 1) {
+        _currentIndex++;
+        await _playCurrentSong();
+      }
+    }
   }
 
   /// 设置播放列表
