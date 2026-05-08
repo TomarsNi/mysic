@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io';
 import '../models/song.dart';
 import 'audio_handler.dart';
 
@@ -59,16 +60,18 @@ class AudioPlayerService {
 
   /// 初始化音频播放服务
   Future<void> initialize() async {
-    // 初始化 AudioHandler
-    _audioHandler = await AudioService.init(
-      builder: () => MysicAudioHandler(_player),
-      config: const AudioServiceConfig(
-        androidNotificationChannelId: 'com.mysic.app.audio',
-        androidNotificationChannelName: 'Mysic 播放器',
-        androidNotificationOngoing: true,
-        androidStopForegroundOnPause: true,
-      ),
-    );
+    // 仅在移动平台初始化 AudioHandler（Windows 不支持 audio_service）
+    if (Platform.isAndroid || Platform.isIOS) {
+      _audioHandler = await AudioService.init(
+        builder: () => MysicAudioHandler(_player),
+        config: const AudioServiceConfig(
+          androidNotificationChannelId: 'com.mysic.app.audio',
+          androidNotificationChannelName: 'Mysic 播放器',
+          androidNotificationOngoing: true,
+          androidStopForegroundOnPause: true,
+        ),
+      );
+    }
 
     // 监听播放器状态
     _player.playerStateStream.listen((state) {
