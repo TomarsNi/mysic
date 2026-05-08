@@ -242,6 +242,22 @@ class AudioPlayerService {
         await _justAudioPlayer!.stop();
         await _justAudioPlayer!.setFilePath(songs[startIndex].filePath);
 
+        // 等待 duration 加载完成（最多等待 2 秒）
+        if (_justAudioPlayer!.duration == null) {
+          try {
+            await _justAudioPlayer!.durationStream
+                .where((d) => d != null)
+                .timeout(const Duration(seconds: 2))
+                .first;
+          } catch (_) {
+            debugPrint('等待 duration 超时，继续播放');
+          }
+        }
+        // 同步 duration 到本地变量
+        _duration = _justAudioPlayer!.duration;
+        _durationController.add(_duration);
+        debugPrint('Duration loaded: $_duration');
+
         if (autoPlay) {
           await _justAudioPlayer!.play();
           _updateState(MysicPlayerState.playing);
