@@ -25,7 +25,7 @@ enum MysicLoopMode {
 /// 音频播放服务
 /// 使用 just_audio + audio_service 实现音频播放核心功能
 class AudioPlayerService {
-  late final AudioPlayer _player;
+  final AudioPlayer _player = AudioPlayer();
   MysicAudioHandler? _audioHandler;
   MysicPlayerState _state = MysicPlayerState.idle;
   Song? _currentSong;
@@ -59,8 +59,6 @@ class AudioPlayerService {
 
   /// 初始化音频播放服务
   Future<void> initialize() async {
-    _player = AudioPlayer();
-
     // 初始化 AudioHandler
     _audioHandler = await AudioService.init(
       builder: () => MysicAudioHandler(_player),
