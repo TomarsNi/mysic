@@ -103,6 +103,7 @@ class AudioPlayerService {
 
     // 监听播放器状态
     _justAudioPlayer!.playerStateStream.listen((state) {
+      debugPrint('========== playerStateStream 事件: processingState=${state.processingState}, playing=${state.playing} ==========');
       _handleMobilePlayerState(state);
     });
 
@@ -116,7 +117,7 @@ class AudioPlayerService {
     _justAudioPlayer!.durationStream.listen((duration) {
       _duration = duration;
       _durationController.add(duration);
-      debugPrint('Duration changed: $duration');
+      debugPrint('========== durationStream 事件: $duration ==========');
     });
 
     debugPrint('移动端播放器初始化完成');
@@ -243,18 +244,21 @@ class AudioPlayerService {
         await _justAudioPlayer!.setFilePath(songs[startIndex].filePath);
 
         // 等待 duration 加载完成（最多等待 2 秒）
-        if (_justAudioPlayer!.duration == null) {
+        // 优先使用流事件的值，确保获取到正确的 duration
+        Duration? loadedDuration = _justAudioPlayer!.duration;
+        if (loadedDuration == null) {
           try {
-            await _justAudioPlayer!.durationStream
+            loadedDuration = await _justAudioPlayer!.durationStream
                 .where((d) => d != null)
                 .timeout(const Duration(seconds: 2))
                 .first;
           } catch (_) {
-            debugPrint('等待 duration 超时，继续播放');
+            debugPrint('等待 duration 超时，尝试再次获取');
+            loadedDuration = _justAudioPlayer!.duration;
           }
         }
         // 同步 duration 到本地变量
-        _duration = _justAudioPlayer!.duration;
+        _duration = loadedDuration;
         _durationController.add(_duration);
         debugPrint('Duration loaded: $_duration');
 

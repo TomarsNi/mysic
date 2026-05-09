@@ -1,5 +1,5 @@
 package com.nbb.mysic_flutter
 
-import io.flutter.embedding.android.FlutterFragmentActivity
+import com.ryanheise.audioservice.AudioServiceFragmentActivity
 
-class MainActivity : FlutterFragmentActivity()
+class MainActivity : AudioServiceFragmentActivity()
