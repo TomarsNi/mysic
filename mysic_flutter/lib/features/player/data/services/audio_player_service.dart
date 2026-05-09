@@ -134,7 +134,7 @@ class AudioPlayerService {
         _updateState(MysicPlayerState.loading);
         break;
       case just_audio.ProcessingState.ready:
-        _updateState(state.playing ? MysicPlayerState.playing : MysicPlayerState.ready);
+        _updateState(state.playing ? MysicPlayerState.playing : MysicPlayerState.paused);
         break;
       case just_audio.ProcessingState.completed:
         // completed 状态由 processingStateStream 单独处理
@@ -209,8 +209,7 @@ class AudioPlayerService {
       } else {
         await _audioplayersPlayer!.play(audioplayers.DeviceFileSource(song.filePath));
       }
-
-      _updateState(MysicPlayerState.playing);
+      // 不手动更新状态，依赖流的状态更新
     } catch (e) {
       _updateState(MysicPlayerState.error);
       debugPrint('播放失败: $e');
@@ -264,9 +263,10 @@ class AudioPlayerService {
 
         if (autoPlay) {
           await _justAudioPlayer!.play();
-          _updateState(MysicPlayerState.playing);
-          debugPrint('播放命令已执行，状态已更新为 playing');
+          // 不手动更新状态，依赖 playerStateStream 的状态更新
+          debugPrint('播放命令已执行');
         } else {
+          // 非自动播放时，手动设置为 ready 状态
           _updateState(MysicPlayerState.ready);
         }
       } else {
@@ -279,8 +279,8 @@ class AudioPlayerService {
 
         if (autoPlay) {
           await _audioplayersPlayer!.resume();
-          _updateState(MysicPlayerState.playing);
-          debugPrint('播放命令已执行，状态已更新为 playing');
+          // 不手动更新状态，依赖 onPlayerStateChanged 的状态更新
+          debugPrint('播放命令已执行');
         } else {
           _updateState(MysicPlayerState.ready);
         }
@@ -357,7 +357,7 @@ class AudioPlayerService {
       await _audioplayersPlayer!.setSource(audioplayers.DeviceFileSource(_currentSong!.filePath));
       await _audioplayersPlayer!.resume();
     }
-    _updateState(MysicPlayerState.playing);
+    // 不手动更新状态，依赖流的状态更新
   }
 
   /// 播放上一首
@@ -390,7 +390,7 @@ class AudioPlayerService {
       await _audioplayersPlayer!.setSource(audioplayers.DeviceFileSource(_currentSong!.filePath));
       await _audioplayersPlayer!.resume();
     }
-    _updateState(MysicPlayerState.playing);
+    // 不手动更新状态，依赖流的状态更新
   }
 
   /// 跳转到指定位置
@@ -422,7 +422,7 @@ class AudioPlayerService {
       await _audioplayersPlayer!.setSource(audioplayers.DeviceFileSource(_currentSong!.filePath));
       await _audioplayersPlayer!.resume();
     }
-    _updateState(MysicPlayerState.playing);
+    // 不手动更新状态，依赖流的状态更新
   }
 
   /// 设置播放速度
@@ -535,6 +535,7 @@ class AudioPlayerService {
             await _audioplayersPlayer!.setSource(audioplayers.DeviceFileSource(_currentSong!.filePath));
             await _audioplayersPlayer!.resume();
           }
+          // 不手动更新状态，依赖流的状态更新
         } else {
           if (Platform.isAndroid || Platform.isIOS) {
             await _justAudioPlayer!.stop();
