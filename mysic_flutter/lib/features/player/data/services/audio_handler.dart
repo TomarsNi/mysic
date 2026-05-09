@@ -200,4 +200,16 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
       // 当前歌曲被移除，需要处理
     }
   }
+
+  /// 更新通知栏显示的歌曲信息
+  void setMediaItem(Song song, {Duration? duration}) {
+    mediaItem.add(MediaItem(
+      id: song.id?.toString() ?? song.filePath,
+      title: song.title,
+      artist: song.artist ?? '未知艺术家',
+      album: song.album ?? '未知专辑',
+      duration: duration,
+      artUri: song.albumArtPath != null ? Uri.file(song.albumArtPath!) : null,
+    ));
+  }
 }

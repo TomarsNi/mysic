@@ -351,6 +351,8 @@ class AudioPlayerService {
     if (Platform.isAndroid || Platform.isIOS) {
       await _justAudioPlayer!.stop();
       await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
+      // 立即更新通知栏歌曲信息
+      _audioHandler?.setMediaItem(_currentSong!, duration: _justAudioPlayer!.duration);
       await _justAudioPlayer!.play();
     } else {
       await _audioplayersPlayer!.stop();
@@ -384,6 +386,8 @@ class AudioPlayerService {
     if (Platform.isAndroid || Platform.isIOS) {
       await _justAudioPlayer!.stop();
       await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
+      // 立即更新通知栏歌曲信息
+      _audioHandler?.setMediaItem(_currentSong!, duration: _justAudioPlayer!.duration);
       await _justAudioPlayer!.play();
     } else {
       await _audioplayersPlayer!.stop();
@@ -416,6 +420,8 @@ class AudioPlayerService {
     if (Platform.isAndroid || Platform.isIOS) {
       await _justAudioPlayer!.stop();
       await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
+      // 立即更新通知栏歌曲信息
+      _audioHandler?.setMediaItem(_currentSong!, duration: _justAudioPlayer!.duration);
       await _justAudioPlayer!.play();
     } else {
       await _audioplayersPlayer!.stop();
