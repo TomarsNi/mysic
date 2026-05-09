@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
 import 'core/theme/app_theme.dart';
@@ -48,6 +49,14 @@ void main() async {
 
   // 初始化数据库
   await DatabaseHelper().database;
+
+  // Android 13+ 请求通知权限
+  if (Platform.isAndroid) {
+    final notificationStatus = await Permission.notification.status;
+    if (!notificationStatus.isGranted) {
+      await Permission.notification.request();
+    }
+  }
 
   // 设置系统 UI 样式
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
