@@ -48,13 +48,16 @@ class PlayerProvider extends ChangeNotifier {
 
   /// 初始化
   Future<void> _init() async {
+    debugPrint('========== PlayerProvider._init 开始 ==========');
     await _audioPlayerService.initialize();
+    debugPrint('========== AudioPlayerService.initialize 完成 ==========');
 
     // 加载持久化的播放模式
     await _loadPlayMode();
 
     // 监听播放器状态变化
     _audioPlayerService.stateStream.listen((state) {
+      debugPrint('========== PlayerProvider 收到 stateStream 事件: $state ==========');
       _playerState = state;
       notifyListeners();
     });
@@ -67,6 +70,7 @@ class PlayerProvider extends ChangeNotifier {
 
     // 监听歌曲时长变化
     _audioPlayerService.durationStream.listen((duration) {
+      debugPrint('========== PlayerProvider 收到 durationStream 事件: $duration ==========');
       _duration = duration;
       notifyListeners();
     });
@@ -82,6 +86,7 @@ class PlayerProvider extends ChangeNotifier {
       _loadLyricsForSong(song);
       notifyListeners();
     });
+    debugPrint('========== PlayerProvider._init 完成，监听器已设置 ==========');
   }
 
   /// 加载持久化的播放模式
@@ -253,8 +258,11 @@ class PlayerProvider extends ChangeNotifier {
     }
 
     notifyListeners();
+    debugPrint('========== 调用 AudioPlayerService.setPlaylist 前，_playerState=$_playerState, _duration=$_duration ==========');
 
     await _audioPlayerService.setPlaylist(songs, startIndex: startIndex, autoPlay: autoPlay);
+
+    debugPrint('========== AudioPlayerService.setPlaylist 返回后，service.state=${_audioPlayerService.state}, service.duration=${_audioPlayerService.duration} ==========');
 
     // 同步状态和时长（确保 UI 立即更新）
     _playerState = _audioPlayerService.state;
@@ -262,7 +270,7 @@ class PlayerProvider extends ChangeNotifier {
     _position = _audioPlayerService.position;
     notifyListeners();
 
-    debugPrint('========== PlayerProvider.setPlaylist 完成，state=$_playerState, duration=$_duration ==========');
+    debugPrint('========== PlayerProvider.setPlaylist 完成，_playerState=$_playerState, _duration=$_duration ==========');
   }
 
   /// 播放
