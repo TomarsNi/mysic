@@ -92,6 +92,7 @@ class AudioPlayerService {
       builder: () => MysicAudioHandler(
         _justAudioPlayer!,
         onSongCompleted: _onSongCompleted,
+        onSongChanged: _handleSongChangedFromHandler,
       ),
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.mysic.app.audio',
@@ -485,6 +486,15 @@ class AudioPlayerService {
       debugPrint('播放列表结束');
       _updateState(MysicPlayerState.completed);
     }
+  }
+
+  /// 处理 AudioHandler 切歌回调（锁屏控制）
+  void _handleSongChangedFromHandler(Song song, int index) {
+    debugPrint('========== _handleSongChangedFromHandler ==========');
+    debugPrint('歌曲: ${song.title}, 索引: $index');
+    _currentSong = song;
+    _currentIndex = index;
+    _currentSongController.add(_currentSong);
   }
 
   /// 获取随机索引

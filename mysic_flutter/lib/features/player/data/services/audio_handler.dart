@@ -8,6 +8,7 @@ import '../models/song.dart';
 class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   final AudioPlayer _player;
   final void Function()? onSongCompleted;
+  final void Function(Song song, int index)? onSongChanged;
 
   // 播放列表
   List<Song> _playlist = [];
@@ -16,7 +17,7 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
   // 循环模式
   bool _loopMode = false;
 
-  MysicAudioHandler(this._player, {this.onSongCompleted}) {
+  MysicAudioHandler(this._player, {this.onSongCompleted, this.onSongChanged}) {
     _init();
   }
 
@@ -123,6 +124,8 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
       return;
     }
     await _playCurrentSong();
+    // 通知 AudioPlayerService 同步状态
+    onSongChanged?.call(currentSong!, _currentIndex);
   }
 
   @override
@@ -137,6 +140,8 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
       return;
     }
     await _playCurrentSong();
+    // 通知 AudioPlayerService 同步状态
+    onSongChanged?.call(currentSong!, _currentIndex);
   }
 
   @override
@@ -144,6 +149,8 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
     if (index < 0 || index >= _playlist.length) return;
     _currentIndex = index;
     await _playCurrentSong();
+    // 通知 AudioPlayerService 同步状态
+    onSongChanged?.call(currentSong!, _currentIndex);
   }
 
   Future<void> _playCurrentSong() async {
