@@ -19,7 +19,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
-        android:label="mysic_flutter"
+        android:label="Mysic"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
