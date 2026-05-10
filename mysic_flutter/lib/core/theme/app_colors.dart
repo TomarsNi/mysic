@@ -4,6 +4,7 @@ class AppColors {
   static const Color accent = Color(0xFF10B981);
   static const Color surface = Color(0xFF18181B);
   static const Color card = Color(0xFF27272A);
+  static const Color cardHover = Color(0xFF3F3F46); // hover:bg-card/80
   static const Color muted = Color(0xFF71717A);
   static const Color white = Color(0xFFFFFFFF);
 

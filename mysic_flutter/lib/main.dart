@@ -276,19 +276,47 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             if (!hasSong && !_isScanning)
                               Positioned(
                                 bottom: -40,
-                                child: ElevatedButton.icon(
-                                  onPressed: _startScan,
-                                  icon: const Icon(Icons.folder_open_rounded),
-                                  label: const Text('扫描本地音乐'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF10B981),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: _startScan,
+                                    borderRadius: BorderRadius.circular(24),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 150),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.accent,
+                                        borderRadius: BorderRadius.circular(24),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppColors.accent.withValues(alpha: 0.3),
+                                            blurRadius: 20,
+                                            spreadRadius: -5,
+                                            offset: const Offset(0, 8),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.folder_open_rounded,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            '扫描本地音乐',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -383,16 +411,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               Row(
                 children: [
                   // 抽屉按钮
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF27272A),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.menu_rounded, color: Colors.white),
-                      onPressed: () => Scaffold.of(context).openDrawer(),
-                      padding: const EdgeInsets.all(12),
-                    ),
+                  _TopBarButton(
+                    icon: Icons.menu_rounded,
+                    onPressed: () => Scaffold.of(context).openDrawer(),
                   ),
 
                   const Spacer(),
@@ -407,57 +428,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   ],
 
                   // 加号按钮
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF27272A),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: PopupMenuButton<String>(
-                      icon: const Icon(Icons.add_rounded, color: Colors.white),
-                      padding: const EdgeInsets.all(12),
-                      color: const Color(0xFF27272A),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      offset: const Offset(0, 48),
-                      onSelected: (value) {
-                        if (currentSong == null) return;
-                        _handleMiniPlayerMenuAction(context, currentSong, value);
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem<String>(
-                          value: 'add_to_playlist',
-                          child: Row(
-                            children: [
-                              Icon(Icons.playlist_add, color: Colors.white, size: 20),
-                              const SizedBox(width: 12),
-                              const Text('添加到歌单', style: TextStyle(color: Colors.white)),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<String>(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit_rounded, color: Colors.white, size: 20),
-                              const SizedBox(width: 12),
-                              const Text('编辑', style: TextStyle(color: Colors.white)),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuDivider(),
-                        PopupMenuItem<String>(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_rounded, color: const Color(0xFFEF4444), size: 20),
-                              const SizedBox(width: 12),
-                              const Text('删除', style: TextStyle(color: Color(0xFFEF4444))),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                  _AddButton(
+                    currentSong: currentSong,
+                    onAddToPlaylist: () => _showAddToPlaylist(context, currentSong!),
+                    onEdit: () => _showEditSongDialog(context, currentSong!),
+                    onDelete: () => _showDeleteConfirmSheet(context, currentSong!),
                   ),
                 ],
               ),
@@ -782,20 +757,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         }
       },
     );
-  }
-
-  void _handleMiniPlayerMenuAction(BuildContext context, Song song, String value) {
-    switch (value) {
-      case 'add_to_playlist':
-        _showAddToPlaylist(context, song);
-        break;
-      case 'edit':
-        _showEditSongDialog(context, song);
-        break;
-      case 'delete':
-        _showDeleteConfirmSheet(context, song);
-        break;
-    }
   }
 
   void _showDeleteConfirmSheet(BuildContext context, Song song) {
@@ -1435,6 +1396,139 @@ class _SongEditDialogState extends State<_SongEditDialog> {
           child: const Text('保存'),
         ),
       ],
+    );
+  }
+}
+
+/// 顶部栏按钮
+/// 设计稿规范：p-3 rounded-xl bg-card，hover 时 bg-card/80
+class _TopBarButton extends StatefulWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  const _TopBarButton({
+    required this.icon,
+    required this.onPressed,
+  });
+
+  @override
+  State<_TopBarButton> createState() => _TopBarButtonState();
+}
+
+class _TopBarButtonState extends State<_TopBarButton> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        decoration: BoxDecoration(
+          color: _isHovering ? AppColors.cardHover : AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: IconButton(
+          icon: Icon(widget.icon, color: AppColors.white),
+          onPressed: widget.onPressed,
+          padding: const EdgeInsets.all(12),
+        ),
+      ),
+    );
+  }
+}
+
+/// 加号按钮（带菜单）
+/// 设计稿规范：p-3 rounded-xl bg-card，hover 时 bg-card/80
+class _AddButton extends StatefulWidget {
+  final Song? currentSong;
+  final VoidCallback onAddToPlaylist;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _AddButton({
+    required this.currentSong,
+    required this.onAddToPlaylist,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  State<_AddButton> createState() => _AddButtonState();
+}
+
+class _AddButtonState extends State<_AddButton> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        decoration: BoxDecoration(
+          color: _isHovering ? AppColors.cardHover : AppColors.card,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: PopupMenuButton<String>(
+          icon: Icon(Icons.add_rounded, color: AppColors.white),
+          padding: const EdgeInsets.all(12),
+          color: AppColors.card,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          offset: const Offset(0, 48),
+          onSelected: (value) {
+            if (widget.currentSong == null) return;
+            switch (value) {
+              case 'add_to_playlist':
+                widget.onAddToPlaylist();
+                break;
+              case 'edit':
+                widget.onEdit();
+                break;
+              case 'delete':
+                widget.onDelete();
+                break;
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem<String>(
+              value: 'add_to_playlist',
+              child: Row(
+                children: [
+                  Icon(Icons.playlist_add, color: AppColors.white, size: 20),
+                  const SizedBox(width: 12),
+                  Text('添加到歌单', style: TextStyle(color: AppColors.white)),
+                ],
+              ),
+            ),
+            PopupMenuItem<String>(
+              value: 'edit',
+              child: Row(
+                children: [
+                  Icon(Icons.edit_rounded, color: AppColors.white, size: 20),
+                  const SizedBox(width: 12),
+                  Text('编辑', style: TextStyle(color: AppColors.white)),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem<String>(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(Icons.delete_rounded, color: const Color(0xFFEF4444), size: 20),
+                  const SizedBox(width: 12),
+                  Text('删除', style: TextStyle(color: const Color(0xFFEF4444))),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
