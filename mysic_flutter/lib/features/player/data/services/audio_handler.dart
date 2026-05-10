@@ -1,4 +1,5 @@
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/song.dart';
 
@@ -35,6 +36,11 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
 
     // 监听歌曲时长
     _player.durationStream.listen((duration) {
+      debugPrint('========== durationStream 触发 _updateMediaItem ==========');
+      debugPrint('currentIndex: $_currentIndex, playlist length: ${_playlist.length}');
+      if (_currentIndex >= 0 && _currentIndex < _playlist.length) {
+        debugPrint('当前歌曲: ${_playlist[_currentIndex].title}');
+      }
       _updateMediaItem(duration);
     });
 
@@ -77,8 +83,11 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
   }
 
   void _updateMediaItem(Duration? duration) {
+    debugPrint('========== _updateMediaItem ==========');
+    debugPrint('currentIndex: $_currentIndex, playlist length: ${_playlist.length}');
     if (_currentIndex < 0 || _currentIndex >= _playlist.length) return;
     final song = _playlist[_currentIndex];
+    debugPrint('更新为歌曲: ${song.title}');
     mediaItem.add(MediaItem(
       id: song.id?.toString() ?? song.filePath,
       title: song.title,
@@ -115,6 +124,8 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
 
   @override
   Future<void> skipToNext() async {
+    debugPrint('========== MysicAudioHandler.skipToNext ==========');
+    debugPrint('playlist length: ${_playlist.length}, currentIndex: $_currentIndex');
     if (_playlist.isEmpty) return;
     if (_currentIndex < _playlist.length - 1) {
       _currentIndex++;
@@ -123,9 +134,11 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
     } else {
       return;
     }
+    debugPrint('new currentIndex: $_currentIndex');
     await _playCurrentSong();
     // 通知 AudioPlayerService 同步状态
     onSongChanged?.call(currentSong!, _currentIndex);
+    debugPrint('========== MysicAudioHandler.skipToNext 完成 ==========');
   }
 
   @override
@@ -156,12 +169,35 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
   Future<void> _playCurrentSong() async {
     if (_currentIndex < 0 || _currentIndex >= _playlist.length) return;
     final song = _playlist[_currentIndex];
+    debugPrint('========== _playCurrentSong ==========');
+    debugPrint('歌曲: ${song.title}, id: ${song.id}');
+
+    // 立即更新通知栏歌曲信息（不等待 duration）
+    final newMediaItem = MediaItem(
+      id: song.id?.toString() ?? song.filePath,
+      title: song.title,
+      artist: song.artist ?? '未知艺术家',
+      album: song.album ?? '未知专辑',
+      duration: _player.duration, // 可能为 null，后续由 durationStream 更新
+      artUri: song.albumArtPath != null ? Uri.file(song.albumArtPath!) : null,
+    );
+    debugPrint('更新 mediaItem: title=${newMediaItem.title}, id=${newMediaItem.id}');
+    mediaItem.add(newMediaItem);
+
     await _player.setFilePath(song.filePath);
     await _player.play();
-    _updateMediaItem(_player.duration);
+    debugPrint('========== _playCurrentSong 完成 ==========');
   }
 
-  /// 设置播放列表
+  /// 更新当前索引（不播放，仅同步状态）
+  void updateCurrentIndex(int index) {
+    if (index < 0 || index >= _playlist.length) return;
+    _currentIndex = index;
+    debugPrint('========== updateCurrentIndex ==========');
+    debugPrint('新索引: $_currentIndex, 歌曲: ${_playlist[_currentIndex].title}');
+  }
+
+  /// 更新播放列表
   Future<void> setPlaylist(List<Song> songs, {int startIndex = 0}) async {
     _playlist = List.from(songs);
     _currentIndex = startIndex;

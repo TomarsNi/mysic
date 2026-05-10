@@ -350,6 +350,8 @@ class AudioPlayerService {
     _updateState(MysicPlayerState.loading);
 
     if (Platform.isAndroid || Platform.isIOS) {
+      // 同步更新 AudioHandler 的索引
+      _audioHandler?.updateCurrentIndex(_currentIndex);
       await _justAudioPlayer!.stop();
       await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
       // 立即更新通知栏歌曲信息
@@ -385,6 +387,8 @@ class AudioPlayerService {
     _updateState(MysicPlayerState.loading);
 
     if (Platform.isAndroid || Platform.isIOS) {
+      // 同步更新 AudioHandler 的索引
+      _audioHandler?.updateCurrentIndex(_currentIndex);
       await _justAudioPlayer!.stop();
       await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
       // 立即更新通知栏歌曲信息
@@ -419,6 +423,8 @@ class AudioPlayerService {
     _updateState(MysicPlayerState.loading);
 
     if (Platform.isAndroid || Platform.isIOS) {
+      // 同步更新 AudioHandler 的索引（不触发播放，仅同步状态）
+      _audioHandler?.updateCurrentIndex(index);
       await _justAudioPlayer!.stop();
       await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
       // 立即更新通知栏歌曲信息
