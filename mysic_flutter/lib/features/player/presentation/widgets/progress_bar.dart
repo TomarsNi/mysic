@@ -121,32 +121,35 @@ class _ProgressBarState extends State<ProgressBar>
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        MouseRegion(
-          onEnter: (_) => setState(() => _isHovering = true),
-          onExit: (_) => setState(() => _isHovering = false),
-          child: GestureDetector(
-            onTapDown: widget.enabled ? _handleTapDown : null,
-            onHorizontalDragStart:
-                widget.enabled ? _handleHorizontalDragStart : null,
-            onHorizontalDragUpdate:
-                widget.enabled ? _handleHorizontalDragUpdate : null,
-            onHorizontalDragEnd:
-                widget.enabled ? _handleHorizontalDragEnd : null,
-            child: SizedBox(
-              height: 24,
-              child: AnimatedBuilder(
-                animation: _animationController,
-                builder: (context, child) {
-                  return CustomPaint(
-                    painter: _ProgressBarPainter(
-                      progress: _isDragging ? _dragValue : _progress,
-                      activeTrackHeight: _trackHeightAnimation.value,
-                      thumbRadius: 5,
-                      thumbOpacity: _thumbOpacityAnimation.value,
-                      isHovering: _isHovering && !_isDragging,
-                    ),
-                  );
-                },
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _isHovering = true),
+            onExit: (_) => setState(() => _isHovering = false),
+            child: GestureDetector(
+              onTapDown: widget.enabled ? _handleTapDown : null,
+              onHorizontalDragStart:
+                  widget.enabled ? _handleHorizontalDragStart : null,
+              onHorizontalDragUpdate:
+                  widget.enabled ? _handleHorizontalDragUpdate : null,
+              onHorizontalDragEnd:
+                  widget.enabled ? _handleHorizontalDragEnd : null,
+              child: SizedBox(
+                height: 24,
+                child: AnimatedBuilder(
+                  animation: _animationController,
+                  builder: (context, child) {
+                    return CustomPaint(
+                      painter: _ProgressBarPainter(
+                        progress: _isDragging ? _dragValue : _progress,
+                        activeTrackHeight: _trackHeightAnimation.value,
+                        thumbRadius: 5,
+                        thumbOpacity: _thumbOpacityAnimation.value,
+                        isHovering: _isHovering && !_isDragging,
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -154,7 +157,7 @@ class _ProgressBarState extends State<ProgressBar>
         Transform.translate(
           offset: const Offset(0, -12),
           child: Padding(
-            padding: const EdgeInsets.only(left: 24, right: 24),
+            padding: const EdgeInsets.only(left: 40, right: 40),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
