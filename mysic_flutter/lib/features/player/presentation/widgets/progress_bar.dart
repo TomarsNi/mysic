@@ -49,8 +49,10 @@ class _ProgressBarState extends State<ProgressBar> {
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // 进度条 - 设计稿规范：轨道高度 8px，拇指 24px，带阴影和 hover scale
+        // Slider 有内置的垂直 padding，通过 Transform.translate 压缩间距
         MouseRegion(
           onEnter: (_) => setState(() => _isHovering = true),
           onExit: (_) => setState(() => _isHovering = false),
@@ -92,27 +94,30 @@ class _ProgressBarState extends State<ProgressBar> {
           ),
         ),
 
-        // 时间显示 - 边距与屏幕边缘保持距离
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _formattedPosition,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.muted,
+        // 时间显示 - 通过负的 Transform.translate 向上移动，紧贴进度条
+        Transform.translate(
+          offset: const Offset(0, -12),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 24, right: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _formattedPosition,
+                  style: const TextStyle(
+                    fontSize: 8,
+                    color: AppColors.muted,
+                  ),
                 ),
-              ),
-              Text(
-                _formattedDuration,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.muted,
+                Text(
+                  _formattedDuration,
+                  style: const TextStyle(
+                    fontSize: 8,
+                    color: AppColors.muted,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -345,21 +350,21 @@ class _BufferedProgressBarState extends State<BufferedProgressBar> {
 
         // 时间显示
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 _formattedPosition,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 8,
                   color: AppColors.muted,
                 ),
               ),
               Text(
                 _formattedDuration,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 8,
                   color: AppColors.muted,
                 ),
               ),
