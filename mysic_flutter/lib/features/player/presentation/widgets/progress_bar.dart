@@ -92,7 +92,7 @@ class _ProgressBarState extends State<ProgressBar> {
           ),
         ),
 
-        // 时间显示
+        // 时间显示 - 边距与屏幕边缘保持距离
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(
@@ -345,7 +345,7 @@ class _BufferedProgressBarState extends State<BufferedProgressBar> {
 
         // 时间显示
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

@@ -234,105 +234,115 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
           // 主内容区
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
+            child: Column(
+              children: [
+                // 有边距的内容区域
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
 
-                  // 专辑封面
-                  Expanded(
-                    flex: 3,
-                    child: Center(
-                      child: GestureDetector(
-                        onTap: hasSong ? null : _startScan,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            AlbumCover(
-                              song: currentSong,
-                              size: 260,
-                              isPlaying: playerProvider.isPlaying,
-                            ),
-                            // 首次使用引导
-                            if (!hasSong && !_isScanning)
-                              Positioned(
-                                bottom: -40,
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    onTap: _startScan,
-                                    borderRadius: BorderRadius.circular(24),
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 150),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 24,
-                                        vertical: 12,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.accent,
-                                        borderRadius: BorderRadius.circular(24),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: AppColors.accent.withValues(alpha: 0.3),
-                                            blurRadius: 20,
-                                            spreadRadius: -5,
-                                            offset: const Offset(0, 8),
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.folder_open_rounded,
-                                            color: Colors.white,
-                                            size: 20,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            '扫描本地音乐',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w500,
+                        // 专辑封面
+                        Expanded(
+                          flex: 3,
+                          child: Center(
+                            child: GestureDetector(
+                              onTap: hasSong ? null : _startScan,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  AlbumCover(
+                                    song: currentSong,
+                                    size: 260,
+                                    isPlaying: playerProvider.isPlaying,
+                                  ),
+                                  // 首次使用引导
+                                  if (!hasSong && !_isScanning)
+                                    Positioned(
+                                      bottom: -40,
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          onTap: _startScan,
+                                          borderRadius: BorderRadius.circular(24),
+                                          child: AnimatedContainer(
+                                            duration: const Duration(milliseconds: 150),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                              vertical: 12,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.accent,
+                                              borderRadius: BorderRadius.circular(24),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: AppColors.accent.withValues(alpha: 0.3),
+                                                  blurRadius: 20,
+                                                  spreadRadius: -5,
+                                                  offset: const Offset(0, 8),
+                                                ),
+                                              ],
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.folder_open_rounded,
+                                                  color: Colors.white,
+                                                  size: 20,
+                                                ),
+                                                SizedBox(width: 8),
+                                                Text(
+                                                  '扫描本地音乐',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                        ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ),
+                                ],
                               ),
-                          ],
+                            ),
+                          ),
                         ),
-                      ),
+
+                        const SizedBox(height: 32),
+
+                        // 歌曲信息
+                        _buildSongInfo(currentSong),
+
+                        const SizedBox(height: 16),
+
+                        // 歌词预览
+                        if (hasSong) _buildLyricsPreview(context, playerProvider),
+
+                        const SizedBox(height: 24),
+                      ],
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: 32),
+                // 进度条 - 无边距，扩展到屏幕边缘
+                ProgressBar(
+                  position: playerProvider.position,
+                  duration: playerProvider.duration,
+                  enabled: playerProvider.hasCurrentSong,
+                  onSeek: (progress) => playerProvider.seekToProgress(progress),
+                ),
 
-                  // 歌曲信息
-                  _buildSongInfo(currentSong),
+                const SizedBox(height: 24),
 
-                  const SizedBox(height: 16),
-
-                  // 歌词预览
-                  if (hasSong) _buildLyricsPreview(context, playerProvider),
-
-                  const SizedBox(height: 24),
-
-                  // 进度条
-                  ProgressBar(
-                    position: playerProvider.position,
-                    duration: playerProvider.duration,
-                    enabled: playerProvider.hasCurrentSong,
-                    onSeek: (progress) => playerProvider.seekToProgress(progress),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // 播放控制区域：播放控制居中，歌单按钮固定右侧
-                  Stack(
+                // 播放控制区域 - 有边距
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Stack(
                     alignment: Alignment.center,
                     children: [
                       // 播放控制 - 水平居中
@@ -355,10 +365,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         ),
                     ],
                   ),
+                ),
 
-                  const SizedBox(height: 24),
-                ],
-              ),
+                const SizedBox(height: 24),
+              ],
             ),
           ),
         ],
