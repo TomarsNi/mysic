@@ -92,6 +92,31 @@ void main() {
       final slider = tester.widget<Slider>(find.byType(Slider));
       expect(slider.onChanged, isNull);
     });
+
+    testWidgets('shows real-time position during drag', (WidgetTester tester) async {
+      var seekValue = -1.0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              height: 80,
+              child: ProgressBar(
+                position: Duration.zero,
+                duration: const Duration(minutes: 4, seconds: 2),
+                enabled: true,
+                onSeek: (value) => seekValue = value,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // 初始时间显示 0:00
+      expect(find.text('0:00'), findsOneWidget);
+      expect(find.text('4:02'), findsOneWidget);
+    });
   });
 
   group('SimpleProgressBar', () {
