@@ -526,7 +526,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF27272A).withValues(alpha: 0.6), // bg-card with transparency
+              color: const Color(0xFF27272A).withValues(alpha: 0.3), // bg-card with transparency
               borderRadius: BorderRadius.circular(12), // rounded-xl
             ),
             child: Column(
