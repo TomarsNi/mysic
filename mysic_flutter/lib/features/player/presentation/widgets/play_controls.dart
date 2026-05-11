@@ -90,7 +90,7 @@ class _PlayButtonState extends State<_PlayButton> {
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
       child: AnimatedScale(
-        scale: _isHovering ? 1.05 : 1.0, // 设计稿要求 hover scale(1.05)
+        scale: _isHovering ? 1.05 : 1.0,
         duration: const Duration(milliseconds: 150),
         curve: Curves.ease,
         child: Container(
@@ -98,16 +98,10 @@ class _PlayButtonState extends State<_PlayButton> {
           height: widget.size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: AppColors.accentGradient,
-            boxShadow: [
-              // 设计稿 play-shadow: 0 10px 40px -10px rgba(16, 185, 129, 0.5)
-              BoxShadow(
-                color: AppColors.accent.withValues(alpha: 0.5),
-                blurRadius: 40,
-                spreadRadius: -10,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            border: Border.all(
+              color: AppColors.white,
+              width: 2,
+            ),
           ),
           child: Material(
             color: Colors.transparent,

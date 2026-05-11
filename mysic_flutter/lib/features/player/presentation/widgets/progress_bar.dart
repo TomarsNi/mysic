@@ -56,15 +56,15 @@ class _ProgressBarState extends State<ProgressBar> {
           onExit: (_) => setState(() => _isHovering = false),
           child: SliderTheme(
             data: SliderThemeData(
-              activeTrackColor: AppColors.accent,
+              activeTrackColor: AppColors.white,
               inactiveTrackColor: const Color(0xFF3F3F46),
-              thumbColor: AppColors.accent,
-              overlayColor: AppColors.accent.withValues(alpha: 0.2),
-              trackHeight: 8, // 设计稿要求 8px
+              thumbColor: AppColors.white,
+              overlayColor: AppColors.white.withValues(alpha: 0.2),
+              trackHeight: 2,
               thumbShape: _GlowingThumbShape(
-                enabledThumbRadius: 12, // 24px 直径 = 12px 半径
-                elevation: _isHovering ? 8 : 4, // hover 时阴影增强
-                thumbScale: _isHovering ? 1.1 : 1.0, // hover 时 scale(1.1)
+                enabledThumbRadius: 5,
+                elevation: _isHovering ? 8 : 4,
+                thumbScale: _isHovering ? 1.1 : 1.0,
               ),
               disabledActiveTrackColor: AppColors.muted,
               disabledInactiveTrackColor: const Color(0xFF3F3F46),
@@ -120,7 +120,7 @@ class _ProgressBarState extends State<ProgressBar> {
   }
 }
 
-/// 自定义拇指形状 - 带发光效果
+/// 自定义拇指形状 - 无光晕效果
 class _GlowingThumbShape extends RoundSliderThumbShape {
   final double thumbScale;
 
@@ -150,16 +150,9 @@ class _GlowingThumbShape extends RoundSliderThumbShape {
     // 应用 scale 变换
     final scaledRadius = enabledThumbRadius * thumbScale;
 
-    // 绘制发光阴影 - 设计稿: box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4)
-    final Paint shadowPaint = Paint()
-      ..color = AppColors.accent.withValues(alpha: 0.4)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-
-    canvas.drawCircle(center, scaledRadius + 2, shadowPaint);
-
-    // 绘制拇指
+    // 绘制拇指（无光晕）
     final Paint thumbPaint = Paint()
-      ..color = sliderTheme.thumbColor ?? AppColors.accent
+      ..color = sliderTheme.thumbColor ?? AppColors.white
       ..style = PaintingStyle.fill;
 
     canvas.drawCircle(center, scaledRadius, thumbPaint);
