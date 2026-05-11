@@ -21,10 +21,35 @@ class ProgressBar extends StatefulWidget {
   State<ProgressBar> createState() => _ProgressBarState();
 }
 
-class _ProgressBarState extends State<ProgressBar> {
+class _ProgressBarState extends State<ProgressBar>
+    with SingleTickerProviderStateMixin {
   bool _isDragging = false;
   bool _isHovering = false;
   double _dragValue = 0.0;
+  late AnimationController _animationController;
+  late Animation<double> _trackHeightAnimation;
+  late Animation<double> _thumbOpacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _trackHeightAnimation = Tween<double>(begin: 2.0, end: 4.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _thumbOpacityAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   double get _progress {
     if (widget.duration == null || widget.duration!.inMilliseconds == 0) {
@@ -33,7 +58,15 @@ class _ProgressBarState extends State<ProgressBar> {
     return widget.position.inMilliseconds / widget.duration!.inMilliseconds;
   }
 
-  String get _formattedPosition => _formatDuration(widget.position);
+  String get _formattedPosition {
+    if (_isDragging && widget.duration != null) {
+      final position = Duration(
+        milliseconds: (widget.duration!.inMilliseconds * _dragValue).round(),
+      );
+      return _formatDuration(position);
+    }
+    return _formatDuration(widget.position);
+  }
 
   String get _formattedDuration {
     return widget.duration != null ? _formatDuration(widget.duration!) : '--:--';
@@ -45,56 +78,79 @@ class _ProgressBarState extends State<ProgressBar> {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
+  void _handleTapDown(TapDownDetails details) {
+    if (!widget.enabled) return;
+    _updateDragValue(details.localPosition.dx);
+    widget.onSeek?.call(_dragValue);
+  }
+
+  void _handleHorizontalDragStart(DragStartDetails details) {
+    if (!widget.enabled) return;
+    setState(() {
+      _isDragging = true;
+      _animationController.forward();
+    });
+    _updateDragValue(details.localPosition.dx);
+  }
+
+  void _handleHorizontalDragUpdate(DragUpdateDetails details) {
+    if (!widget.enabled) return;
+    _updateDragValue(details.localPosition.dx);
+  }
+
+  void _handleHorizontalDragEnd(DragEndDetails details) {
+    if (!widget.enabled) return;
+    setState(() {
+      _isDragging = false;
+      _animationController.reverse();
+    });
+    widget.onSeek?.call(_dragValue);
+  }
+
+  void _updateDragValue(double localX) {
+    final RenderBox box = context.findRenderObject() as RenderBox;
+    final width = box.size.width;
+    setState(() {
+      _dragValue = (localX / width).clamp(0.0, 1.0);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 进度条 - 设计稿规范：轨道高度 8px，拇指 24px，带阴影和 hover scale
-        // Slider 有内置的垂直 padding，通过 Transform.translate 压缩间距
         MouseRegion(
           onEnter: (_) => setState(() => _isHovering = true),
           onExit: (_) => setState(() => _isHovering = false),
-          child: SliderTheme(
-            data: SliderThemeData(
-              activeTrackColor: AppColors.white,
-              inactiveTrackColor: const Color(0xFF3F3F46),
-              thumbColor: AppColors.white,
-              overlayColor: AppColors.white.withValues(alpha: 0.2),
-              trackHeight: 2,
-              thumbShape: _GlowingThumbShape(
-                enabledThumbRadius: 5,
-                elevation: _isHovering ? 8 : 4,
-                thumbScale: _isHovering ? 1.1 : 1.0,
+          child: GestureDetector(
+            onTapDown: widget.enabled ? _handleTapDown : null,
+            onHorizontalDragStart:
+                widget.enabled ? _handleHorizontalDragStart : null,
+            onHorizontalDragUpdate:
+                widget.enabled ? _handleHorizontalDragUpdate : null,
+            onHorizontalDragEnd:
+                widget.enabled ? _handleHorizontalDragEnd : null,
+            child: SizedBox(
+              height: 24,
+              child: AnimatedBuilder(
+                animation: _animationController,
+                builder: (context, child) {
+                  return CustomPaint(
+                    painter: _ProgressBarPainter(
+                      progress: _isDragging ? _dragValue : _progress,
+                      activeTrackHeight: _trackHeightAnimation.value,
+                      thumbRadius: 5,
+                      thumbOpacity: _thumbOpacityAnimation.value,
+                      isHovering: _isHovering && !_isDragging,
+                    ),
+                  );
+                },
               ),
-              disabledActiveTrackColor: AppColors.muted,
-              disabledInactiveTrackColor: const Color(0xFF3F3F46),
-              disabledThumbColor: AppColors.muted,
-            ),
-            child: Slider(
-              value: _isDragging ? _dragValue : _progress.clamp(0.0, 1.0),
-              onChanged: widget.enabled
-                  ? (value) {
-                      setState(() {
-                        _isDragging = true;
-                        _dragValue = value;
-                      });
-                    }
-                  : null,
-              onChangeEnd: widget.enabled
-                  ? (value) {
-                      setState(() {
-                        _isDragging = false;
-                      });
-                      widget.onSeek?.call(value);
-                    }
-                  : null,
             ),
           ),
         ),
-
-        // 时间显示 - 通过负的 Transform.translate 向上移动，紧贴进度条
         Transform.translate(
           offset: const Offset(0, -12),
           child: Padding(
