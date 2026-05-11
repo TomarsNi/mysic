@@ -155,7 +155,7 @@ class _ProgressBarState extends State<ProgressBar>
           ),
         ),
         Transform.translate(
-          offset: const Offset(0, -6),
+          offset: const Offset(0, -2),
           child: Padding(
             padding: const EdgeInsets.only(left: 20, right: 20),
             child: Row(
