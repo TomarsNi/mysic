@@ -122,7 +122,7 @@ class _ProgressBarState extends State<ProgressBar>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: MouseRegion(
             onEnter: (_) => setState(() => _isHovering = true),
             onExit: (_) => setState(() => _isHovering = false),
@@ -157,7 +157,7 @@ class _ProgressBarState extends State<ProgressBar>
         Transform.translate(
           offset: const Offset(0, -12),
           child: Padding(
-            padding: const EdgeInsets.only(left: 40, right: 40),
+            padding: const EdgeInsets.only(left: 20, right: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
