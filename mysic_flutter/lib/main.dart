@@ -218,21 +218,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
           body: _buildBody(context, playerProvider),
           floatingActionButton: playerProvider.hasPlaylist
-              ? Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppColors.card,
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.queue_music_rounded,
-                      color: AppColors.white,
-                      size: 24,
-                    ),
-                    onPressed: () => _showPlaylistQueue(context),
-                  ),
+              ? _PlaylistQueueButton(
+                  onTap: () => _showPlaylistQueue(context),
                 )
               : null,
         );
@@ -1396,6 +1383,64 @@ class _SongEditDialogState extends State<_SongEditDialog> {
           child: const Text('保存'),
         ),
       ],
+    );
+  }
+}
+
+/// 歌单队列按钮（右下角浮动按钮）
+/// 设计规范：
+/// - 低调风格：灰色背景 + 微妙阴影 + hover 效果
+/// - 与顶部栏按钮风格一致
+class _PlaylistQueueButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _PlaylistQueueButton({required this.onTap});
+
+  @override
+  State<_PlaylistQueueButton> createState() => _PlaylistQueueButtonState();
+}
+
+class _PlaylistQueueButtonState extends State<_PlaylistQueueButton> {
+  bool _isHovering = false;
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: _isHovering ? AppColors.cardHover : AppColors.card,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              // 微妙阴影 - 浮动感
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: AnimatedScale(
+            duration: const Duration(milliseconds: 100),
+            scale: _isPressed ? 0.95 : 1.0,
+            child: const Icon(
+              Icons.queue_music_rounded,
+              color: AppColors.white,
+              size: 24,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
