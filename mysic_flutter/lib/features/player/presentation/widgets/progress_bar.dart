@@ -164,14 +164,14 @@ class _ProgressBarState extends State<ProgressBar>
                 Text(
                   _formattedPosition,
                   style: const TextStyle(
-                    fontSize: 8,
+                    fontSize: 10,
                     color: AppColors.muted,
                   ),
                 ),
                 Text(
                   _formattedDuration,
                   style: const TextStyle(
-                    fontSize: 8,
+                    fontSize: 10,
                     color: AppColors.muted,
                   ),
                 ),
