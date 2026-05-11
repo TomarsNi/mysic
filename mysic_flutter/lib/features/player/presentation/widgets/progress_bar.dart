@@ -255,44 +255,6 @@ class _ProgressBarPainter extends CustomPainter {
   }
 }
 
-/// 自定义拇指形状 - 无光晕效果
-class _GlowingThumbShape extends RoundSliderThumbShape {
-  final double thumbScale;
-
-  const _GlowingThumbShape({
-    required super.enabledThumbRadius,
-    super.elevation,
-    this.thumbScale = 1.0,
-  });
-
-  @override
-  void paint(
-    PaintingContext context,
-    Offset center,
-    {required RenderBox parentBox,
-    required SliderThemeData sliderTheme,
-    required Animation<double> enableAnimation,
-    required Animation<double> activationAnimation,
-    required bool isDiscrete,
-    required TextPainter labelPainter,
-    required TextDirection textDirection,
-    required double textScaleFactor,
-    required Size sizeWithOverflow,
-    required double value,
-  }) {
-    final Canvas canvas = context.canvas;
-
-    // 应用 scale 变换
-    final scaledRadius = enabledThumbRadius * thumbScale;
-
-    // 绘制拇指（无光晕）
-    final Paint thumbPaint = Paint()
-      ..color = sliderTheme.thumbColor ?? AppColors.white
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(center, scaledRadius, thumbPaint);
-  }
-}
 
 /// 简单进度条（不可拖动）
 class SimpleProgressBar extends StatelessWidget {
