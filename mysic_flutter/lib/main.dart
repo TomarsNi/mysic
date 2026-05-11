@@ -217,11 +217,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             onCreatePlaylistTap: () => _createPlaylist(context),
           ),
           body: _buildBody(context, playerProvider),
-          floatingActionButton: playerProvider.hasPlaylist
-              ? _PlaylistQueueButton(
-                  onTap: () => _showPlaylistQueue(context),
-                )
-              : null,
         );
       },
     );
@@ -336,14 +331,29 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
                   const SizedBox(height: 24),
 
-                  // 播放控制
-                  PlayControls(
-                    isPlaying: playerProvider.isPlaying,
-                    isLoading: playerProvider.isLoading,
-                    hasPlaylist: playerProvider.hasPlaylist,
-                    onPlayPause: () => playerProvider.togglePlayPause(),
-                    onNext: () => playerProvider.next(),
-                    onPrevious: () => playerProvider.previous(),
+                  // 播放控制区域：播放控制居中，歌单按钮固定右侧
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // 播放控制 - 水平居中
+                      PlayControls(
+                        isPlaying: playerProvider.isPlaying,
+                        isLoading: playerProvider.isLoading,
+                        hasPlaylist: playerProvider.hasPlaylist,
+                        onPlayPause: () => playerProvider.togglePlayPause(),
+                        onNext: () => playerProvider.next(),
+                        onPrevious: () => playerProvider.previous(),
+                      ),
+
+                      // 歌单按钮 - 固定右侧，与播放控制垂直对齐
+                      if (playerProvider.hasPlaylist)
+                        Positioned(
+                          right: 0,
+                          child: _PlaylistQueueButton(
+                            onTap: () => _showPlaylistQueue(context),
+                          ),
+                        ),
+                    ],
                   ),
 
                   const SizedBox(height: 24),
