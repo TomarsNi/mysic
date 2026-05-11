@@ -1469,7 +1469,7 @@ class _TopBarButtonState extends State<_TopBarButton> {
           duration: const Duration(milliseconds: 100),
           scale: _isPressed ? 0.95 : 1.0,
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             child: Icon(
               widget.icon,
               color: _isHovering ? AppColors.accent : AppColors.white,
@@ -1523,7 +1523,7 @@ class _AddButtonState extends State<_AddButton> {
               color: _isHovering ? AppColors.accent : AppColors.white,
               size: 24,
             ),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             color: AppColors.card,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
