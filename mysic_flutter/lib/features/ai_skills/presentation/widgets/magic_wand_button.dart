@@ -4,7 +4,7 @@ import 'package:mysic_flutter/core/theme/app_colors.dart';
 
 /// 魔法棒按钮
 /// 显示在首页右上角，点击后弹出 Skill 选择菜单
-/// 设计稿规范：p-3 rounded-xl bg-card，hover 时图标 accent 色
+/// 简约风格：无背景，只保留图标，hover 时图标 accent 色
 class MagicWandButton extends StatefulWidget {
   /// 点击回调
   final VoidCallback? onTap;
@@ -34,24 +34,17 @@ class _MagicWandButtonState extends State<MagicWandButton> {
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        decoration: BoxDecoration(
-          color: _isHovering ? AppColors.cardHover : AppColors.card,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: IconButton(
-          icon: AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 150),
-            style: TextStyle(
-              color: _isHovering ? AppColors.accent : AppColors.muted,
-            ),
-            child: const Icon(Icons.auto_fix_high_rounded),
+      child: IconButton(
+        icon: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 150),
+          style: TextStyle(
+            color: _isHovering ? AppColors.accent : AppColors.muted,
           ),
-          onPressed: widget.onTap,
-          padding: const EdgeInsets.all(12),
-          tooltip: 'AI 功能',
+          child: const Icon(Icons.auto_fix_high_rounded),
         ),
+        onPressed: widget.onTap,
+        padding: const EdgeInsets.all(12),
+        tooltip: 'AI 功能',
       ),
     );
   }
