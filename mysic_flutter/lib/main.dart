@@ -376,7 +376,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         final currentSong = playerProvider.currentSong;
         final hasEnabledApi = apiConfigProvider.enabledConfig != null;
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.only(left: 0, right: 0, top: 16, bottom: 16),
           child: Stack(
             children: [
               // 文字层 - 绝对居中于屏幕
@@ -1453,19 +1453,30 @@ class _TopBarButton extends StatefulWidget {
 
 class _TopBarButtonState extends State<_TopBarButton> {
   bool _isHovering = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
-      child: IconButton(
-        icon: Icon(
-          widget.icon,
-          color: _isHovering ? AppColors.accent : AppColors.white,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: widget.onPressed,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 100),
+          scale: _isPressed ? 0.95 : 1.0,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Icon(
+              widget.icon,
+              color: _isHovering ? AppColors.accent : AppColors.white,
+              size: 24,
+            ),
+          ),
         ),
-        onPressed: widget.onPressed,
-        padding: const EdgeInsets.all(12),
       ),
     );
   }
@@ -1492,70 +1503,81 @@ class _AddButton extends StatefulWidget {
 
 class _AddButtonState extends State<_AddButton> {
   bool _isHovering = false;
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
-      child: PopupMenuButton<String>(
-        icon: Icon(
-          Icons.add_rounded,
-          color: _isHovering ? AppColors.accent : AppColors.white,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 100),
+          scale: _isPressed ? 0.95 : 1.0,
+          child: PopupMenuButton<String>(
+            icon: Icon(
+              Icons.add_rounded,
+              color: _isHovering ? AppColors.accent : AppColors.white,
+              size: 24,
+            ),
+            padding: const EdgeInsets.all(12),
+            color: AppColors.card,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            offset: const Offset(0, 48),
+            onSelected: (value) {
+              if (widget.currentSong == null) return;
+              switch (value) {
+                case 'add_to_playlist':
+                  widget.onAddToPlaylist();
+                  break;
+                case 'edit':
+                  widget.onEdit();
+                  break;
+                case 'delete':
+                  widget.onDelete();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem<String>(
+                value: 'add_to_playlist',
+                child: Row(
+                  children: [
+                    Icon(Icons.playlist_add, color: AppColors.white, size: 20),
+                    const SizedBox(width: 12),
+                    Text('添加到歌单', style: TextStyle(color: AppColors.white)),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_rounded, color: AppColors.white, size: 20),
+                    const SizedBox(width: 12),
+                    Text('编辑', style: TextStyle(color: AppColors.white)),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem<String>(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_rounded, color: const Color(0xFFEF4444), size: 20),
+                    const SizedBox(width: 12),
+                    Text('删除', style: TextStyle(color: const Color(0xFFEF4444))),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        padding: const EdgeInsets.all(12),
-        color: AppColors.card,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        offset: const Offset(0, 48),
-        onSelected: (value) {
-          if (widget.currentSong == null) return;
-          switch (value) {
-            case 'add_to_playlist':
-              widget.onAddToPlaylist();
-              break;
-            case 'edit':
-              widget.onEdit();
-              break;
-            case 'delete':
-              widget.onDelete();
-              break;
-          }
-        },
-        itemBuilder: (context) => [
-          PopupMenuItem<String>(
-            value: 'add_to_playlist',
-            child: Row(
-              children: [
-                Icon(Icons.playlist_add, color: AppColors.white, size: 20),
-                const SizedBox(width: 12),
-                Text('添加到歌单', style: TextStyle(color: AppColors.white)),
-              ],
-            ),
-          ),
-          PopupMenuItem<String>(
-            value: 'edit',
-            child: Row(
-              children: [
-                Icon(Icons.edit_rounded, color: AppColors.white, size: 20),
-                const SizedBox(width: 12),
-                Text('编辑', style: TextStyle(color: AppColors.white)),
-              ],
-            ),
-          ),
-          const PopupMenuDivider(),
-          PopupMenuItem<String>(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete_rounded, color: const Color(0xFFEF4444), size: 20),
-                const SizedBox(width: 12),
-                Text('删除', style: TextStyle(color: const Color(0xFFEF4444))),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
