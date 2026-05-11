@@ -125,6 +125,80 @@ class _ProgressBarState extends State<ProgressBar> {
   }
 }
 
+/// 自定义进度条绘制器
+class _ProgressBarPainter extends CustomPainter {
+  final double progress;
+  final double activeTrackHeight;
+  final double thumbRadius;
+  final double thumbOpacity;
+  final bool isHovering;
+
+  _ProgressBarPainter({
+    required this.progress,
+    required this.activeTrackHeight,
+    required this.thumbRadius,
+    required this.thumbOpacity,
+    required this.isHovering,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const trackHeight = 2.0;
+    final trackY = size.height / 2;
+
+    // 1. 绘制背景轨道（灰色 #3F3F46）
+    final inactiveTrackPaint = Paint()
+      ..color = const Color(0xFF3F3F46)
+      ..style = PaintingStyle.fill;
+    final trackRect = Rect.fromCenter(
+      center: Offset(size.width / 2, trackY),
+      width: size.width,
+      height: trackHeight,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(trackRect, const Radius.circular(1)),
+      inactiveTrackPaint,
+    );
+
+    // 2. 绘制已播放部分（白色）
+    final activeTrackPaint = Paint()
+      ..color = AppColors.white
+      ..style = PaintingStyle.fill;
+    final activeWidth = size.width * progress.clamp(0.0, 1.0);
+    final activeTrackRect = Rect.fromCenter(
+      center: Offset(activeWidth / 2, trackY),
+      width: activeWidth,
+      height: activeTrackHeight,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        activeTrackRect,
+        Radius.circular(activeTrackHeight / 2),
+      ),
+      activeTrackPaint,
+    );
+
+    // 3. 绘拇指（透明度为 0 时隐藏）
+    if (thumbOpacity > 0) {
+      final thumbX = size.width * progress.clamp(0.0, 1.0);
+      final scaledRadius = thumbRadius * (isHovering ? 1.1 : 1.0);
+      final thumbPaint = Paint()
+        ..color = AppColors.white.withValues(alpha: thumbOpacity)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(thumbX, trackY), scaledRadius, thumbPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ProgressBarPainter oldDelegate) {
+    return progress != oldDelegate.progress ||
+        activeTrackHeight != oldDelegate.activeTrackHeight ||
+        thumbRadius != oldDelegate.thumbRadius ||
+        thumbOpacity != oldDelegate.thumbOpacity ||
+        isHovering != oldDelegate.isHovering;
+  }
+}
+
 /// 自定义拇指形状 - 无光晕效果
 class _GlowingThumbShape extends RoundSliderThumbShape {
   final double thumbScale;
