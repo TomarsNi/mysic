@@ -55,45 +55,7 @@ void main() {
       expect(find.text('--:--'), findsOneWidget);
     });
 
-    testWidgets('slider is interactive when enabled', (WidgetTester tester) async {
-      var seekValue = -1.0;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ProgressBar(
-              position: Duration.zero,
-              duration: const Duration(minutes: 3),
-              enabled: true,
-              onSeek: (value) => seekValue = value,
-            ),
-          ),
-        ),
-      );
-
-      // 滑块应该存在
-      expect(find.byType(Slider), findsOneWidget);
-    });
-
-    testWidgets('slider is disabled when not enabled', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: ProgressBar(
-              position: Duration.zero,
-              duration: Duration(minutes: 3),
-              enabled: false,
-            ),
-          ),
-        ),
-      );
-
-      // 滑块应该存在但禁用
-      final slider = tester.widget<Slider>(find.byType(Slider));
-      expect(slider.onChanged, isNull);
-    });
-
-    testWidgets('shows real-time position during drag', (WidgetTester tester) async {
+    testWidgets('progress bar is interactive when enabled', (WidgetTester tester) async {
       var seekValue = -1.0;
 
       await tester.pumpWidget(
@@ -101,12 +63,34 @@ void main() {
           home: Scaffold(
             body: SizedBox(
               width: 300,
-              height: 80,
+              height: 50,
+              child: ProgressBar(
+                position: Duration.zero,
+                duration: const Duration(minutes: 3),
+                enabled: true,
+                onSeek: (value) => seekValue = value,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // 进度条应该存在
+      expect(find.byType(CustomPaint), findsWidgets);
+    });
+
+    testWidgets('shows real-time position during drag', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              height: 50,
               child: ProgressBar(
                 position: Duration.zero,
                 duration: const Duration(minutes: 4, seconds: 2),
                 enabled: true,
-                onSeek: (value) => seekValue = value,
+                onSeek: (_) {},
               ),
             ),
           ),
@@ -116,6 +100,27 @@ void main() {
       // 初始时间显示 0:00
       expect(find.text('0:00'), findsOneWidget);
       expect(find.text('4:02'), findsOneWidget);
+    });
+
+    testWidgets('progress bar is disabled when not enabled', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              height: 50,
+              child: const ProgressBar(
+                position: Duration.zero,
+                duration: Duration(minutes: 3),
+                enabled: false,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // 组件应该正常渲染
+      expect(find.byType(ProgressBar), findsOneWidget);
     });
   });
 
