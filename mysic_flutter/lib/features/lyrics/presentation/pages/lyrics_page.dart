@@ -81,9 +81,6 @@ class _LyricsPageState extends State<LyricsPage> {
                 // 顶部导航栏
                 _buildTopBar(context, currentSong),
 
-                // 歌曲信息栏 - 设计稿新增
-                _buildSongInfoBar(context, currentSong),
-
                 // 歌词列表
                 Expanded(
                   child: _buildLyricsList(lyrics),
@@ -169,87 +166,6 @@ class _LyricsPageState extends State<LyricsPage> {
     );
   }
 
-  /// 歌曲信息栏
-  /// 与首页一致的颜色方案
-  Widget _buildSongInfoBar(BuildContext context, Song? currentSong) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.white.withValues(alpha: 0.05),
-            width: 1,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          // 封面
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF3F3F46), Color(0xFF27272A)],
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: currentSong?.albumArtPath != null
-                  ? Image.network(
-                      currentSong!.albumArtPath!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.music_note_rounded,
-                        color: Color(0xFF9CA3AF),
-                        size: 24,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.music_note_rounded,
-                      color: Color(0xFF9CA3AF),
-                      size: 24,
-                    ),
-            ),
-          ),
-
-          const SizedBox(width: 16),
-
-          // 歌曲信息
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  currentSong?.title ?? '未知歌曲',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${currentSong?.artist ?? '未知艺术家'} · ${currentSong?.album ?? '未知专辑'}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF9CA3AF),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildLyricsList(List<LyricLine> lyrics) {
     if (lyrics.isEmpty) {
