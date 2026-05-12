@@ -238,94 +238,99 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               children: [
                 // 有边距的内容区域
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 20),
 
-                        // 专辑封面
-                        Expanded(
-                          flex: 3,
-                          child: Center(
-                            child: GestureDetector(
-                              onTap: hasSong ? null : _startScan,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  AlbumCover(
-                                    song: currentSong,
-                                    size: 260,
-                                    isPlaying: playerProvider.isPlaying,
-                                  ),
-                                  // 首次使用引导
-                                  if (!hasSong && !_isScanning)
-                                    Positioned(
-                                      bottom: -40,
-                                      child: Material(
-                                        color: Colors.transparent,
-                                        child: InkWell(
-                                          onTap: _startScan,
-                                          borderRadius: BorderRadius.circular(24),
-                                          child: AnimatedContainer(
-                                            duration: const Duration(milliseconds: 150),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 24,
-                                              vertical: 12,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.accent,
-                                              borderRadius: BorderRadius.circular(24),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: AppColors.accent.withValues(alpha: 0.3),
-                                                  blurRadius: 20,
-                                                  spreadRadius: -5,
-                                                  offset: const Offset(0, 8),
-                                                ),
-                                              ],
-                                            ),
-                                            child: const Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.folder_open_rounded,
+                      // 专辑封面
+                      Expanded(
+                        flex: 3,
+                        child: Center(
+                          child: GestureDetector(
+                            onTap: hasSong ? null : _startScan,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                AlbumCover(
+                                  song: currentSong,
+                                  size: 260,
+                                  isPlaying: playerProvider.isPlaying,
+                                ),
+                                // 首次使用引导
+                                if (!hasSong && !_isScanning)
+                                  Positioned(
+                                    bottom: -40,
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: _startScan,
+                                        borderRadius: BorderRadius.circular(24),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 150),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 24,
+                                            vertical: 12,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.accent,
+                                            borderRadius: BorderRadius.circular(24),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: AppColors.accent.withValues(alpha: 0.3),
+                                                blurRadius: 20,
+                                                spreadRadius: -5,
+                                                offset: const Offset(0, 8),
+                                              ),
+                                            ],
+                                          ),
+                                          child: const Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.folder_open_rounded,
+                                                color: Colors.white,
+                                                size: 20,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                '扫描本地音乐',
+                                                style: TextStyle(
                                                   color: Colors.white,
-                                                  size: 20,
+                                                  fontWeight: FontWeight.w500,
                                                 ),
-                                                SizedBox(width: 8),
-                                                Text(
-                                                  '扫描本地音乐',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ),
                                     ),
-                                ],
-                              ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
+                      ),
 
-                        const SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
-                        // 歌曲信息
-                        _buildSongInfo(currentSong),
+                      // 歌曲信息
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: _buildSongInfo(currentSong),
+                      ),
 
-                        const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                        // 歌词预览
-                        if (hasSong) _buildLyricsPreview(context, playerProvider),
+                      // 歌词预览
+                      if (hasSong)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: _buildLyricsPreview(context, playerProvider),
+                        ),
 
-                        const SizedBox(height: 24),
-                      ],
-                    ),
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ),
 
@@ -475,6 +480,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   Widget _buildSongInfo(Song? song) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           song?.title ?? '未选择歌曲',
@@ -485,7 +491,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         Text(
@@ -498,7 +503,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -507,7 +511,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   Widget _buildLyricsPreview(BuildContext context, PlayerProvider provider) {
     // 设计稿规范：
     // - 两行歌词：当前行 lg font-medium white，下一行 muted
-    // - hover 时背景 white/5，圆角 rounded-xl
+    // - 左对齐，无背景色
     // - 点击可进入歌词页面
     final currentLyric = provider.currentLyricLine?.text;
     final nextLyric = provider.nextLyricLine?.text;
@@ -520,46 +524,34 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       onTap: currentLyric != null ? () => _openLyricsPage(context) : null,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF27272A).withValues(alpha: 0.3), // bg-card with transparency
-              borderRadius: BorderRadius.circular(12), // rounded-xl
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 当前行 - 设计稿要求 lg font-medium white
+            Text(
+              displayCurrentLyric,
+              style: const TextStyle(
+                fontSize: 18, // lg
+                fontWeight: FontWeight.w500, // font-medium
+                color: Colors.white,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            child: Column(
-              children: [
-                // 当前行 - 设计稿要求 lg font-medium white
-                Text(
-                  displayCurrentLyric,
-                  style: const TextStyle(
-                    fontSize: 18, // lg
-                    fontWeight: FontWeight.w500, // font-medium
-                    color: Colors.white,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
+            if (displayNextLyric.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              // 下一行 - muted 色
+              Text(
+                displayNextLyric,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF71717A), // muted
                 ),
-                if (displayNextLyric.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  // 下一行 - muted 色
-                  Text(
-                    displayNextLyric,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF71717A), // muted
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ],
-            ),
-          ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
         ),
       ),
     );
