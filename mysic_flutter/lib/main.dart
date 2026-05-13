@@ -708,6 +708,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     showCreatePlaylistDialog(
       context,
       onCreate: (name, description, scannedSongs, scannedDirectory) async {
+        debugPrint('========== _createPlaylist 开始 ==========');
+        debugPrint('歌单名称: $name');
+        debugPrint('scannedSongs: ${scannedSongs?.length ?? "null"}');
+        debugPrint('scannedDirectory: $scannedDirectory');
+
         final playlistProvider = context.read<PlaylistProvider>();
 
         // 创建歌单
@@ -715,6 +720,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           name: name,
           description: description,
         );
+        debugPrint('创建歌单结果: ${playlist?.id}, ${playlist?.name}');
 
         if (playlist != null) {
           // 如果选择了目录，存储目录与歌单的关联
@@ -725,17 +731,22 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               playlistId: playlist.id!,
               playlistName: playlist.name,
             );
+            debugPrint('目录关联已保存');
           }
 
           if (scannedSongs != null && scannedSongs.isNotEmpty) {
+            debugPrint('开始添加歌曲到歌单...');
             // 添加到新创建的歌单
-            await playlistProvider.addSongsToPlaylist(playlist.id!, scannedSongs);
+            final addedCount = await playlistProvider.addSongsToPlaylist(playlist.id!, scannedSongs);
+            debugPrint('添加歌曲结果: $addedCount');
 
             // 同步到系统"本地音乐"歌单
             await playlistProvider.syncToLocalMusicPlaylist(scannedSongs);
+            debugPrint('同步到本地音乐歌单完成');
 
             // 刷新数据
             await playlistProvider.refresh();
+            debugPrint('刷新数据完成');
 
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -746,6 +757,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               );
             }
           } else if (mounted) {
+            debugPrint('没有扫描歌曲，跳过添加');
             // 歌单创建成功但没有扫描歌曲
             await playlistProvider.refresh();
             ScaffoldMessenger.of(context).showSnackBar(
@@ -756,6 +768,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             );
           }
         }
+        debugPrint('========== _createPlaylist 结束 ==========');
       },
     );
   }
