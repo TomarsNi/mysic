@@ -652,6 +652,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
       final tag = await AudioTags.read(filePath);
       if (tag != null) {
         return _AudioMetadata(
+          filePath: filePath,
           title: tag.title,
           artist: tag.trackArtist,
           album: tag.album,
@@ -667,6 +668,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     // 回退：从文件名提取
     final fileName = filePath.split(Platform.pathSeparator).last;
     return _AudioMetadata(
+      filePath: filePath,
       title: _cleanTitleFromFileName(fileName),
       artist: null,
       album: null,
