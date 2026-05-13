@@ -676,6 +676,41 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     );
   }
 
+  /// 并行提取元数据
+  Future<List<_AudioMetadata>> _extractMetadataParallel(
+    List<File> files,
+    void Function(int processed, int total) onProgress,
+  ) async {
+    final batchSize = options.metadataBatchSize;
+    final results = <_AudioMetadata>[];
+    final filePaths = files.map((f) => f.path).toList();
+
+    for (var i = 0; i < filePaths.length; i += batchSize) {
+      if (isCancelled) break;
+
+      final batch = filePaths.sublist(
+        i,
+        (i + batchSize < filePaths.length) ? i + batchSize : filePaths.length,
+      );
+
+      // 并行处理当前批次
+      final batchResults = await Future.wait(
+        batch.map((path) => _extractMetadata(path)),
+      );
+
+      // 为每个结果添加歌词路径
+      for (var j = 0; j < batchResults.length; j++) {
+        final lyricsPath = _lyricsCache.findLyricsPath(batch[j]);
+        batchResults[j].lyricsPath = lyricsPath;
+      }
+
+      results.addAll(batchResults);
+      onProgress(results.length, filePaths.length);
+    }
+
+    return results;
+  }
+
   /// 保存歌曲到数据库（批量操作优化）
   Future<Map<String, dynamic>> _saveSongsToDatabase(
     List<_AudioMetadata> metadataList,
