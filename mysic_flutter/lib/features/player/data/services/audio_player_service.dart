@@ -316,9 +316,13 @@ class AudioPlayerService {
   /// 停止
   Future<void> stop() async {
     if (Platform.isAndroid || Platform.isIOS) {
-      await _justAudioPlayer!.stop();
+      if (_justAudioPlayer != null) {
+        await _justAudioPlayer!.stop();
+      }
     } else {
-      await _audioplayersPlayer!.stop();
+      if (_audioplayersPlayer != null) {
+        await _audioplayersPlayer!.stop();
+      }
     }
     _currentSong = null;
     _currentIndex = -1;
@@ -441,9 +445,13 @@ class AudioPlayerService {
   /// 设置播放速度
   Future<void> setSpeed(double speed) async {
     if (Platform.isAndroid || Platform.isIOS) {
-      await _justAudioPlayer!.setSpeed(speed);
+      if (_justAudioPlayer != null) {
+        await _justAudioPlayer!.setSpeed(speed);
+      }
     } else {
-      await _audioplayersPlayer!.setPlaybackRate(speed);
+      if (_audioplayersPlayer != null) {
+        await _audioplayersPlayer!.setPlaybackRate(speed);
+      }
     }
   }
 
@@ -458,13 +466,17 @@ class AudioPlayerService {
     _audioHandler?.setLoopMode(mode == MysicLoopMode.all);
 
     if (Platform.isAndroid || Platform.isIOS) {
-      await _justAudioPlayer!.setLoopMode(
-        mode == MysicLoopMode.all ? just_audio.LoopMode.all : just_audio.LoopMode.off,
-      );
+      if (_justAudioPlayer != null) {
+        await _justAudioPlayer!.setLoopMode(
+          mode == MysicLoopMode.all ? just_audio.LoopMode.all : just_audio.LoopMode.off,
+        );
+      }
     } else {
-      await _audioplayersPlayer!.setReleaseMode(
-        mode == MysicLoopMode.all ? audioplayers.ReleaseMode.loop : audioplayers.ReleaseMode.stop,
-      );
+      if (_audioplayersPlayer != null) {
+        await _audioplayersPlayer!.setReleaseMode(
+          mode == MysicLoopMode.all ? audioplayers.ReleaseMode.loop : audioplayers.ReleaseMode.stop,
+        );
+      }
     }
   }
 

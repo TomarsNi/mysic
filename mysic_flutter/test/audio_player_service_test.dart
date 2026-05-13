@@ -143,7 +143,7 @@ void main() {
         id: 1,
         title: '测试歌曲',
         artist: '测试艺术家',
-        duration: 180000,
+        duration: 180, // 秒（audiotags 返回的单位）
         filePath: '/path/to/song.mp3',
         createdAt: DateTime(2024, 4, 18),
         updatedAt: DateTime(2024, 4, 18),
@@ -162,7 +162,7 @@ void main() {
           id: i,
           title: '歌曲 $i',
           artist: '艺术家 $i',
-          duration: (i + 1) * 60000,
+          duration: (i + 1) * 60, // 秒（audiotags 返回的单位）
           filePath: '/path/song_$i.mp3',
           createdAt: DateTime(2024, 4, 18),
           updatedAt: DateTime(2024, 4, 18),

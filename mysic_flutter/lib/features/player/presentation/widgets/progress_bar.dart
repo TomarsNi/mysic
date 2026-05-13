@@ -362,11 +362,7 @@ class _BufferedProgressBarState extends State<BufferedProgressBar> {
         GestureDetector(
           onTap: widget.enabled
               ? () {
-                  // 点击跳转
-                  final RenderBox box = context.findRenderObject() as RenderBox;
-                  final localPosition =
-                      box.globalToLocal(box.localToGlobal(Offset.zero));
-                  // 简化处理，实际需要计算点击位置
+                  // 点击跳转 - 简化处理，实际需要计算点击位置
                 }
               : null,
           onHorizontalDragUpdate: widget.enabled

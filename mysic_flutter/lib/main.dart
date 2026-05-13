@@ -33,7 +33,6 @@ import 'shared/utils/scan_directory_provider.dart';
 import 'features/playlist/data/playlist_repository.dart';
 import 'features/settings/data/play_mode_preference.dart';
 import 'features/player/data/models/song.dart';
-import 'features/player/data/models/playlist.dart';
 import 'features/player/presentation/widgets/album_cover.dart';
 import 'features/player/presentation/widgets/play_controls.dart';
 import 'features/player/presentation/widgets/progress_bar.dart';

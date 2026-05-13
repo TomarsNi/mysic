@@ -1,5 +1,3 @@
-import 'dart:io';
-
 /// 歌词文件缓存
 /// 在文件扫描阶段预先收集所有歌词文件，避免重复扫描目录
 class LyricsCache {
