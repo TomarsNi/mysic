@@ -8,12 +8,16 @@ import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
 import 'platform_music_scanner.dart';
 import 'scan_directory_provider.dart';
+import 'lyrics_cache.dart';
 
 /// 移动端平台音乐扫描器
 class MobileMusicScanner extends PlatformMusicScanner {
   final DatabaseHelper _dbHelper = DatabaseHelper();
   final ScanDirectoryProvider _directoryProvider = ScanDirectoryProvider();
   final OnAudioQuery _audioQuery = OnAudioQuery();
+
+  /// 歌词文件缓存
+  final LyricsCache _lyricsCache = LyricsCache();
 
   /// 封面缓存目录路径
   String? _albumArtDirectory;
@@ -600,35 +604,57 @@ class MobileMusicScanner extends PlatformMusicScanner {
       }
     });
 
-    // 4. 批量获取封面（事务外执行）
+    // 4. 并行获取封面（事务外执行）
     if (!isCancelled && newSongIds.isNotEmpty) {
-      debugPrint('开始获取封面，共 ${songMediaIdMap.length} 首');
-      int artCount = 0;
-      for (final entry in songMediaIdMap.entries) {
-        if (isCancelled) break;
-
-        final songId = entry.key;
-        final mediaId = entry.value;
-
-        final artPath = await _fetchAndSaveArtwork(songId, mediaId);
-        if (artPath != null) {
-          await db.update(
-            DatabaseHelper.tableSongs,
-            {
-              'album_art_path': artPath,
-              'updated_at': DateTime.now().toIso8601String(),
-            },
-            where: 'id = ?',
-            whereArgs: [songId],
-          );
-          artCount++;
-        }
-      }
-      debugPrint('封面获取完成: $artCount/${songMediaIdMap.length}');
+      debugPrint('开始并行获取封面，共 ${songMediaIdMap.length} 首');
+      await _fetchArtworksParallel(songMediaIdMap);
+      debugPrint('封面获取完成');
     }
 
     debugPrint('MediaStore扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered');
     return {'newAdded': newAdded, 'duplicates': duplicates, 'newSongIds': newSongIds};
+  }
+
+  /// 并行获取封面
+  Future<void> _fetchArtworksParallel(
+    Map<int, int> songMediaIdMap,
+  ) async {
+    final db = await _dbHelper.database;
+    final batchSize = options.artworkBatchSize;
+    final entries = songMediaIdMap.entries.toList();
+
+    for (var i = 0; i < entries.length; i += batchSize) {
+      if (isCancelled) break;
+
+      final batch = entries.sublist(
+        i,
+        (i + batchSize < entries.length) ? i + batchSize : entries.length,
+      );
+
+      final results = await Future.wait(
+        batch.map((entry) async {
+          final artPath = await _fetchAndSaveArtwork(entry.key, entry.value);
+          return (songId: entry.key, artPath: artPath);
+        }),
+      );
+
+      // 批量更新封面路径
+      final updateBatch = db.batch();
+      for (final result in results) {
+        if (result.artPath != null) {
+          updateBatch.update(
+            DatabaseHelper.tableSongs,
+            {
+              'album_art_path': result.artPath,
+              'updated_at': DateTime.now().toIso8601String(),
+            },
+            where: 'id = ?',
+            whereArgs: [result.songId],
+          );
+        }
+      }
+      await updateBatch.commit(noResult: true);
+    }
   }
 
   /// 递归扫描目录
@@ -717,6 +743,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
       final tag = await AudioTags.read(filePath);
       if (tag != null) {
         return _AudioMetadata(
+          filePath: filePath,
           title: tag.title,
           artist: tag.trackArtist,
           album: tag.album,
@@ -731,11 +758,46 @@ class MobileMusicScanner extends PlatformMusicScanner {
     // 回退：从文件名提取
     final fileName = filePath.split(Platform.pathSeparator).last;
     return _AudioMetadata(
+      filePath: filePath,
       title: _cleanTitleFromFileName(fileName),
       artist: null,
       album: null,
       duration: null,
     );
+  }
+
+  /// 并行提取元数据
+  Future<List<_AudioMetadata>> _extractMetadataParallel(
+    List<File> files,
+    void Function(int processed, int total) onProgress,
+  ) async {
+    final batchSize = options.metadataBatchSize;
+    final results = <_AudioMetadata>[];
+    final filePaths = files.map((f) => f.path).toList();
+
+    for (var i = 0; i < filePaths.length; i += batchSize) {
+      if (isCancelled) break;
+
+      final batch = filePaths.sublist(
+        i,
+        (i + batchSize < filePaths.length) ? i + batchSize : filePaths.length,
+      );
+
+      final batchResults = await Future.wait(
+        batch.map((path) => _extractMetadata(path)),
+      );
+
+      // 添加歌词路径
+      for (var j = 0; j < batchResults.length; j++) {
+        final lyricsPath = _lyricsCache.findLyricsPath(batch[j]);
+        batchResults[j].lyricsPath = lyricsPath;
+      }
+
+      results.addAll(batchResults);
+      onProgress(results.length, filePaths.length);
+    }
+
+    return results;
   }
 
   /// 保存歌曲到数据库（批量操作优化）
@@ -886,15 +948,19 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
 /// 音频元数据辅助类
 class _AudioMetadata {
-  const _AudioMetadata({
+  _AudioMetadata({
+    this.filePath,
     this.title,
     this.artist,
     this.album,
     this.duration,
+    this.lyricsPath,
   });
 
+  final String? filePath;
   final String? title;
   final String? artist;
   final String? album;
   final int? duration;
+  String? lyricsPath;
 }
