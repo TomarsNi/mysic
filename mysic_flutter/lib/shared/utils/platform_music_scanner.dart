@@ -7,10 +7,31 @@ class ScanOptions {
   final int minFileSizeKb;
   final bool autoDedupe;
 
+  /// 元数据提取并行批次大小
+  final int metadataBatchSize;
+
+  /// 封面获取并行批次大小（移动端）
+  final int artworkBatchSize;
+
+  /// 进度更新间隔（文件数）
+  final int progressUpdateInterval;
+
   const ScanOptions({
-    this.audioFormats = const ['mp3', 'flac', 'wav', 'm4a', 'ogg', 'aac', 'wma', 'ape'],
+    this.audioFormats = const [
+      'mp3',
+      'flac',
+      'wav',
+      'm4a',
+      'ogg',
+      'aac',
+      'wma',
+      'ape',
+    ],
     this.minFileSizeKb = 100,
     this.autoDedupe = true,
+    this.metadataBatchSize = 50,
+    this.artworkBatchSize = 10,
+    this.progressUpdateInterval = 100,
   });
 
   /// 最小文件大小（字节）
