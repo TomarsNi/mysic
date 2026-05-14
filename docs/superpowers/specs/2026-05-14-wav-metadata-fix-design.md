@@ -11,12 +11,17 @@ AudioTagsError.openFile(message: Wav: Failed to read RIFF INFO item value)
 
 ## 解决方案
 
-采用平台差异化方案：
+采用纯 Dart RIFF INFO 解析方案，所有平台统一使用：
 
 | 平台 | WAV 元数据方案 | 其他格式方案 |
 |------|---------------|-------------|
-| Windows | 纯 Dart 解析 RIFF INFO | audiotags |
-| Android/iOS/macOS | ffmpeg_kit_flutter | audiotags |
+| Windows/Linux | 纯 Dart RIFF INFO 解析 | audiotags |
+| Android/iOS/macOS | 纯 Dart RIFF INFO 解析 | audiotags |
+
+**优势：**
+- 无需额外原生依赖
+- 跨平台一致性
+- 包体积不增加
 
 ## 架构设计
 
@@ -24,9 +29,8 @@ AudioTagsError.openFile(message: Wav: Failed to read RIFF INFO item value)
 
 ```
 lib/shared/utils/
-├── wav_metadata_parser.dart      # 纯 Dart RIFF INFO 解析器
-├── ffmpeg_metadata_extractor.dart # FFmpeg 元数据提取器（移动端）
-└── metadata_extractor.dart        # 统一元数据提取接口
+├── wav_metadata_parser.dart  # 纯 Dart RIFF INFO 解析器
+└── metadata_extractor.dart   # 统一元数据提取接口
 ```
 
 ### 元数据提取流程
@@ -49,27 +53,21 @@ lib/shared/utils/
       └───────────────┘               └───────────────┘
               │                               │
               ▼                               ▼
-      ┌───────────────┐               ┌───────────────┐
-      │ 判断平台       │               │  audiotags    │
-      └───────────────┘               └───────────────┘
+      ┌───────────────────────┐       ┌───────────────┐
+      │ WavMetadataParser     │       │  audiotags    │
+      │ (纯 Dart RIFF INFO)   │       └───────────────┘
+      └───────────────────────┘
               │
-    ┌─────────┴─────────┐
-    │                   │
-    ▼                   ▼
-┌─────────┐       ┌─────────────────┐
-│ Windows │       │ Android/iOS/macOS│
-└─────────┘       └─────────────────┘
-    │                   │
-    ▼                   ▼
-┌─────────────────┐ ┌─────────────────┐
-│ RIFF INFO 解析器 │ │ FFmpeg 提取器   │
-│ (纯 Dart)       │ │ (ffmpeg_kit)   │
-└─────────────────┘ └─────────────────┘
+              ▼
+      ┌───────────────────────┐
+      │ 解析失败时回退到       │
+      │ audiotags 或文件名     │
+      └───────────────────────┘
 ```
 
 ## 组件设计
 
-### 1. WavMetadataParser（纯 Dart）
+### WavMetadataParser（纯 Dart）
 
 解析 WAV 文件的 RIFF INFO 块，提取：
 - title (INAM)
@@ -105,13 +103,7 @@ LIST INFO chunk (可选)
         └── ...
 ```
 
-### 2. FFmpegMetadataExtractor（移动端）
-
-使用 `ffmpeg_kit_flutter` 提取元数据：
-- 通过 `-i` 参数读取文件信息
-- 解析 FFmpeg 输出的 metadata
-
-### 3. MetadataExtractor（统一接口）
+### MetadataExtractor（统一接口）
 
 ```dart
 class MetadataExtractor {
@@ -120,11 +112,7 @@ class MetadataExtractor {
     final extension = filePath.toLowerCase();
 
     if (extension.endsWith('.wav')) {
-      if (Platform.isWindows || Platform.isLinux) {
-        return WavMetadataParser.parse(filePath);
-      } else {
-        return FFmpegMetadataExtractor.extract(filePath);
-      }
+      return _extractWavMetadata(filePath);
     }
 
     // 其他格式使用 audiotags
@@ -133,48 +121,25 @@ class MetadataExtractor {
 }
 ```
 
-## 依赖变更
-
-### pubspec.yaml 新增
-
-```yaml
-dependencies:
-  ffmpeg_kit_flutter_min: ^6.0.3  # 最小化版本，减少包体积
-```
-
-**注意：** `ffmpeg_kit_flutter_min` 只支持 Android/iOS/macOS，Windows/Linux 使用纯 Dart 方案。
-
 ## 错误处理
 
 所有元数据提取方法都遵循优雅降级原则：
 
-1. 提取失败时，返回 `null`
-2. 调用方收到 `null` 后，回退到文件名提取
-3. 时长可通过 `just_audio` 获取（项目已有依赖）
+1. RIFF INFO 解析失败时，尝试 audiotags
+2. audiotags 失败时，返回 null
+3. 调用方收到 null 后，回退到文件名提取
 
 ## 测试计划
 
 1. **单元测试**
    - RIFF INFO 解析器测试（有效/无效/空 WAV 文件）
-   - FFmpeg 输出解析测试
 
 2. **集成测试**
    - Windows: 扫描包含 WAV 文件的目录
-   - Android: 扫描包含 WAV 文件的目录
-
-## 风险评估
-
-| 风险 | 影响 | 缓解措施 |
-|------|------|---------|
-| ffmpeg_kit 增加包体积 | 中 | 使用 `_min` 版本，约 5-10MB |
-| RIFF INFO 不是所有 WAV 都有 | 低 | 回退到文件名提取 |
-| FFmpeg 未安装在移动端 | 无 | ffmpeg_kit 内嵌 FFmpeg |
 
 ## 实现顺序
 
 1. 实现 `WavMetadataParser`（纯 Dart）
-2. 添加 `ffmpeg_kit_flutter_min` 依赖
-3. 实现 `FFmpegMetadataExtractor`
-4. 实现 `MetadataExtractor` 统一接口
-5. 修改 `WindowsMusicScanner` 和 `MobileMusicScanner` 使用新接口
-6. 编写测试
+2. 实现 `MetadataExtractor` 统一接口
+3. 修改 `WindowsMusicScanner` 和 `MobileMusicScanner` 使用新接口
+4. 编写测试

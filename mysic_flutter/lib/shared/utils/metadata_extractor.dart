@@ -1,7 +1,5 @@
-import 'dart:io';
 import 'package:audiotags/audiotags.dart';
 import 'package:flutter/foundation.dart';
-import 'ffmpeg_metadata_extractor.dart';
 import 'wav_metadata_parser.dart';
 
 /// 音频元数据
@@ -31,9 +29,7 @@ class AudioMetadata {
 /// 统一元数据提取器
 ///
 /// 根据平台和文件格式选择最佳的元数据提取方案：
-/// - WAV 文件：
-///   - Windows/Linux: 纯 Dart RIFF INFO 解析
-///   - Android/iOS/macOS: FFmpeg 提取
+/// - WAV 文件：纯 Dart RIFF INFO 解析（所有平台）
 /// - 其他格式：audiotags
 class MetadataExtractor {
   /// 提取音频文件元数据
@@ -43,7 +39,7 @@ class MetadataExtractor {
   static Future<AudioMetadata?> extract(String filePath) async {
     final extension = filePath.toLowerCase();
 
-    // WAV 文件特殊处理
+    // WAV 文件特殊处理：使用纯 Dart RIFF INFO 解析
     if (extension.endsWith('.wav')) {
       return _extractWavMetadata(filePath);
     }
@@ -52,38 +48,20 @@ class MetadataExtractor {
     return _extractWithAudiotags(filePath);
   }
 
-  /// 提取 WAV 文件元数据
+  /// 提取 WAV 文件元数据（纯 Dart RIFF INFO 解析）
   static Future<AudioMetadata?> _extractWavMetadata(String filePath) async {
-    // Windows/Linux 使用纯 Dart RIFF INFO 解析
-    if (Platform.isWindows || Platform.isLinux) {
-      final riffMetadata = await WavMetadataParser.parse(filePath);
-      if (riffMetadata != null) {
-        return AudioMetadata(
-          filePath: filePath,
-          title: riffMetadata['title'],
-          artist: riffMetadata['artist'],
-          album: riffMetadata['album'],
-          duration: null, // RIFF INFO 通常不包含时长
-        );
-      }
-      return null;
+    final riffMetadata = await WavMetadataParser.parse(filePath);
+    if (riffMetadata != null) {
+      return AudioMetadata(
+        filePath: filePath,
+        title: riffMetadata['title'],
+        artist: riffMetadata['artist'],
+        album: riffMetadata['album'],
+        duration: null, // RIFF INFO 通常不包含时长
+      );
     }
 
-    // Android/iOS/macOS 使用 FFmpeg
-    if (FFmpegMetadataExtractor.isSupported) {
-      final ffmpegMetadata = await FFmpegMetadataExtractor.extract(filePath);
-      if (ffmpegMetadata != null) {
-        return AudioMetadata(
-          filePath: filePath,
-          title: ffmpegMetadata['title'],
-          artist: ffmpegMetadata['artist'],
-          album: ffmpegMetadata['album'],
-          duration: null, // FFmpeg 可以提取时长，但需要额外处理
-        );
-      }
-    }
-
-    // 回退：尝试 audiotags（可能会失败）
+    // RIFF INFO 解析失败，尝试 audiotags（可能会失败）
     return _extractWithAudiotags(filePath);
   }
 
