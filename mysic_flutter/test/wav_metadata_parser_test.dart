@@ -13,7 +13,7 @@ void main() {
         album: 'Test Album',
       );
 
-      final result = WavMetadataParser.parseBytes(wavBytes);
+      final result = await WavMetadataParser.parseBytes(wavBytes);
 
       expect(result, isNotNull);
       expect(result!['title'], equals('Test Song'));
@@ -25,7 +25,7 @@ void main() {
       // 构造一个不包含 RIFF INFO 的 WAV 文件
       final wavBytes = _createWavWithoutRiffInfo();
 
-      final result = WavMetadataParser.parseBytes(wavBytes);
+      final result = await WavMetadataParser.parseBytes(wavBytes);
 
       expect(result, isNull);
     });
@@ -33,7 +33,7 @@ void main() {
     test('解析无效的 WAV 文件（非 RIFF 格式）', () async {
       final invalidBytes = Uint8List.fromList([0, 0, 0, 0]);
 
-      final result = WavMetadataParser.parseBytes(invalidBytes);
+      final result = await WavMetadataParser.parseBytes(invalidBytes);
 
       expect(result, isNull);
     });
@@ -41,7 +41,7 @@ void main() {
     test('解析空的字节数组', () async {
       final emptyBytes = Uint8List(0);
 
-      final result = WavMetadataParser.parseBytes(emptyBytes);
+      final result = await WavMetadataParser.parseBytes(emptyBytes);
 
       expect(result, isNull);
     });
@@ -53,7 +53,7 @@ void main() {
         ...'WAVE'.codeUnits,
       ]);
 
-      final result = WavMetadataParser.parseBytes(partialBytes);
+      final result = await WavMetadataParser.parseBytes(partialBytes);
 
       expect(result, isNull); // 没有 INFO 块
     });

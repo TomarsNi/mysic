@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:charset_converter/charset_converter.dart';
 
 /// WAV 文件 RIFF INFO 元数据解析器
 ///
@@ -26,17 +27,17 @@ class WavMetadataParser {
       if (!await file.exists()) return null;
 
       final bytes = await file.readAsBytes();
-      return _parseBytes(bytes);
+      return await _parseBytes(bytes);
     } catch (e) {
       return null;
     }
   }
 
   /// 从字节数组解析 RIFF INFO（公开方法，用于测试）
-  static Map<String, String>? parseBytes(Uint8List bytes) => _parseBytes(bytes);
+  static Future<Map<String, String>?> parseBytes(Uint8List bytes) => _parseBytes(bytes);
 
   /// 从字节数组解析 RIFF INFO
-  static Map<String, String>? _parseBytes(Uint8List bytes) {
+  static Future<Map<String, String>?> _parseBytes(Uint8List bytes) async {
     if (bytes.length < 12) return null;
 
     // 验证 RIFF 头
@@ -56,7 +57,7 @@ class WavMetadataParser {
       if (chunkId == 'LIST' && offset + 8 + chunkSize <= bytes.length) {
         final listType = String.fromCharCodes(bytes.sublist(offset + 8, offset + 12));
         if (listType == 'INFO') {
-          return _parseInfoChunk(bytes, offset + 12, chunkSize - 4);
+          return await _parseInfoChunk(bytes, offset + 12, chunkSize - 4);
         }
       }
 
@@ -69,7 +70,7 @@ class WavMetadataParser {
   }
 
   /// 解析 INFO 块内容
-  static Map<String, String> _parseInfoChunk(Uint8List bytes, int start, int size) {
+  static Future<Map<String, String>> _parseInfoChunk(Uint8List bytes, int start, int size) async {
     final result = <String, String>{};
     int offset = start;
     final end = start + size;
@@ -85,7 +86,7 @@ class WavMetadataParser {
 
       // 读取数据（null-terminated string）
       final dataBytes = bytes.sublist(offset + 8, offset + 8 + dataSize);
-      final value = _decodeString(dataBytes);
+      final value = await _decodeString(dataBytes);
 
       // 映射到标准字段名
       final fieldName = _tagMapping[tagId];
@@ -109,8 +110,8 @@ class WavMetadataParser {
         (bytes[offset + 3] << 24);
   }
 
-  /// 解码字符串（移除 null 终止符）
-  static String _decodeString(Uint8List bytes) {
+  /// 解码字符串（处理 GBK 编码）
+  static Future<String> _decodeString(Uint8List bytes) async {
     // 查找 null 终止符
     int end = bytes.length;
     for (int i = 0; i < bytes.length; i++) {
@@ -122,11 +123,39 @@ class WavMetadataParser {
 
     if (end == 0) return '';
 
+    final contentBytes = bytes.sublist(0, end);
+
     try {
-      // 尝试 UTF-8 解码
-      return String.fromCharCodes(bytes.sublist(0, end)).trim();
+      // 先尝试 UTF-8 解码
+      final utf8Result = String.fromCharCodes(contentBytes);
+      // 检查是否有乱码（非 ASCII 且非有效 UTF-8）
+      if (_isValidUtf8(contentBytes)) {
+        return utf8Result.trim();
+      }
+
+      // UTF-8 失败，尝试 GBK 解码（Windows 中文环境常用）
+      final gbkResult = await CharsetConverter.decode('GBK', contentBytes);
+      return gbkResult.trim();
     } catch (e) {
-      return '';
+      // 最后回退到原始字节解码
+      return String.fromCharCodes(contentBytes).trim();
+    }
+  }
+
+  /// 检查字节是否为有效的 UTF-8
+  static bool _isValidUtf8(Uint8List bytes) {
+    try {
+      // 尝试解码，如果有替换字符则说明不是有效 UTF-8
+      final decoded = String.fromCharCodes(bytes);
+      // 检查是否包含常见的乱码模式
+      for (int i = 0; i < decoded.length; i++) {
+        final codeUnit = decoded.codeUnitAt(i);
+        // 替换字符 (U+FFFD) 表示解码失败
+        if (codeUnit == 0xFFFD) return false;
+      }
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 }
