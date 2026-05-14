@@ -920,11 +920,12 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
       // 添加歌词路径和封面路径
       for (var j = 0; j < batchResults.length; j++) {
-        final lyricsPath = _lyricsCache.findLyricsPath(batch[j]);
+        final filePath = batchResults[j].filePath;
+        final lyricsPath = _lyricsCache.findLyricsPath(filePath);
         batchResults[j].lyricsPath = lyricsPath;
 
         // 查找封面路径
-        final albumArtPath = _imageCache.findImagePath(batch[j]);
+        final albumArtPath = _imageCache.findImagePath(filePath);
         batchResults[j].albumArtPath = albumArtPath;
       }
 

@@ -10,7 +10,9 @@ class ImageCache {
   /// 添加目录下的图片到缓存
   void addDirectory(String directory, Map<String, String> images) {
     if (images.isNotEmpty) {
-      _cache[directory] = images;
+      // 统一路径分隔符，确保缓存键一致
+      final normalizedDir = directory.replaceAll('\\', '/');
+      _cache[normalizedDir] = images;
     }
   }
 

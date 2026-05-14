@@ -1,9 +1,14 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mysic_flutter/shared/utils/music_scanner.dart';
+import 'package:mysic_flutter/shared/utils/windows_music_scanner.dart';
 import 'package:mysic_flutter/features/player/data/models/song.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
 
   group('本地扫描功能测试', () {
     group('ScanState 枚举测试', () {
@@ -321,6 +326,68 @@ void main() {
           expect(maps[i]['file_path'], '/path/song_$i.mp3');
         }
       });
+    });
+  });
+
+  group('同名图片封面获取', () {
+    setUp(() async {
+      // 每个测试前清理数据库
+      final scanner = WindowsMusicScanner();
+      await scanner.clearAllSongs();
+    });
+
+    test('Windows 扫描同名 jpg 图片作为封面', () async {
+      // 准备测试目录（使用不包含 'test' 关键词的目录名，避免被非音乐文件过滤器误判）
+      final testDir = await Directory.systemTemp.createTemp('music_scan_');
+      final audioFile = File('${testDir.path}\\song.mp3');
+      final imageFile = File('${testDir.path}\\song.jpg');
+
+      // 创建测试文件（确保大于最小文件大小 100KB）
+      await audioFile.writeAsBytes(List.filled(1024 * 101, 0)); // 101KB
+      await imageFile.writeAsBytes(List.filled(1024, 0));
+
+      try {
+        final scanner = WindowsMusicScanner();
+        final result = await scanner.scanMusicInDirectory(testDir.path);
+
+        expect(result.totalFound, 1);
+        expect(result.newAdded, 1);
+
+        // 验证封面路径
+        final songs = await scanner.getAllSongs();
+        expect(songs.length, 1);
+        expect(songs.first.albumArtPath, isNotNull);
+        expect(songs.first.albumArtPath, contains('song.jpg'));
+
+        // 清理
+        await scanner.clearAllSongs();
+      } finally {
+        await testDir.delete(recursive: true);
+      }
+    });
+
+    test('多格式图片按优先级选择', () async {
+      final testDir = await Directory.systemTemp.createTemp('music_scan_');
+      final audioFile = File('${testDir.path}\\song.mp3');
+      final pngFile = File('${testDir.path}\\song.png');
+      final gifFile = File('${testDir.path}\\song.gif');
+
+      await audioFile.writeAsBytes(List.filled(1024 * 101, 0));
+      await pngFile.writeAsBytes(List.filled(1024, 0));
+      await gifFile.writeAsBytes(List.filled(1024, 0));
+
+      try {
+        final scanner = WindowsMusicScanner();
+        await scanner.scanMusicInDirectory(testDir.path);
+
+        final songs = await scanner.getAllSongs();
+        // png > gif（优先级：jpg > jpeg > png > webp > gif）
+        expect(songs.first.albumArtPath, contains('song.png'));
+
+        await scanner.clearAllSongs();
+      } finally {
+        await testDir.delete(recursive: true);
+      }
     });
   });
 }

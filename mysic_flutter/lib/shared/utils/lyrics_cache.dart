@@ -10,7 +10,9 @@ class LyricsCache {
   /// 添加目录的歌词文件
   void addDirectory(String dirPath, Set<String> lrcNames) {
     if (lrcNames.isNotEmpty) {
-      _directoryCache[dirPath] = lrcNames;
+      // 统一路径分隔符，确保缓存键一致
+      final normalizedDir = dirPath.replaceAll('\\', '/');
+      _directoryCache[normalizedDir] = lrcNames;
     }
   }
 
