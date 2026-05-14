@@ -157,7 +157,20 @@ class _AlbumCoverState extends State<AlbumCover>
   }
 
   Widget _buildCoverImage(double radius) {
-    // 优先使用 base64 封面
+    // 优先使用同名图片文件（albumArtPath）
+    if (widget.song?.albumArtPath != null &&
+        widget.song!.albumArtPath!.isNotEmpty) {
+      final file = File(widget.song!.albumArtPath!);
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultCover(),
+        );
+      }
+    }
+
+    // 其次使用内嵌封面（albumArtBase64）
     if (widget.song?.albumArtBase64 != null &&
         widget.song!.albumArtBase64!.isNotEmpty) {
       try {
@@ -168,20 +181,7 @@ class _AlbumCoverState extends State<AlbumCover>
           errorBuilder: (context, error, stackTrace) => _buildDefaultCover(),
         );
       } catch (e) {
-        // base64 解码失败，继续尝试文件路径
-      }
-    }
-
-    // 其次尝试文件路径
-    if (widget.song?.albumArtPath != null &&
-        widget.song!.albumArtPath!.isNotEmpty) {
-      final file = File(widget.song!.albumArtPath!);
-      if (file.existsSync()) {
-        return Image.file(
-          file,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildDefaultCover(),
-        );
+        // base64 解码失败，显示默认封面
       }
     }
 
@@ -239,7 +239,19 @@ class AlbumCoverSmall extends StatelessWidget {
   }
 
   Widget _buildCoverImage() {
-    // 优先使用 base64 封面
+    // 优先使用同名图片文件（albumArtPath）
+    if (song?.albumArtPath != null && song!.albumArtPath!.isNotEmpty) {
+      final file = File(song!.albumArtPath!);
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultCover(),
+        );
+      }
+    }
+
+    // 其次使用内嵌封面（albumArtBase64）
     if (song?.albumArtBase64 != null && song!.albumArtBase64!.isNotEmpty) {
       try {
         final bytes = base64Decode(song!.albumArtBase64!);
@@ -249,19 +261,7 @@ class AlbumCoverSmall extends StatelessWidget {
           errorBuilder: (context, error, stackTrace) => _buildDefaultCover(),
         );
       } catch (e) {
-        // base64 解码失败，继续尝试文件路径
-      }
-    }
-
-    // 其次尝试文件路径
-    if (song?.albumArtPath != null && song!.albumArtPath!.isNotEmpty) {
-      final file = File(song!.albumArtPath!);
-      if (file.existsSync()) {
-        return Image.file(
-          file,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildDefaultCover(),
-        );
+        // base64 解码失败，显示默认封面
       }
     }
 
