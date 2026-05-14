@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/song.dart';
@@ -157,15 +158,23 @@ class _AlbumCoverState extends State<AlbumCover>
   }
 
   Widget _buildCoverImage(double radius) {
+    // 调试日志
+    debugPrint('AlbumCover._buildCoverImage: song=${widget.song?.title}, albumArtPath=${widget.song?.albumArtPath}, albumArtBase64=${widget.song?.albumArtBase64?.length}');
+
     // 优先使用同名图片文件（albumArtPath）
     if (widget.song?.albumArtPath != null &&
         widget.song!.albumArtPath!.isNotEmpty) {
       final file = File(widget.song!.albumArtPath!);
+      debugPrint('AlbumCover: 检查图片文件 ${file.path}, 存在=${file.existsSync()}');
       if (file.existsSync()) {
+        debugPrint('AlbumCover: 使用同名图片文件');
         return Image.file(
           file,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildDefaultCover(),
+          errorBuilder: (context, error, stackTrace) {
+            debugPrint('AlbumCover: 图片加载失败 $error');
+            return _buildDefaultCover();
+          },
         );
       }
     }
@@ -174,6 +183,7 @@ class _AlbumCoverState extends State<AlbumCover>
     if (widget.song?.albumArtBase64 != null &&
         widget.song!.albumArtBase64!.isNotEmpty) {
       try {
+        debugPrint('AlbumCover: 使用内嵌封面');
         final bytes = base64Decode(widget.song!.albumArtBase64!);
         return Image.memory(
           bytes,
@@ -185,6 +195,7 @@ class _AlbumCoverState extends State<AlbumCover>
       }
     }
 
+    debugPrint('AlbumCover: 使用默认封面');
     return _buildDefaultCover();
   }
 

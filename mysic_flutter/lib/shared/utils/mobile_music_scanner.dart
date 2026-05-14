@@ -26,6 +26,10 @@ class MobileMusicScanner extends PlatformMusicScanner {
   /// 封面缓存目录路径
   String? _albumArtDirectory;
 
+  /// 待复制的同名图片（songId -> sourceImagePath）
+  /// 用于在事务外处理图片复制
+  final Map<int, String> _pendingImageCopies = {};
+
   /// 最小时长（秒）- 2分45秒 = 165秒
   static const int _minDurationSec = 165;
 
@@ -195,6 +199,54 @@ class MobileMusicScanner extends PlatformMusicScanner {
     return _albumArtDirectory!;
   }
 
+  /// 复制同名图片到应用私有目录
+  /// 解决 Android Scoped Storage 权限问题
+  ///
+  /// [songId] 数据库歌曲 ID
+  /// [sourcePath] 原图片文件路径
+  /// 返回私有目录中的图片路径，复制失败返回 null
+  Future<String?> _copyImageToPrivateDir(int songId, String sourcePath) async {
+    try {
+      final sourceFile = File(sourcePath);
+
+      // 尝试直接读取文件字节
+      // Android 10+ Scoped Storage 可能限制访问，但某些情况下仍可读取
+      Uint8List? bytes;
+
+      try {
+        bytes = await sourceFile.readAsBytes();
+        debugPrint('直接读取同名图片成功: $sourcePath (${bytes.length} bytes)');
+      } catch (e) {
+        debugPrint('直接读取同名图片失败: $sourcePath, 错误: $e');
+        // 直接读取失败，返回 null
+        // 后续会通过 MediaStore 获取封面
+        return null;
+      }
+
+      if (bytes.isEmpty) {
+        debugPrint('同名图片内容为空: $sourcePath');
+        return null;
+      }
+
+      // 确保目录存在
+      final artDir = await _ensureAlbumArtDirectory();
+
+      // 根据扩展名确定目标文件名
+      final ext = sourcePath.split('.').last.toLowerCase();
+      final targetPath = '$artDir/$songId.$ext';
+
+      // 写入私有目录
+      final targetFile = File(targetPath);
+      await targetFile.writeAsBytes(bytes);
+
+      debugPrint('复制同名图片成功: $sourcePath -> $targetPath');
+      return targetPath;
+    } catch (e) {
+      debugPrint('复制同名图片失败: $sourcePath, 错误: $e');
+      return null;
+    }
+  }
+
   /// 获取歌曲封面并保存为文件
   ///
   /// [songId] 数据库歌曲 ID
@@ -265,6 +317,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
     resetCancel();
     _lyricsCache.clear();
     _imageCache.clear();
+    _pendingImageCopies.clear();
 
     try {
       // 检查权限
@@ -657,22 +710,30 @@ class MobileMusicScanner extends PlatformMusicScanner {
           }
 
           // 查找同名图片（优先于 MediaStore 封面）
-          String? albumArtPath;
+          String? sourceImagePath;
           final fileName = filePath.split(Platform.pathSeparator).last;
           final nameWithoutExt = fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
           final dir = File(filePath).parent;
+
+          debugPrint('查找同名图片: 音频文件名=$fileName, 无扩展名=$nameWithoutExt, 目录=${dir.path}');
 
           // 按优先级查找同名图片
           for (final ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']) {
             final imageFileName = '$nameWithoutExt$ext'.toLowerCase();
             final imageFile = File('${dir.path}${Platform.pathSeparator}$imageFileName');
+            debugPrint('检查图片: ${imageFile.path}, 存在=${await imageFile.exists()}');
             if (await imageFile.exists()) {
-              albumArtPath = imageFile.path;
-              debugPrint('找到同名图片: $albumArtPath');
+              sourceImagePath = imageFile.path;
+              debugPrint('找到同名图片: $sourceImagePath');
               break;
             }
           }
 
+          if (sourceImagePath == null) {
+            debugPrint('未找到同名图片，将从 MediaStore 获取封面');
+          }
+
+          // 先插入歌曲（album_art_path 暂时为 null）
           final songId = await txn.insert(
             DatabaseHelper.tableSongs,
             {
@@ -681,15 +742,21 @@ class MobileMusicScanner extends PlatformMusicScanner {
               'album': album,
               'duration': durationSec,
               'file_path': filePath,
-              'album_art_path': albumArtPath,
+              'album_art_path': null, // 稍后更新
               'date_added': null,
               'created_at': nowIso,
               'updated_at': nowIso,
             },
           );
+          debugPrint('插入歌曲: id=$songId, title=$title, sourceImagePath=$sourceImagePath');
           newSongIds.add(songId);
-          // 记录映射关系（仅当没有同名图片时才需要从 MediaStore 获取封面）
-          if (albumArtPath == null) {
+
+          // 如果有同名图片，记录需要复制（事务外执行）
+          // 否则记录映射关系，从 MediaStore 获取封面
+          if (sourceImagePath != null) {
+            // 将图片路径暂存，事务外复制
+            _pendingImageCopies[songId] = sourceImagePath;
+          } else {
             songMediaIdMap[songId] = mediaSong.id;
           }
           newAdded++;
@@ -697,8 +764,16 @@ class MobileMusicScanner extends PlatformMusicScanner {
       }
     });
 
-    // 4. 并行获取封面（事务外执行）
-    if (!isCancelled && newSongIds.isNotEmpty) {
+    // 4. 复制同名图片到私有目录（事务外执行）
+    if (!isCancelled && _pendingImageCopies.isNotEmpty) {
+      debugPrint('开始复制同名图片，共 ${_pendingImageCopies.length} 首');
+      await _copyImagesParallel(_pendingImageCopies);
+      _pendingImageCopies.clear();
+      debugPrint('同名图片复制完成');
+    }
+
+    // 5. 并行获取封面（事务外执行，仅处理没有同名图片的歌曲）
+    if (!isCancelled && songMediaIdMap.isNotEmpty) {
       debugPrint('开始并行获取封面，共 ${songMediaIdMap.length} 首');
       await _fetchArtworksParallel(songMediaIdMap);
       debugPrint('封面获取完成');
@@ -739,6 +814,51 @@ class MobileMusicScanner extends PlatformMusicScanner {
             DatabaseHelper.tableSongs,
             {
               'album_art_path': result.artPath,
+              'updated_at': DateTime.now().toIso8601String(),
+            },
+            where: 'id = ?',
+            whereArgs: [result.songId],
+          );
+        }
+      }
+      await updateBatch.commit(noResult: true);
+    }
+  }
+
+  /// 并行复制同名图片到私有目录
+  Future<void> _copyImagesParallel(
+    Map<int, String> imageCopies,
+  ) async {
+    final db = await _dbHelper.database;
+    final batchSize = options.artworkBatchSize;
+    final entries = imageCopies.entries.toList();
+
+    for (var i = 0; i < entries.length; i += batchSize) {
+      if (isCancelled) break;
+
+      final batch = entries.sublist(
+        i,
+        (i + batchSize < entries.length) ? i + batchSize : entries.length,
+      );
+
+      final results = await Future.wait(
+        batch.map((entry) async {
+          final targetPath = await _copyImageToPrivateDir(
+            entry.key,
+            entry.value,
+          );
+          return (songId: entry.key, targetPath: targetPath);
+        }),
+      );
+
+      // 批量更新封面路径
+      final updateBatch = db.batch();
+      for (final result in results) {
+        if (result.targetPath != null) {
+          updateBatch.update(
+            DatabaseHelper.tableSongs,
+            {
+              'album_art_path': result.targetPath,
               'updated_at': DateTime.now().toIso8601String(),
             },
             where: 'id = ?',
