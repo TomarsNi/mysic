@@ -614,12 +614,43 @@ class MobileMusicScanner extends PlatformMusicScanner {
             continue;
           }
 
+          // WAV 文件：使用 MetadataExtractor 从文件提取元数据
+          // MediaStore 对 WAV 元数据支持很差
+          String title = mediaSong.title;
+          String? artist = mediaSong.artist;
+          String? album = mediaSong.album;
+
+          if (filePath.toLowerCase().endsWith('.wav')) {
+            debugPrint('WAV 文件，尝试从文件提取元数据: $filePath');
+            final metadata = await MetadataExtractor.extract(filePath);
+            if (metadata != null) {
+              // 只有当提取的元数据有效时才使用
+              if (metadata.title != null && metadata.title!.isNotEmpty) {
+                title = metadata.title!;
+              }
+              if (metadata.artist != null && metadata.artist!.isNotEmpty) {
+                artist = metadata.artist;
+              }
+              if (metadata.album != null && metadata.album!.isNotEmpty) {
+                album = metadata.album;
+              }
+              debugPrint('WAV 元数据提取结果: title=$title, artist=$artist, album=$album');
+            }
+
+            // 如果元数据无效（来自 MediaStore 或文件提取），从文件名提取
+            if (title.isEmpty || _isInvalidMetadata(title)) {
+              final fileName = filePath.split(Platform.pathSeparator).last;
+              title = _cleanTitleFromFileName(fileName);
+              debugPrint('从文件名提取标题: $title');
+            }
+          }
+
           final songId = await txn.insert(
             DatabaseHelper.tableSongs,
             {
-              'title': mediaSong.title.isEmpty ? 'Unknown' : mediaSong.title,
-              'artist': mediaSong.artist,
-              'album': mediaSong.album,
+              'title': title.isEmpty ? 'Unknown' : title,
+              'artist': artist,
+              'album': album,
               'duration': durationSec,
               'file_path': filePath,
               'album_art_path': null,
@@ -785,6 +816,17 @@ class MobileMusicScanner extends PlatformMusicScanner {
     // 移除开头的数字序号 (01. 或 01- 或 01 或 1. 或 1- 等)
     title = title.replaceFirst(RegExp(r'^\d+[\s.\-_]+'), '');
     return title.trim();
+  }
+
+  /// 检查元数据是否无效（全是问号）
+  bool _isInvalidMetadata(String value) {
+    if (value.isEmpty) return true;
+    for (int i = 0; i < value.length; i++) {
+      if (value.codeUnitAt(i) != 0x3F) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /// 从音频文件提取元数据
