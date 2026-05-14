@@ -8,6 +8,7 @@ import '../../features/player/data/models/song.dart';
 import 'platform_music_scanner.dart';
 import 'scan_directory_provider.dart';
 import 'lyrics_cache.dart';
+import 'image_cache.dart';
 import 'metadata_extractor.dart';
 
 /// 移动端平台音乐扫描器
@@ -18,6 +19,9 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
   /// 歌词文件缓存
   final LyricsCache _lyricsCache = LyricsCache();
+
+  /// 图片文件缓存
+  final ImageCache _imageCache = ImageCache();
 
   /// 封面缓存目录路径
   String? _albumArtDirectory;
@@ -77,6 +81,12 @@ class MobileMusicScanner extends PlatformMusicScanner {
       }
     }
     return false;
+  }
+
+  /// 检查是否是图片文件
+  bool _isImageFile(String extension) {
+    const imageExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+    return imageExts.any((ext) => extension.endsWith(ext));
   }
 
   /// 获取外部存储根目录
@@ -254,6 +264,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
     final stopwatch = Stopwatch()..start();
     resetCancel();
     _lyricsCache.clear();
+    _imageCache.clear();
 
     try {
       // 检查权限
@@ -645,6 +656,23 @@ class MobileMusicScanner extends PlatformMusicScanner {
             }
           }
 
+          // 查找同名图片（优先于 MediaStore 封面）
+          String? albumArtPath;
+          final fileName = filePath.split(Platform.pathSeparator).last;
+          final nameWithoutExt = fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
+          final dir = File(filePath).parent;
+
+          // 按优先级查找同名图片
+          for (final ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']) {
+            final imageFileName = '$nameWithoutExt$ext'.toLowerCase();
+            final imageFile = File('${dir.path}${Platform.pathSeparator}$imageFileName');
+            if (await imageFile.exists()) {
+              albumArtPath = imageFile.path;
+              debugPrint('找到同名图片: $albumArtPath');
+              break;
+            }
+          }
+
           final songId = await txn.insert(
             DatabaseHelper.tableSongs,
             {
@@ -653,15 +681,17 @@ class MobileMusicScanner extends PlatformMusicScanner {
               'album': album,
               'duration': durationSec,
               'file_path': filePath,
-              'album_art_path': null,
+              'album_art_path': albumArtPath,
               'date_added': null,
               'created_at': nowIso,
               'updated_at': nowIso,
             },
           );
           newSongIds.add(songId);
-          // 记录映射关系
-          songMediaIdMap[songId] = mediaSong.id;
+          // 记录映射关系（仅当没有同名图片时才需要从 MediaStore 获取封面）
+          if (albumArtPath == null) {
+            songMediaIdMap[songId] = mediaSong.id;
+          }
           newAdded++;
         }
       }
@@ -737,6 +767,8 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
       // 收集当前目录的歌词文件
       final lrcNames = <String>{};
+      // 收集当前目录的图片文件
+      final imageFiles = <String, String>{};
       int entityCount = 0;
       int dirCount = 0;
       int fileCount = 0;
@@ -774,6 +806,13 @@ class MobileMusicScanner extends PlatformMusicScanner {
             continue;
           }
 
+          // 检查是否是图片文件
+          if (_isImageFile(extension)) {
+            final fileName = entity.path.split(Platform.pathSeparator).last;
+            imageFiles[fileName.toLowerCase()] = entity.path;
+            continue;
+          }
+
           // 检查是否是音频文件
           for (final ext in options.audioExtensions) {
             if (extension.endsWith(ext)) {
@@ -802,6 +841,9 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
       // 将当前目录的歌词文件添加到缓存
       _lyricsCache.addDirectory(path, lrcNames);
+
+      // 将当前目录的图片文件添加到缓存
+      _imageCache.addDirectory(path, imageFiles);
 
       debugPrint('目录 $path: 共 $entityCount 个实体, $dirCount 个目录, $fileCount 个文件, 找到 ${songs.length} 首歌曲');
     } catch (e) {
@@ -876,10 +918,14 @@ class MobileMusicScanner extends PlatformMusicScanner {
         batch.map((path) => _extractMetadata(path)),
       );
 
-      // 添加歌词路径
+      // 添加歌词路径和封面路径
       for (var j = 0; j < batchResults.length; j++) {
         final lyricsPath = _lyricsCache.findLyricsPath(batch[j]);
         batchResults[j].lyricsPath = lyricsPath;
+
+        // 查找封面路径
+        final albumArtPath = _imageCache.findImagePath(batch[j]);
+        batchResults[j].albumArtPath = albumArtPath;
       }
 
       results.addAll(batchResults);
@@ -964,7 +1010,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
           'album': metadata.album,
           'duration': metadata.duration ?? 0,
           'file_path': filePath,
-          'album_art_path': null,
+          'album_art_path': metadata.albumArtPath,
           'lyrics_path': metadata.lyricsPath,
           'date_added': null,
           'created_at': nowIso,
@@ -1058,4 +1104,5 @@ class _AudioMetadata {
   final String? album;
   final int? duration;
   String? lyricsPath;
+  String? albumArtPath;
 }
