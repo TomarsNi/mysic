@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
+import 'image_cache.dart';
 import 'lyrics_cache.dart';
 import 'platform_music_scanner.dart';
 import 'scan_directory_provider.dart';
@@ -15,6 +16,9 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
   /// 歌词文件缓存
   final LyricsCache _lyricsCache = LyricsCache();
+
+  /// 图片文件缓存
+  final ImageCache _imageCache = ImageCache();
 
   /// 最小时长（秒）- 2分45秒 = 165秒
   static const int _minDurationSec = 165;
@@ -99,6 +103,12 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     return false;
   }
 
+  /// 检查是否是图片文件
+  bool _isImageFile(String extension) {
+    const imageExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+    return imageExts.any((ext) => extension.endsWith(ext));
+  }
+
   @override
   Future<bool> requestPermission() async {
     // Windows 不需要特殊权限
@@ -172,6 +182,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
   ) async {
     final stopwatch = Stopwatch()..start();
     _lyricsCache.clear();
+    _imageCache.clear();
 
     try {
       updateState(ScanState.scanning);
@@ -384,6 +395,8 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
       // 收集当前目录的歌词文件
       final lrcNames = <String>{};
+      // 收集当前目录的图片文件
+      final imageFiles = <String, String>{};
 
       await for (final entity in dir.list(followLinks: false)) {
         if (isCancelled) return;
@@ -411,6 +424,13 @@ class WindowsMusicScanner extends PlatformMusicScanner {
             continue;
           }
 
+          // 检查是否是图片文件
+          if (_isImageFile(extension)) {
+            final fileName = entity.path.split(Platform.pathSeparator).last;
+            imageFiles[fileName.toLowerCase()] = entity.path;
+            continue;
+          }
+
           // 检查是否是音频文件
           for (final ext in options.audioExtensions) {
             if (extension.endsWith(ext)) {
@@ -434,6 +454,8 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
       // 将当前目录的歌词文件添加到缓存
       _lyricsCache.addDirectory(path, lrcNames);
+      // 将当前目录的图片文件添加到缓存
+      _imageCache.addDirectory(path, imageFiles);
     } catch (_) {
       // 忽略无权限目录
     }
@@ -499,10 +521,14 @@ class WindowsMusicScanner extends PlatformMusicScanner {
         batch.map((path) => _extractMetadata(path)),
       );
 
-      // 为每个结果添加歌词路径
+      // 为每个结果添加歌词路径和封面路径
       for (var j = 0; j < batchResults.length; j++) {
         final lyricsPath = _lyricsCache.findLyricsPath(batch[j]);
         batchResults[j].lyricsPath = lyricsPath;
+
+        // 查找封面路径
+        final albumArtPath = _imageCache.findImagePath(batch[j]);
+        batchResults[j].albumArtPath = albumArtPath;
       }
 
       results.addAll(batchResults);
@@ -586,7 +612,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
           'album': metadata.album,
           'duration': metadata.duration ?? 0,
           'file_path': filePath,
-          'album_art_path': null,
+          'album_art_path': metadata.albumArtPath,
           'lyrics_path': metadata.lyricsPath,
           'date_added': null,
           'created_at': nowIso,
@@ -681,4 +707,5 @@ class _AudioMetadata {
   final String? album;
   final int? duration;
   String? lyricsPath;
+  String? albumArtPath;
 }
