@@ -72,6 +72,10 @@ dependencies:
   google_fonts: ^6.1.0
   audiotags: ^1.4.5
 
+  # FFmpeg 元数据提取（移动端 WAV 支持）
+  # 使用 audio 版本，包含元数据提取功能，包体比完整版小
+  ffmpeg_kit_flutter_audio: ^6.0.3
+
   # HTTP 请求
   http: ^1.2.0
 

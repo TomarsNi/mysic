@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:audiotags/audiotags.dart';
 import 'package:flutter/foundation.dart';
 import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
 import 'lyrics_cache.dart';
 import 'platform_music_scanner.dart';
 import 'scan_directory_provider.dart';
+import 'metadata_extractor.dart';
 
 /// Windows 平台音乐扫描器
 class WindowsMusicScanner extends PlatformMusicScanner {
@@ -453,27 +453,24 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
   /// 从音频文件提取元数据
   Future<_AudioMetadata> _extractMetadata(String filePath) async {
-    try {
-      final tag = await AudioTags.read(filePath);
-      if (tag != null) {
-        return _AudioMetadata(
-          filePath: filePath,
-          title: tag.title,
-          artist: tag.trackArtist,
-          album: tag.album,
-          duration: tag.duration,
-        );
-      }
-    } catch (e) {
-      // 元数据读取失败，使用文件名
-      debugPrint('读取元数据失败: $filePath, 错误: $e');
+    // 使用统一元数据提取器
+    final metadata = await MetadataExtractor.extract(filePath);
+
+    if (metadata != null) {
+      return _AudioMetadata(
+        filePath: filePath,
+        title: metadata.title,
+        artist: metadata.artist,
+        album: metadata.album,
+        duration: metadata.duration,
+      );
     }
 
     // 回退：从文件名提取
     final fileName = filePath.split(Platform.pathSeparator).last;
     return _AudioMetadata(
       filePath: filePath,
-      title: _cleanTitleFromFileName(fileName),
+      title: MetadataExtractor.cleanTitleFromFileName(fileName),
       artist: null,
       album: null,
       duration: null,
