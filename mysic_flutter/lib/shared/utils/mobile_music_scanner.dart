@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
 import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
 import 'platform_music_scanner.dart';
@@ -282,7 +283,8 @@ class MobileMusicScanner extends PlatformMusicScanner {
       }
 
       final artDir = await _ensureAlbumArtDirectory();
-      final targetPath = '$artDir/$songId.jpg';
+      final ext = _detectImageExtension(artworkBytes);
+      final targetPath = '$artDir/$songId.$ext';
       final file = File(targetPath);
       await file.writeAsBytes(artworkBytes);
 
@@ -292,6 +294,28 @@ class MobileMusicScanner extends PlatformMusicScanner {
       debugPrint('提取内嵌封面失败: $filePath, error=$e');
       return null;
     }
+  }
+
+  /// 根据文件头魔数检测图片格式
+  ///
+  /// JPEG: FF D8 FF
+  /// PNG: 89 50 4E 47 (‰PNG)
+  /// 其他格式默认返回 jpg
+  String _detectImageExtension(Uint8List bytes) {
+    if (bytes.length < 4) return 'jpg';
+
+    // JPEG: FF D8 FF
+    if (bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF) {
+      return 'jpg';
+    }
+
+    // PNG: 89 50 4E 47 (‰PNG)
+    if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47) {
+      return 'png';
+    }
+
+    // 默认返回 jpg
+    return 'jpg';
   }
 
   /// 获取歌曲封面并保存为文件
@@ -818,42 +842,13 @@ class MobileMusicScanner extends PlatformMusicScanner {
       debugPrint('待处理封面: songId=${entry.key}, filePath=$filePath, sourceImagePath=$sourceImagePath, mediaId=$mediaId');
     }
 
-    // 4. 按优先级处理封面：内嵌 > 同名图片 > MediaStore
+    // 4. 按优先级处理封面：内嵌 > 同名图片 > MediaStore（批量并行处理）
     if (!isCancelled && _pendingArtworkInfo.isNotEmpty) {
       debugPrint('开始处理封面，共 ${_pendingArtworkInfo.length} 首');
       final stillNeedMediaStore = <int, int>{}; // songId -> mediaId
 
-      for (final entry in _pendingArtworkInfo.entries) {
-        if (isCancelled) break;
-
-        final songId = entry.key;
-        final (filePath, sourceImagePath, mediaId) = entry.value;
-
-        // 优先级 1: 内嵌封面
-        String? savedPath = await _extractAndSaveEmbeddedArtwork(songId, filePath);
-
-        // 优先级 2: 同名图片
-        if (savedPath == null && sourceImagePath != null) {
-          savedPath = await _copyImageToPrivateDir(songId, sourceImagePath, _currentSafTreeUri);
-        }
-
-        // 更新数据库
-        if (savedPath != null) {
-          await db.update(
-            DatabaseHelper.tableSongs,
-            {
-              'album_art_path': savedPath,
-              'updated_at': DateTime.now().toIso8601String(),
-            },
-            where: 'id = ?',
-            whereArgs: [songId],
-          );
-          debugPrint('封面更新成功: songId=$songId, path=$savedPath');
-        } else {
-          // 优先级 3: MediaStore（稍后批量处理）
-          stillNeedMediaStore[songId] = mediaId;
-        }
-      }
+      // 批量并行处理内嵌封面和同名图片
+      await _processArtworksParallel(_pendingArtworkInfo, db, stillNeedMediaStore);
 
       _pendingArtworkInfo.clear();
 
@@ -867,6 +862,65 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
     debugPrint('MediaStore扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered');
     return {'newAdded': newAdded, 'duplicates': duplicates, 'newSongIds': newSongIds};
+  }
+
+  /// 并行处理封面（内嵌封面 + 同名图片）
+  /// 按优先级处理：内嵌 > 同名图片 > MediaStore
+  Future<void> _processArtworksParallel(
+    Map<int, (String, String?, int)> pendingArtworkInfo,
+    Database db,
+    Map<int, int> stillNeedMediaStore,
+  ) async {
+    final batchSize = options.artworkBatchSize;
+    final entries = pendingArtworkInfo.entries.toList();
+
+    for (var i = 0; i < entries.length; i += batchSize) {
+      if (isCancelled) break;
+
+      final batch = entries.sublist(
+        i,
+        (i + batchSize < entries.length) ? i + batchSize : entries.length,
+      );
+
+      // 并行处理每个批次的封面
+      final results = await Future.wait(
+        batch.map((entry) async {
+          final songId = entry.key;
+          final (filePath, sourceImagePath, mediaId) = entry.value;
+
+          // 优先级 1: 内嵌封面
+          String? savedPath = await _extractAndSaveEmbeddedArtwork(songId, filePath);
+
+          // 优先级 2: 同名图片
+          if (savedPath == null && sourceImagePath != null) {
+            savedPath = await _copyImageToPrivateDir(songId, sourceImagePath, _currentSafTreeUri);
+          }
+
+          return (songId: songId, artPath: savedPath, mediaId: mediaId);
+        }),
+      );
+
+      // 批量更新数据库
+      final updateBatch = db.batch();
+      for (final result in results) {
+        if (result.artPath != null) {
+          updateBatch.update(
+            DatabaseHelper.tableSongs,
+            {
+              'album_art_path': result.artPath,
+              'updated_at': DateTime.now().toIso8601String(),
+            },
+            where: 'id = ?',
+            whereArgs: [result.songId],
+          );
+          debugPrint('封面更新成功: songId=${result.songId}, path=${result.artPath}');
+        } else {
+          // 优先级 3: MediaStore（稍后批量处理）
+          stillNeedMediaStore[result.songId] = result.mediaId;
+        }
+      }
+      await updateBatch.commit(noResult: true);
+    }
   }
 
   /// 并行获取封面
