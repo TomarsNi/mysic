@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mysic_flutter/core/theme/app_colors.dart';
 import 'package:mysic_flutter/features/player/data/models/playlist.dart';
 import 'package:mysic_flutter/features/player/data/models/song.dart';
 import 'package:mysic_flutter/shared/utils/music_scanner.dart';
+import 'package:mysic_flutter/shared/utils/saf_file_service.dart';
 
 /// 添加到歌单底部面板
 /// 显示歌单列表，允许用户将歌曲添加到指定歌单
@@ -552,19 +554,59 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
   }
 
   Future<void> _selectDirectory() async {
-    final result = await getDirectoryPath();
-    if (result != null && mounted) {
-      final folderName = _extractFolderName(result);
-      setState(() {
-        _selectedDirectory = result;
-        // 智能填充：空值或等于上次自动填充值时才更新
-        if (_nameController.text.isEmpty ||
-            _nameController.text == _lastAutoFilledName) {
-          _nameController.text = folderName;
-          _lastAutoFilledName = folderName;
-          _updateCanCreate();
+    // Android 上使用 SAF 目录选择器，获取持久化权限
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final safUri = await SafFileService.pickDirectory();
+      if (safUri != null && mounted) {
+        // 从 SAF URI 提取显示名称
+        // SAF URI 格式: content://com.android.externalstorage.documents/tree/primary%3AMusic
+        // 提取 "Music" 作为显示名称
+        String displayName = safUri;
+        try {
+          final decoded = Uri.decodeComponent(safUri);
+          final treeIndex = decoded.indexOf('/tree/');
+          if (treeIndex != -1) {
+            final pathPart = decoded.substring(treeIndex + 6);
+            // 格式可能是 "primary:Music" 或 "primary:Download/MyMusic"
+            if (pathPart.contains(':')) {
+              displayName = pathPart.split(':').last;
+            } else {
+              displayName = pathPart;
+            }
+            // 只取最后一级目录名
+            displayName = displayName.split('/').last;
+          }
+        } catch (_) {
+          // 解析失败，使用原始 URI
         }
-      });
+
+        setState(() {
+          _selectedDirectory = safUri;
+          // 智能填充：空值或等于上次自动填充值时才更新
+          if (_nameController.text.isEmpty ||
+              _nameController.text == _lastAutoFilledName) {
+            _nameController.text = displayName;
+            _lastAutoFilledName = displayName;
+            _updateCanCreate();
+          }
+        });
+      }
+    } else {
+      // 其他平台使用普通文件选择器
+      final result = await getDirectoryPath();
+      if (result != null && mounted) {
+        final folderName = _extractFolderName(result);
+        setState(() {
+          _selectedDirectory = result;
+          // 智能填充：空值或等于上次自动填充值时才更新
+          if (_nameController.text.isEmpty ||
+              _nameController.text == _lastAutoFilledName) {
+            _nameController.text = folderName;
+            _lastAutoFilledName = folderName;
+            _updateCanCreate();
+          }
+        });
+      }
     }
   }
 

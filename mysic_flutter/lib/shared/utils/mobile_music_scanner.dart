@@ -10,6 +10,7 @@ import 'scan_directory_provider.dart';
 import 'lyrics_cache.dart';
 import 'image_cache.dart';
 import 'metadata_extractor.dart';
+import 'saf_file_service.dart';
 
 /// 移动端平台音乐扫描器
 class MobileMusicScanner extends PlatformMusicScanner {
@@ -26,9 +27,12 @@ class MobileMusicScanner extends PlatformMusicScanner {
   /// 封面缓存目录路径
   String? _albumArtDirectory;
 
-  /// 待复制的同名图片（songId -> sourceImagePath）
-  /// 用于在事务外处理图片复制
-  final Map<int, String> _pendingImageCopies = {};
+  /// 待复制的同名图片（songId -> (sourceImagePath, mediaId)）
+  /// 用于在事务外处理图片复制，失败时回退到 MediaStore
+  final Map<int, (String, int)> _pendingImageCopies = {};
+
+  /// 当前扫描的 SAF 树 URI（用于读取同名图片）
+  String? _currentSafTreeUri;
 
   /// 最小时长（秒）- 2分45秒 = 165秒
   static const int _minDurationSec = 165;
@@ -203,24 +207,42 @@ class MobileMusicScanner extends PlatformMusicScanner {
   /// 解决 Android Scoped Storage 权限问题
   ///
   /// [songId] 数据库歌曲 ID
-  /// [sourcePath] 原图片文件路径
+  /// [sourcePath] 原图片文件路径（文件系统路径）
+  /// [safTreeUri] SAF 树 URI（可选，用于通过 SAF 读取）
   /// 返回私有目录中的图片路径，复制失败返回 null
-  Future<String?> _copyImageToPrivateDir(int songId, String sourcePath) async {
+  Future<String?> _copyImageToPrivateDir(
+    int songId,
+    String sourcePath,
+    String? safTreeUri,
+  ) async {
     try {
-      final sourceFile = File(sourcePath);
-
-      // 尝试直接读取文件字节
-      // Android 10+ Scoped Storage 可能限制访问，但某些情况下仍可读取
       Uint8List? bytes;
 
-      try {
-        bytes = await sourceFile.readAsBytes();
-        debugPrint('直接读取同名图片成功: $sourcePath (${bytes.length} bytes)');
-      } catch (e) {
-        debugPrint('直接读取同名图片失败: $sourcePath, 错误: $e');
-        // 直接读取失败，返回 null
-        // 后续会通过 MediaStore 获取封面
-        return null;
+      // 优先尝试通过 SAF 读取（如果有 SAF 树 URI）
+      if (safTreeUri != null && SafFileService.isSafUri(safTreeUri)) {
+        // 计算相对于扫描目录的图片路径
+        final imageFileName = sourcePath.split(Platform.pathSeparator).last;
+        debugPrint('尝试通过 SAF 读取同名图片: treeUri=$safTreeUri, fileName=$imageFileName');
+
+        bytes = await SafFileService.readFileFromTreeUri(safTreeUri, imageFileName);
+        if (bytes != null) {
+          debugPrint('SAF 读取同名图片成功: $imageFileName (${bytes.length} bytes)');
+        } else {
+          debugPrint('SAF 读取同名图片失败: $imageFileName');
+        }
+      }
+
+      // 如果 SAF 读取失败，尝试直接读取文件
+      if (bytes == null) {
+        final sourceFile = File(sourcePath);
+        try {
+          bytes = await sourceFile.readAsBytes();
+          debugPrint('直接读取同名图片成功: $sourcePath (${bytes.length} bytes)');
+        } catch (e) {
+          debugPrint('直接读取同名图片失败: $sourcePath, 错误: $e');
+          // 两种方式都失败，返回 null
+          return null;
+        }
       }
 
       if (bytes.isEmpty) {
@@ -481,12 +503,22 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
     final stopwatch = Stopwatch()..start();
     resetCancel();
+    _pendingImageCopies.clear();
+    _currentSafTreeUri = null;
 
     try {
       // 尝试将 SAF URI 转换为文件系统路径
       String actualPath = directory;
       if (directory.startsWith('content://')) {
         debugPrint('检测到 SAF URI，尝试转换...');
+
+        // 保存原始 SAF 树 URI 用于后续读取同名图片
+        _currentSafTreeUri = directory;
+
+        // 持久化 SAF 权限，以便后续可以读取文件
+        final persisted = await SafFileService.persistUriPermission(directory);
+        debugPrint('SAF 权限持久化: ${persisted ? "成功" : "失败"}');
+
         final convertedPath = _convertSafUriToFilePath(directory);
         debugPrint('转换结果: $convertedPath');
         if (convertedPath != null) {
@@ -752,11 +784,12 @@ class MobileMusicScanner extends PlatformMusicScanner {
           newSongIds.add(songId);
 
           // 如果有同名图片，记录需要复制（事务外执行）
-          // 否则记录映射关系，从 MediaStore 获取封面
+          // 同时保存 mediaId，以便复制失败时回退到 MediaStore
           if (sourceImagePath != null) {
-            // 将图片路径暂存，事务外复制
-            _pendingImageCopies[songId] = sourceImagePath;
+            // 将图片路径和 mediaId 暂存，事务外复制
+            _pendingImageCopies[songId] = (sourceImagePath, mediaSong.id);
           } else {
+            // 没有同名图片，直接从 MediaStore 获取封面
             songMediaIdMap[songId] = mediaSong.id;
           }
           newAdded++;
@@ -764,12 +797,26 @@ class MobileMusicScanner extends PlatformMusicScanner {
       }
     });
 
+    // 调试：事务结束后检查 _pendingImageCopies
+    debugPrint('========== 事务结束，检查 _pendingImageCopies ==========');
+    debugPrint('_pendingImageCopies 数量: ${_pendingImageCopies.length}');
+    debugPrint('isCancelled: $isCancelled');
+    for (final entry in _pendingImageCopies.entries) {
+      debugPrint('待复制: songId=${entry.key}, path=${entry.value.$1}, mediaId=${entry.value.$2}');
+    }
+
     // 4. 复制同名图片到私有目录（事务外执行）
     if (!isCancelled && _pendingImageCopies.isNotEmpty) {
       debugPrint('开始复制同名图片，共 ${_pendingImageCopies.length} 首');
-      await _copyImagesParallel(_pendingImageCopies);
+      final failedCopies = await _copyImagesParallel(_pendingImageCopies);
       _pendingImageCopies.clear();
       debugPrint('同名图片复制完成');
+
+      // 将复制失败的歌曲添加到 songMediaIdMap，以便通过 MediaStore 获取封面
+      if (failedCopies.isNotEmpty) {
+        debugPrint('将复制失败的歌曲添加到 MediaStore 封面获取队列: ${failedCopies.length} 首');
+        songMediaIdMap.addAll(failedCopies);
+      }
     }
 
     // 5. 并行获取封面（事务外执行，仅处理没有同名图片的歌曲）
@@ -826,35 +873,52 @@ class MobileMusicScanner extends PlatformMusicScanner {
   }
 
   /// 并行复制同名图片到私有目录
-  Future<void> _copyImagesParallel(
-    Map<int, String> imageCopies,
+  /// 返回复制失败的 songId 和对应的 mediaId（用于回退到 MediaStore）
+  Future<Map<int, int>> _copyImagesParallel(
+    Map<int, (String, int)> imageCopies,
   ) async {
+    debugPrint('========== _copyImagesParallel 开始 ==========');
+    debugPrint('待复制图片数量: ${imageCopies.length}');
+    debugPrint('SAF 树 URI: $_currentSafTreeUri');
     final db = await _dbHelper.database;
     final batchSize = options.artworkBatchSize;
     final entries = imageCopies.entries.toList();
+    final failedCopies = <int, int>{}; // songId -> mediaId
 
     for (var i = 0; i < entries.length; i += batchSize) {
-      if (isCancelled) break;
+      if (isCancelled) {
+        debugPrint('扫描已取消，停止复制图片');
+        break;
+      }
 
       final batch = entries.sublist(
         i,
         (i + batchSize < entries.length) ? i + batchSize : entries.length,
       );
 
+      debugPrint('处理批次: ${batch.length} 张图片');
+
       final results = await Future.wait(
         batch.map((entry) async {
+          final sourcePath = entry.value.$1;
+          final mediaId = entry.value.$2;
+          debugPrint('复制图片: songId=${entry.key}, source=$sourcePath, mediaId=$mediaId');
           final targetPath = await _copyImageToPrivateDir(
             entry.key,
-            entry.value,
+            sourcePath,
+            _currentSafTreeUri,
           );
-          return (songId: entry.key, targetPath: targetPath);
+          debugPrint('复制结果: songId=${entry.key}, targetPath=$targetPath');
+          return (songId: entry.key, targetPath: targetPath, mediaId: mediaId);
         }),
       );
 
       // 批量更新封面路径
       final updateBatch = db.batch();
+      int updateCount = 0;
       for (final result in results) {
         if (result.targetPath != null) {
+          debugPrint('更新数据库封面路径: songId=${result.songId}, path=${result.targetPath}');
           updateBatch.update(
             DatabaseHelper.tableSongs,
             {
@@ -864,10 +928,22 @@ class MobileMusicScanner extends PlatformMusicScanner {
             where: 'id = ?',
             whereArgs: [result.songId],
           );
+          updateCount++;
+        } else {
+          // 复制失败，记录 mediaId 以便回退到 MediaStore
+          debugPrint('同名图片复制失败，将回退到 MediaStore: songId=${result.songId}, mediaId=${result.mediaId}');
+          failedCopies[result.songId] = result.mediaId;
         }
       }
-      await updateBatch.commit(noResult: true);
+      if (updateCount > 0) {
+        await updateBatch.commit(noResult: true);
+        debugPrint('批量更新封面路径完成: $updateCount 条');
+      }
     }
+    debugPrint('========== _copyImagesParallel 完成 ==========');
+    debugPrint('复制成功: ${imageCopies.length - failedCopies.length} 首');
+    debugPrint('复制失败，需回退到 MediaStore: ${failedCopies.length} 首');
+    return failedCopies;
   }
 
   /// 递归扫描目录（同时构建歌词缓存）
