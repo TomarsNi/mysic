@@ -27,9 +27,9 @@ class MobileMusicScanner extends PlatformMusicScanner {
   /// 封面缓存目录路径
   String? _albumArtDirectory;
 
-  /// 待复制的同名图片（songId -> (sourceImagePath, mediaId)）
-  /// 用于在事务外处理图片复制，失败时回退到 MediaStore
-  final Map<int, (String, int)> _pendingImageCopies = {};
+  /// 待处理的封面信息（songId -> (filePath, sourceImagePath, mediaId)）
+  /// 用于按优先级处理：内嵌封面 > 同名图片 > MediaStore
+  final Map<int, (String, String?, int)> _pendingArtworkInfo = {};
 
   /// 当前扫描的 SAF 树 URI（用于读取同名图片）
   String? _currentSafTreeUri;
@@ -269,6 +269,31 @@ class MobileMusicScanner extends PlatformMusicScanner {
     }
   }
 
+  /// 从音频文件提取内嵌封面并保存到私有目录
+  ///
+  /// [songId] 歌曲ID
+  /// [filePath] 音频文件路径
+  /// 返回保存的封面路径，失败返回 null
+  Future<String?> _extractAndSaveEmbeddedArtwork(int songId, String filePath) async {
+    try {
+      final artworkBytes = await MetadataExtractor.extractArtwork(filePath);
+      if (artworkBytes == null || artworkBytes.isEmpty) {
+        return null;
+      }
+
+      final artDir = await _ensureAlbumArtDirectory();
+      final targetPath = '$artDir/$songId.jpg';
+      final file = File(targetPath);
+      await file.writeAsBytes(artworkBytes);
+
+      debugPrint('内嵌封面保存成功: $targetPath (${artworkBytes.length} bytes)');
+      return targetPath;
+    } catch (e) {
+      debugPrint('提取内嵌封面失败: $filePath, error=$e');
+      return null;
+    }
+  }
+
   /// 获取歌曲封面并保存为文件
   ///
   /// [songId] 数据库歌曲 ID
@@ -339,7 +364,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
     resetCancel();
     _lyricsCache.clear();
     _imageCache.clear();
-    _pendingImageCopies.clear();
+    _pendingArtworkInfo.clear();
 
     try {
       // 检查权限
@@ -503,7 +528,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
     final stopwatch = Stopwatch()..start();
     resetCancel();
-    _pendingImageCopies.clear();
+    _pendingArtworkInfo.clear();
     _currentSafTreeUri = null;
 
     try {
@@ -662,8 +687,6 @@ class MobileMusicScanner extends PlatformMusicScanner {
     int duplicates = 0;
     int filtered = 0;
     final newSongIds = <int>[];
-    // 记录 songId 和 mediaId 的映射关系，用于后续获取封面
-    final songMediaIdMap = <int, int>{};
     final now = DateTime.now();
     final nowIso = now.toIso8601String();
 
@@ -761,10 +784,6 @@ class MobileMusicScanner extends PlatformMusicScanner {
             }
           }
 
-          if (sourceImagePath == null) {
-            debugPrint('未找到同名图片，将从 MediaStore 获取封面');
-          }
-
           // 先插入歌曲（album_art_path 暂时为 null）
           final songId = await txn.insert(
             DatabaseHelper.tableSongs,
@@ -783,47 +802,67 @@ class MobileMusicScanner extends PlatformMusicScanner {
           debugPrint('插入歌曲: id=$songId, title=$title, sourceImagePath=$sourceImagePath');
           newSongIds.add(songId);
 
-          // 如果有同名图片，记录需要复制（事务外执行）
-          // 同时保存 mediaId，以便复制失败时回退到 MediaStore
-          if (sourceImagePath != null) {
-            // 将图片路径和 mediaId 暂存，事务外复制
-            _pendingImageCopies[songId] = (sourceImagePath, mediaSong.id);
-          } else {
-            // 没有同名图片，直接从 MediaStore 获取封面
-            songMediaIdMap[songId] = mediaSong.id;
-          }
+          // 记录封面信息，用于事务外按优先级处理：内嵌 > 同名图片 > MediaStore
+          _pendingArtworkInfo[songId] = (filePath, sourceImagePath, mediaSong.id);
           newAdded++;
         }
       }
     });
 
-    // 调试：事务结束后检查 _pendingImageCopies
-    debugPrint('========== 事务结束，检查 _pendingImageCopies ==========');
-    debugPrint('_pendingImageCopies 数量: ${_pendingImageCopies.length}');
+    // 调试：事务结束后检查 _pendingArtworkInfo
+    debugPrint('========== 事务结束，检查 _pendingArtworkInfo ==========');
+    debugPrint('_pendingArtworkInfo 数量: ${_pendingArtworkInfo.length}');
     debugPrint('isCancelled: $isCancelled');
-    for (final entry in _pendingImageCopies.entries) {
-      debugPrint('待复制: songId=${entry.key}, path=${entry.value.$1}, mediaId=${entry.value.$2}');
+    for (final entry in _pendingArtworkInfo.entries) {
+      final (filePath, sourceImagePath, mediaId) = entry.value;
+      debugPrint('待处理封面: songId=${entry.key}, filePath=$filePath, sourceImagePath=$sourceImagePath, mediaId=$mediaId');
     }
 
-    // 4. 复制同名图片到私有目录（事务外执行）
-    if (!isCancelled && _pendingImageCopies.isNotEmpty) {
-      debugPrint('开始复制同名图片，共 ${_pendingImageCopies.length} 首');
-      final failedCopies = await _copyImagesParallel(_pendingImageCopies);
-      _pendingImageCopies.clear();
-      debugPrint('同名图片复制完成');
+    // 4. 按优先级处理封面：内嵌 > 同名图片 > MediaStore
+    if (!isCancelled && _pendingArtworkInfo.isNotEmpty) {
+      debugPrint('开始处理封面，共 ${_pendingArtworkInfo.length} 首');
+      final stillNeedMediaStore = <int, int>{}; // songId -> mediaId
 
-      // 将复制失败的歌曲添加到 songMediaIdMap，以便通过 MediaStore 获取封面
-      if (failedCopies.isNotEmpty) {
-        debugPrint('将复制失败的歌曲添加到 MediaStore 封面获取队列: ${failedCopies.length} 首');
-        songMediaIdMap.addAll(failedCopies);
+      for (final entry in _pendingArtworkInfo.entries) {
+        if (isCancelled) break;
+
+        final songId = entry.key;
+        final (filePath, sourceImagePath, mediaId) = entry.value;
+
+        // 优先级 1: 内嵌封面
+        String? savedPath = await _extractAndSaveEmbeddedArtwork(songId, filePath);
+
+        // 优先级 2: 同名图片
+        if (savedPath == null && sourceImagePath != null) {
+          savedPath = await _copyImageToPrivateDir(songId, sourceImagePath, _currentSafTreeUri);
+        }
+
+        // 更新数据库
+        if (savedPath != null) {
+          await db.update(
+            DatabaseHelper.tableSongs,
+            {
+              'album_art_path': savedPath,
+              'updated_at': DateTime.now().toIso8601String(),
+            },
+            where: 'id = ?',
+            whereArgs: [songId],
+          );
+          debugPrint('封面更新成功: songId=$songId, path=$savedPath');
+        } else {
+          // 优先级 3: MediaStore（稍后批量处理）
+          stillNeedMediaStore[songId] = mediaId;
+        }
       }
-    }
 
-    // 5. 并行获取封面（事务外执行，仅处理没有同名图片的歌曲）
-    if (!isCancelled && songMediaIdMap.isNotEmpty) {
-      debugPrint('开始并行获取封面，共 ${songMediaIdMap.length} 首');
-      await _fetchArtworksParallel(songMediaIdMap);
-      debugPrint('封面获取完成');
+      _pendingArtworkInfo.clear();
+
+      // 5. 批量从 MediaStore 获取封面
+      if (!isCancelled && stillNeedMediaStore.isNotEmpty) {
+        debugPrint('开始从 MediaStore 获取封面，共 ${stillNeedMediaStore.length} 首');
+        await _fetchArtworksParallel(stillNeedMediaStore);
+        debugPrint('MediaStore 封面获取完成');
+      }
     }
 
     debugPrint('MediaStore扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered');
@@ -870,80 +909,6 @@ class MobileMusicScanner extends PlatformMusicScanner {
       }
       await updateBatch.commit(noResult: true);
     }
-  }
-
-  /// 并行复制同名图片到私有目录
-  /// 返回复制失败的 songId 和对应的 mediaId（用于回退到 MediaStore）
-  Future<Map<int, int>> _copyImagesParallel(
-    Map<int, (String, int)> imageCopies,
-  ) async {
-    debugPrint('========== _copyImagesParallel 开始 ==========');
-    debugPrint('待复制图片数量: ${imageCopies.length}');
-    debugPrint('SAF 树 URI: $_currentSafTreeUri');
-    final db = await _dbHelper.database;
-    final batchSize = options.artworkBatchSize;
-    final entries = imageCopies.entries.toList();
-    final failedCopies = <int, int>{}; // songId -> mediaId
-
-    for (var i = 0; i < entries.length; i += batchSize) {
-      if (isCancelled) {
-        debugPrint('扫描已取消，停止复制图片');
-        break;
-      }
-
-      final batch = entries.sublist(
-        i,
-        (i + batchSize < entries.length) ? i + batchSize : entries.length,
-      );
-
-      debugPrint('处理批次: ${batch.length} 张图片');
-
-      final results = await Future.wait(
-        batch.map((entry) async {
-          final sourcePath = entry.value.$1;
-          final mediaId = entry.value.$2;
-          debugPrint('复制图片: songId=${entry.key}, source=$sourcePath, mediaId=$mediaId');
-          final targetPath = await _copyImageToPrivateDir(
-            entry.key,
-            sourcePath,
-            _currentSafTreeUri,
-          );
-          debugPrint('复制结果: songId=${entry.key}, targetPath=$targetPath');
-          return (songId: entry.key, targetPath: targetPath, mediaId: mediaId);
-        }),
-      );
-
-      // 批量更新封面路径
-      final updateBatch = db.batch();
-      int updateCount = 0;
-      for (final result in results) {
-        if (result.targetPath != null) {
-          debugPrint('更新数据库封面路径: songId=${result.songId}, path=${result.targetPath}');
-          updateBatch.update(
-            DatabaseHelper.tableSongs,
-            {
-              'album_art_path': result.targetPath,
-              'updated_at': DateTime.now().toIso8601String(),
-            },
-            where: 'id = ?',
-            whereArgs: [result.songId],
-          );
-          updateCount++;
-        } else {
-          // 复制失败，记录 mediaId 以便回退到 MediaStore
-          debugPrint('同名图片复制失败，将回退到 MediaStore: songId=${result.songId}, mediaId=${result.mediaId}');
-          failedCopies[result.songId] = result.mediaId;
-        }
-      }
-      if (updateCount > 0) {
-        await updateBatch.commit(noResult: true);
-        debugPrint('批量更新封面路径完成: $updateCount 条');
-      }
-    }
-    debugPrint('========== _copyImagesParallel 完成 ==========');
-    debugPrint('复制成功: ${imageCopies.length - failedCopies.length} 首');
-    debugPrint('复制失败，需回退到 MediaStore: ${failedCopies.length} 首');
-    return failedCopies;
   }
 
   /// 递归扫描目录（同时构建歌词缓存）
