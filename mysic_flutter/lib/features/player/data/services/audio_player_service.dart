@@ -211,8 +211,18 @@ class AudioPlayerService {
   /// 播放歌曲
   Future<void> playSong(Song song) async {
     try {
+      debugPrint('========== AudioPlayerService.playSong ==========');
+      debugPrint('歌曲: ${song.title}');
       _updateState(MysicPlayerState.loading);
       _currentSong = song;
+
+      // 更新 currentIndex（在播放列表中查找歌曲位置）
+      final index = _playlist.indexWhere((s) => s.filePath == song.filePath);
+      if (index >= 0) {
+        _currentIndex = index;
+        debugPrint('更新 currentIndex: $_currentIndex');
+      }
+
       _currentSongController.add(_currentSong);
 
       if (Platform.isAndroid || Platform.isIOS) {
@@ -438,7 +448,6 @@ class AudioPlayerService {
     _updateState(MysicPlayerState.loading);
 
     if (Platform.isAndroid || Platform.isIOS) {
-      // 同步更新 AudioHandler 的索引（不触发播放，仅同步状态）
       _audioHandler?.updateCurrentIndex(index);
       await _justAudioPlayer!.stop();
       await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
@@ -519,8 +528,6 @@ class AudioPlayerService {
 
   /// 处理 AudioHandler 切歌回调（锁屏控制）
   void _handleSongChangedFromHandler(Song song, int index) {
-    debugPrint('========== _handleSongChangedFromHandler ==========');
-    debugPrint('歌曲: ${song.title}, 索引: $index');
     _currentSong = song;
     _currentIndex = index;
     _currentSongController.add(_currentSong);

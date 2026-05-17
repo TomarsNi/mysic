@@ -144,6 +144,7 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
     debugPrint('new currentIndex: $_currentIndex');
     await _playCurrentSong();
     // 通知 AudioPlayerService 同步状态
+    debugPrint('调用 onSongChanged: currentIndex=$_currentIndex');
     onSongChanged?.call(currentSong!, _currentIndex);
     debugPrint('========== MysicAudioHandler.skipToNext 完成 ==========');
   }
@@ -197,11 +198,11 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
   }
 
   /// 更新当前索引（不播放，仅同步状态）
+/// 注意：此方法由 AudioPlayerService 调用，不需要回调 onSongChanged
+/// 因为 AudioPlayerService 已经正确设置了索引
   void updateCurrentIndex(int index) {
     if (index < 0 || index >= _playlist.length) return;
     _currentIndex = index;
-    debugPrint('========== updateCurrentIndex ==========');
-    debugPrint('新索引: $_currentIndex, 歌曲: ${_playlist[_currentIndex].title}');
   }
 
   /// 更新播放列表

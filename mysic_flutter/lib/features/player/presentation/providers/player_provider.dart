@@ -196,7 +196,10 @@ class PlayerProvider extends ChangeNotifier {
   Duration get position => _position;
   Duration? get duration => _duration;
   List<Song> get playlist => List.unmodifiable(_playlist);
-  int get currentIndex => _currentIndex;
+  int get currentIndex {
+    debugPrint('========== PlayerProvider.currentIndex getter: $_currentIndex ==========');
+    return _currentIndex;
+  }
   bool get isShuffleMode => _isShuffleMode;
   MysicLoopMode get loopMode => _loopMode;
   bool get isScanning => _isScanning;
@@ -268,8 +271,12 @@ class PlayerProvider extends ChangeNotifier {
 
   /// 播放歌曲
   Future<void> playSong(Song song) async {
+    debugPrint('========== PlayerProvider.playSong: ${song.title} ==========');
     await _audioPlayerService.playSong(song);
     _currentSong = song;
+    // 同步 currentIndex
+    _currentIndex = _audioPlayerService.currentIndex;
+    debugPrint('PlayerProvider.playSong 后 currentIndex: $_currentIndex');
     notifyListeners();
   }
 
@@ -372,7 +379,7 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> seekToIndex(int index) async {
     if (index < 0 || index >= _playlist.length) return;
     await _audioPlayerService.seekToIndex(index);
-    _currentIndex = index;
+    _currentIndex = _audioPlayerService.currentIndex;
     notifyListeners();
   }
 
