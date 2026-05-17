@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../core/database/database_helper.dart';
 import '../../features/player/data/models/song.dart';
 import 'image_cache.dart';
@@ -19,6 +20,9 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
   /// 图片文件缓存
   final ImageCache _imageCache = ImageCache();
+
+  /// 封面缓存目录路径
+  String? _albumArtDirectory;
 
   /// 最小时长（秒）- 2分45秒 = 165秒
   static const int _minDurationSec = 165;
@@ -107,6 +111,43 @@ class WindowsMusicScanner extends PlatformMusicScanner {
   bool _isImageFile(String extension) {
     const imageExts = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
     return imageExts.any((ext) => extension.endsWith(ext));
+  }
+
+  /// 获取或创建封面缓存目录
+  Future<String> _ensureAlbumArtDirectory() async {
+    if (_albumArtDirectory != null) {
+      return _albumArtDirectory!;
+    }
+
+    final appDir = await getApplicationDocumentsDirectory();
+    final artDir = Directory('${appDir.path}/album_art');
+    if (!await artDir.exists()) {
+      await artDir.create(recursive: true);
+    }
+    _albumArtDirectory = artDir.path;
+    return _albumArtDirectory!;
+  }
+
+  /// 保存封面到私有目录
+  ///
+  /// [songId] 歌曲ID
+  /// [artworkBytes] 封面图片字节数据
+  /// 返回保存的文件路径
+  Future<String?> _saveArtworkToFile(int songId, Uint8List artworkBytes) async {
+    try {
+      if (artworkBytes.isEmpty) return null;
+
+      final artDir = await _ensureAlbumArtDirectory();
+      final filePath = '$artDir/$songId.jpg';
+      final file = File(filePath);
+      await file.writeAsBytes(artworkBytes);
+
+      debugPrint('内嵌封面保存成功: $filePath (${artworkBytes.length} bytes)');
+      return filePath;
+    } catch (e) {
+      debugPrint('保存封面失败: songId=$songId, error=$e');
+      return null;
+    }
   }
 
   @override
@@ -572,7 +613,9 @@ class WindowsMusicScanner extends PlatformMusicScanner {
         .toSet();
 
     // 3. 过滤并准备批量插入数据
+    // 同时记录每个插入项对应的文件路径，用于后续封面提取
     final songsToInsert = <Map<String, dynamic>>[];
+    final filePathsToInsert = <String>[];
 
     for (final metadata in metadataList) {
       if (isCancelled) break;
@@ -619,6 +662,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
           'created_at': nowIso,
           'updated_at': nowIso,
         });
+        filePathsToInsert.add(filePath);
       }
     }
 
@@ -633,11 +677,65 @@ class WindowsMusicScanner extends PlatformMusicScanner {
         newSongIds.addAll(results.cast<int>());
         newAdded = newSongIds.length;
       });
+
+      // 5. 提取内嵌封面（优先级：内嵌封面 > 同名图片文件）
+      if (newSongIds.isNotEmpty) {
+        await _extractAndSaveEmbeddedArtwork(newSongIds, filePathsToInsert);
+      }
     }
 
     debugPrint(
         'Windows扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered, skipped=$skipped');
     return {'newAdded': newAdded, 'duplicates': duplicates, 'newSongIds': newSongIds};
+  }
+
+  /// 提取并保存内嵌封面
+  ///
+  /// 遍历新插入的歌曲，提取内嵌封面并保存到私有目录
+  /// 如果有内嵌封面，更新数据库中的 album_art_path
+  Future<void> _extractAndSaveEmbeddedArtwork(
+    List<int> songIds,
+    List<String> filePaths,
+  ) async {
+    if (songIds.length != filePaths.length) {
+      debugPrint('警告: songIds 和 filePaths 长度不匹配');
+      return;
+    }
+
+    final db = await _dbHelper.database;
+    int embeddedCount = 0;
+
+    for (int i = 0; i < songIds.length; i++) {
+      if (isCancelled) break;
+
+      final songId = songIds[i];
+      final filePath = filePaths[i];
+
+      try {
+        // 提取内嵌封面
+        final artworkBytes = await MetadataExtractor.extractArtwork(filePath);
+        if (artworkBytes != null && artworkBytes.isNotEmpty) {
+          // 保存到私有目录
+          final savedPath = await _saveArtworkToFile(songId, artworkBytes);
+          if (savedPath != null) {
+            // 更新数据库
+            await db.update(
+              DatabaseHelper.tableSongs,
+              {'album_art_path': savedPath},
+              where: 'id = ?',
+              whereArgs: [songId],
+            );
+            embeddedCount++;
+          }
+        }
+      } catch (e) {
+        debugPrint('提取内嵌封面失败: songId=$songId, filePath=$filePath, error=$e');
+      }
+    }
+
+    if (embeddedCount > 0) {
+      debugPrint('内嵌封面提取完成: $embeddedCount 首歌曲');
+    }
   }
 
   @override
