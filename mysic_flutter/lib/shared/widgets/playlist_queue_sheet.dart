@@ -4,7 +4,7 @@ import '../../features/player/data/models/song.dart';
 
 /// 播放队列底部弹窗
 /// 展示当前播放歌单的歌曲列表，用户可点击歌曲切换播放
-class PlaylistQueueSheet extends StatelessWidget {
+class PlaylistQueueSheet extends StatefulWidget {
   /// 歌曲列表
   final List<Song> songs;
 
@@ -28,6 +28,54 @@ class PlaylistQueueSheet extends StatelessWidget {
     this.scrollController,
     required this.onSongTap,
   });
+
+  @override
+  State<PlaylistQueueSheet> createState() => _PlaylistQueueSheetState();
+}
+
+class _PlaylistQueueSheetState extends State<PlaylistQueueSheet> {
+  late final ScrollController _internalScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _internalScrollController = ScrollController();
+    _scrollToCurrentSong();
+  }
+
+  void _scrollToCurrentSong() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.songs.isEmpty) return;
+      if (widget.currentIndex < 0 || widget.currentIndex >= widget.songs.length) return;
+
+      const itemHeight = 64.0;
+      final targetOffset = widget.currentIndex * itemHeight;
+      final maxOffset = _internalScrollController.position.maxScrollExtent;
+
+      _internalScrollController.animateTo(
+        targetOffset.clamp(0.0, maxOffset),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
+  void didUpdateWidget(PlaylistQueueSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentIndex != widget.currentIndex) {
+      _scrollToCurrentSong();
+    }
+  }
+
+  @override
+  void dispose() {
+    _internalScrollController.dispose();
+    super.dispose();
+  }
+
+  ScrollController get _effectiveScrollController =>
+      widget.scrollController ?? _internalScrollController;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +104,7 @@ class PlaylistQueueSheet extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  playlistName,
+                  widget.playlistName,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -74,7 +122,7 @@ class PlaylistQueueSheet extends StatelessWidget {
 
           // 歌曲列表
           Flexible(
-            child: songs.isEmpty
+            child: widget.songs.isEmpty
                 ? const Center(
                     child: Text(
                       '播放列表为空',
@@ -82,14 +130,14 @@ class PlaylistQueueSheet extends StatelessWidget {
                     ),
                   )
                 : ListView.builder(
-                    controller: scrollController,
+                    controller: _effectiveScrollController,
                     shrinkWrap: true,
-                    itemCount: songs.length,
+                    itemCount: widget.songs.length,
                     itemBuilder: (context, index) {
                       return _SongListTile(
-                        song: songs[index],
-                        isPlaying: index == currentIndex,
-                        onTap: () => onSongTap(index),
+                        song: widget.songs[index],
+                        isPlaying: index == widget.currentIndex,
+                        onTap: () => widget.onSongTap(index),
                       );
                     },
                   ),
