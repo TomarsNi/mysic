@@ -1,13 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/song.dart';
 
 /// 专辑封面组件
-/// 圆形专辑封面，带脉冲发光动画效果
-class AlbumCover extends StatefulWidget {
+/// 圆形专辑封面
+class AlbumCover extends StatelessWidget {
   final Song? song;
   final double size;
   final bool isPlaying;
@@ -22,169 +21,92 @@ class AlbumCover extends StatefulWidget {
   });
 
   @override
-  State<AlbumCover> createState() => _AlbumCoverState();
-}
-
-class _AlbumCoverState extends State<AlbumCover>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _glowAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3000), // 设计稿要求 3s
-    );
-
-    // glow 动画用于 box-shadow 变化
-    _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeInOut,
-      ),
-    );
-
-    if (widget.isPlaying) {
-      _animationController.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void didUpdateWidget(AlbumCover oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isPlaying != oldWidget.isPlaying) {
-      if (widget.isPlaying) {
-        _animationController.repeat(reverse: true);
-      } else {
-        _animationController.stop();
-        _animationController.reset();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // 设计稿：播放时静态 scale(1.08)
+    final coverRadius = size / 2;
+
     return Transform.scale(
-      scale: widget.isPlaying ? 1.08 : 1.0,
-      child: AnimatedBuilder(
-        animation: _glowAnimation,
-        builder: (context, child) {
-          return _buildCover(_glowAnimation.value);
-        },
-      ),
-    );
-  }
-
-  Widget _buildCover(double glowValue) {
-    final coverRadius = widget.size / 2;
-
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // vinyl-ring 外层边框环 (设计稿 inset: -8px)
-        Container(
-          width: widget.size + 16,
-          height: widget.size + 16,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.05),
-              width: 2,
+      scale: isPlaying ? 1.08 : 1.0,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // vinyl-ring 外层边框环
+          Container(
+            width: size + 16,
+            height: size + 16,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.05),
+                width: 2,
+              ),
             ),
           ),
-        ),
-        // vinyl-ring 内层边框环 (设计稿 ::before inset: -4px)
-        Container(
-          width: widget.size + 8,
-          height: widget.size + 8,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.03),
-              width: 1,
+          // vinyl-ring 内层边框环
+          Container(
+            width: size + 8,
+            height: size + 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.03),
+                width: 1,
+              ),
             ),
           ),
-        ),
-        // 主封面
-        Container(
-          width: widget.size,
-          height: widget.size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: widget.showGlow && widget.isPlaying
-                ? [
-                    // 设计稿 pulse-glow 动画的 base shadow
-                    // CSS: 0 25px 50px -12px rgba(0, 0, 0, 0.5)
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      offset: const Offset(0, 25), // 设计稿 offset-y: 25px
-                      blurRadius: 50, // 设计稿 blur: 50px
-                      spreadRadius: -12, // 设计稿 spread: -12px
-                    ),
-                    // glow 效果随动画变化
-                    // 设计稿: 0% 时 0 0 60px -20px rgba(accent, 0.2)
-                    //         50% 时 0 0 80px -15px rgba(accent, 0.4)
-                    BoxShadow(
-                      color: AppColors.accent.withValues(
-                        alpha: 0.2 + glowValue * 0.2, // 0.2 → 0.4
+          // 主封面
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: showGlow && isPlaying
+                  ? [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        offset: const Offset(0, 25),
+                        blurRadius: 50,
+                        spreadRadius: -12,
                       ),
-                      blurRadius: 60 + glowValue * 20, // 60 → 80
-                      spreadRadius: -20 + glowValue * 5, // -20 → -15
-                    ),
-                  ]
-                : [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    ),
-                  ],
+                      BoxShadow(
+                        color: AppColors.accent.withValues(alpha: 0.3),
+                        blurRadius: 70,
+                        spreadRadius: -17,
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
+                    ],
+            ),
+            child: ClipOval(
+              child: _buildCoverImage(coverRadius),
+            ),
           ),
-          child: ClipOval(
-            child: _buildCoverImage(coverRadius),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildCoverImage(double radius) {
-    // 调试日志
-    debugPrint('AlbumCover._buildCoverImage: song=${widget.song?.title}, albumArtPath=${widget.song?.albumArtPath}, albumArtBase64=${widget.song?.albumArtBase64?.length}');
-
     // 优先使用同名图片文件（albumArtPath）
-    if (widget.song?.albumArtPath != null &&
-        widget.song!.albumArtPath!.isNotEmpty) {
-      final file = File(widget.song!.albumArtPath!);
-      debugPrint('AlbumCover: 检查图片文件 ${file.path}, 存在=${file.existsSync()}');
+    if (song?.albumArtPath != null && song!.albumArtPath!.isNotEmpty) {
+      final file = File(song!.albumArtPath!);
       if (file.existsSync()) {
-        debugPrint('AlbumCover: 使用同名图片文件');
         return Image.file(
           file,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            debugPrint('AlbumCover: 图片加载失败 $error');
-            return _buildDefaultCover();
-          },
+          errorBuilder: (context, error, stackTrace) => _buildDefaultCover(),
         );
       }
     }
 
     // 其次使用内嵌封面（albumArtBase64）
-    if (widget.song?.albumArtBase64 != null &&
-        widget.song!.albumArtBase64!.isNotEmpty) {
+    if (song?.albumArtBase64 != null && song!.albumArtBase64!.isNotEmpty) {
       try {
-        debugPrint('AlbumCover: 使用内嵌封面');
-        final bytes = base64Decode(widget.song!.albumArtBase64!);
+        final bytes = base64Decode(song!.albumArtBase64!);
         return Image.memory(
           bytes,
           fit: BoxFit.cover,
@@ -195,7 +117,6 @@ class _AlbumCoverState extends State<AlbumCover>
       }
     }
 
-    debugPrint('AlbumCover: 使用默认封面');
     return _buildDefaultCover();
   }
 
@@ -208,7 +129,7 @@ class _AlbumCoverState extends State<AlbumCover>
       child: Center(
         child: Icon(
           Icons.music_note_rounded,
-          size: widget.size * 0.4,
+          size: size * 0.4,
           color: AppColors.white,
         ),
       ),

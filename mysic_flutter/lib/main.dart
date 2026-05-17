@@ -12,6 +12,7 @@ import 'core/database/database_helper.dart';
 import 'features/player/presentation/providers/player_provider.dart';
 import 'features/playlist/presentation/providers/playlist_provider.dart';
 import 'features/lyrics/presentation/pages/lyrics_page.dart' show LyricsPage;
+import 'features/lyrics/data/services/lyrics_parser.dart' show LyricLine;
 import 'features/settings/presentation/pages/about_page.dart';
 import 'features/settings/presentation/pages/api_settings_page.dart';
 import 'features/settings/data/scan_options_provider.dart';
@@ -222,9 +223,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildBody(BuildContext context, PlayerProvider playerProvider) {
-    final currentSong = playerProvider.currentSong;
-    final hasSong = currentSong != null;
-
     return SafeArea(
       child: Column(
         children: [
@@ -242,132 +240,164 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     children: [
                       const SizedBox(height: 20),
 
-                      // 专辑封面
+                      // 专辑封面 - 使用 Selector 避免频繁重建
                       Expanded(
                         flex: 3,
                         child: Center(
-                          child: GestureDetector(
-                            onTap: hasSong ? null : _startScan,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                AlbumCover(
-                                  song: currentSong,
-                                  size: 260,
-                                  isPlaying: playerProvider.isPlaying,
-                                ),
-                                // 首次使用引导
-                                if (!hasSong && !_isScanning)
-                                  Positioned(
-                                    bottom: -40,
-                                    child: Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap: _startScan,
-                                        borderRadius: BorderRadius.circular(24),
-                                        child: AnimatedContainer(
-                                          duration: const Duration(milliseconds: 150),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 24,
-                                            vertical: 12,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.accent,
+                          child: Selector<PlayerProvider, (Song?, bool)>(
+                            selector: (_, provider) => (provider.currentSong, provider.isPlaying),
+                            builder: (context, data, _) {
+                              final currentSong = data.$1;
+                              final isPlaying = data.$2;
+                              final hasSong = currentSong != null;
+                              return GestureDetector(
+                                onTap: hasSong ? null : _startScan,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    AlbumCover(
+                                      song: currentSong,
+                                      size: 260,
+                                      isPlaying: isPlaying,
+                                    ),
+                                    // 首次使用引导
+                                    if (!hasSong && !_isScanning)
+                                      Positioned(
+                                        bottom: -40,
+                                        child: Material(
+                                          color: Colors.transparent,
+                                          child: InkWell(
+                                            onTap: _startScan,
                                             borderRadius: BorderRadius.circular(24),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: AppColors.accent.withValues(alpha: 0.3),
-                                                blurRadius: 20,
-                                                spreadRadius: -5,
-                                                offset: const Offset(0, 8),
+                                            child: AnimatedContainer(
+                                              duration: const Duration(milliseconds: 150),
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 24,
+                                                vertical: 12,
                                               ),
-                                            ],
-                                          ),
-                                          child: const Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.folder_open_rounded,
-                                                color: Colors.white,
-                                                size: 20,
+                                              decoration: BoxDecoration(
+                                                color: AppColors.accent,
+                                                borderRadius: BorderRadius.circular(24),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: AppColors.accent.withValues(alpha: 0.3),
+                                                    blurRadius: 20,
+                                                    spreadRadius: -5,
+                                                    offset: const Offset(0, 8),
+                                                  ),
+                                                ],
                                               ),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                '扫描本地音乐',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.folder_open_rounded,
+                                                    color: Colors.white,
+                                                    size: 20,
+                                                  ),
+                                                  SizedBox(width: 8),
+                                                  Text(
+                                                    '扫描本地音乐',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ),
-                              ],
-                            ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),
 
                       const SizedBox(height: 32),
 
-                      // 歌曲信息
+                      // 歌曲信息 - 使用 Selector 避免频繁重建
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: _buildSongInfo(currentSong),
+                        child: Selector<PlayerProvider, Song?>(
+                          selector: (_, provider) => provider.currentSong,
+                          builder: (context, currentSong, _) => _buildSongInfo(currentSong),
+                        ),
                       ),
 
                       const SizedBox(height: 16),
 
-                      // 歌词预览
-                      if (hasSong)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: _buildLyricsPreview(context, playerProvider),
-                        ),
+                      // 歌词预览 - 使用 Selector 避免频繁重建
+                      Selector<PlayerProvider, Song?>(
+                        selector: (_, provider) => provider.currentSong,
+                        builder: (context, currentSong, _) {
+                          if (currentSong == null) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Selector<PlayerProvider, (LyricLine?, LyricLine?)>(
+                              selector: (_, provider) => (provider.currentLyricLine, provider.nextLyricLine),
+                              builder: (context, data, _) => _buildLyricsPreviewStatic(data.$1?.text, data.$2?.text),
+                            ),
+                          );
+                        },
+                      ),
 
                       const SizedBox(height: 24),
                     ],
                   ),
                 ),
 
-                // 进度条 - 无边距，扩展到屏幕边缘
-                ProgressBar(
-                  position: playerProvider.position,
-                  duration: playerProvider.duration,
-                  enabled: playerProvider.hasCurrentSong,
-                  onSeek: (progress) => playerProvider.seekToProgress(progress),
+                // 进度条 - 需要实时更新，直接使用 Consumer
+                Selector<PlayerProvider, (Duration, Duration?, bool)>(
+                  selector: (_, provider) => (provider.position, provider.duration, provider.hasCurrentSong),
+                  builder: (context, data, _) {
+                    return ProgressBar(
+                      position: data.$1,
+                      duration: data.$2,
+                      enabled: data.$3,
+                      onSeek: (progress) => playerProvider.seekToProgress(progress),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 24),
 
-                // 播放控制区域 - 有边距
+                // 播放控制区域 - 使用 Selector 避免频繁重建
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // 播放控制 - 水平居中
-                      PlayControls(
-                        isPlaying: playerProvider.isPlaying,
-                        isLoading: playerProvider.isLoading,
-                        hasPlaylist: playerProvider.hasPlaylist,
-                        onPlayPause: () => playerProvider.togglePlayPause(),
-                        onNext: () => playerProvider.next(),
-                        onPrevious: () => playerProvider.previous(),
-                      ),
-
-                      // 歌单按钮 - 固定右侧，与播放控制垂直对齐
-                      if (playerProvider.hasPlaylist)
-                        Positioned(
-                          right: 0,
-                          child: _PlaylistQueueButton(
-                            onTap: () => _showPlaylistQueue(context),
+                  child: Selector<PlayerProvider, (bool, bool, bool)>(
+                    selector: (_, provider) => (provider.isPlaying, provider.isLoading, provider.hasPlaylist),
+                    builder: (context, data, _) {
+                      final isPlaying = data.$1;
+                      final isLoading = data.$2;
+                      final hasPlaylist = data.$3;
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // 播放控制 - 水平居中
+                          PlayControls(
+                            isPlaying: isPlaying,
+                            isLoading: isLoading,
+                            hasPlaylist: hasPlaylist,
+                            onPlayPause: () => playerProvider.togglePlayPause(),
+                            onNext: () => playerProvider.next(),
+                            onPrevious: () => playerProvider.previous(),
                           ),
-                        ),
-                    ],
+
+                          // 歌单按钮 - 固定右侧，与播放控制垂直对齐
+                          if (hasPlaylist)
+                            Positioned(
+                              right: 0,
+                              child: _PlaylistQueueButton(
+                                onTap: () => _showPlaylistQueue(context),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   ),
                 ),
 
@@ -507,15 +537,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildLyricsPreview(BuildContext context, PlayerProvider provider) {
+  Widget _buildLyricsPreviewStatic(String? currentLyric, String? nextLyric) {
     // 设计稿规范：
     // - 两行歌词：当前行 lg font-medium white，下一行 muted
     // - 左对齐，无背景色
     // - 点击可进入歌词页面
-    final currentLyric = provider.currentLyricLine?.text;
-    final nextLyric = provider.nextLyricLine?.text;
-
-    // 如果没有歌词，显示占位文本
     final displayCurrentLyric = currentLyric ?? '暂无歌词';
     final displayNextLyric = nextLyric ?? '';
 

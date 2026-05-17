@@ -21,6 +21,7 @@ class PlayerProvider extends ChangeNotifier {
   MysicPlayerState _playerState = MysicPlayerState.idle;
   Song? _currentSong;
   Duration _position = Duration.zero;
+  Duration _lastNotifiedPosition = Duration.zero; // 上次通知的位置
   Duration? _duration;
   List<Song> _playlist = [];
   int _currentIndex = -1;
@@ -62,10 +63,15 @@ class PlayerProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    // 监听播放位置变化
+    // 监听播放位置变化（降低更新频率）
     _audioPlayerService.positionStream.listen((position) {
       _position = position;
-      notifyListeners();
+      // 只在位置变化超过 500ms 时才通知 UI
+      final diff = (position - _lastNotifiedPosition).abs();
+      if (diff >= const Duration(milliseconds: 500)) {
+        _lastNotifiedPosition = position;
+        notifyListeners();
+      }
     });
 
     // 监听歌曲时长变化

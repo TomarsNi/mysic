@@ -39,6 +39,7 @@ class AudioPlayerService {
   bool _isShuffleMode = false;
   MysicLoopMode _loopMode = MysicLoopMode.off;
   Duration _position = Duration.zero;
+  Duration _lastSentPosition = Duration.zero; // 上次发送的位置
   Duration? _duration;
 
   // 状态流控制器
@@ -108,10 +109,15 @@ class AudioPlayerService {
       _handleMobilePlayerState(state);
     });
 
-    // 监听播放位置
+    // 监听播放位置（降低发送频率）
     _justAudioPlayer!.positionStream.listen((position) {
       _position = position;
-      _positionController.add(position);
+      // 只在位置变化超过 500ms 时才发送事件
+      final diff = (position - _lastSentPosition).abs();
+      if (diff >= const Duration(milliseconds: 500)) {
+        _lastSentPosition = position;
+        _positionController.add(position);
+      }
     });
 
     // 监听歌曲时长
@@ -171,10 +177,15 @@ class AudioPlayerService {
       }
     });
 
-    // 监听播放位置
+    // 监听播放位置（降低发送频率）
     _audioplayersPlayer!.onPositionChanged.listen((position) {
       _position = position;
-      _positionController.add(position);
+      // 只在位置变化超过 500ms 时才发送事件
+      final diff = (position - _lastSentPosition).abs();
+      if (diff >= const Duration(milliseconds: 500)) {
+        _lastSentPosition = position;
+        _positionController.add(position);
+      }
     });
 
     // 监听歌曲时长
