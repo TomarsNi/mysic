@@ -18,6 +18,10 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
   // 循环模式
   bool _loopMode = false;
 
+  // 位置更新节流
+  Duration _lastPosition = Duration.zero;
+  static const _positionUpdateThreshold = Duration(milliseconds: 500);
+
   MysicAudioHandler(this._player, {this.onSongCompleted, this.onSongChanged}) {
     _init();
   }
@@ -28,10 +32,13 @@ class MysicAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
       _updatePlaybackState();
     });
 
-    // 监听播放位置
+    // 监听播放位置（节流：只在变化超过 500ms 时更新）
     _player.positionStream.listen((position) {
-      // 更新通知栏进度（通过 playbackState）
-      _updatePlaybackState();
+      final diff = (position - _lastPosition).abs();
+      if (diff >= _positionUpdateThreshold) {
+        _lastPosition = position;
+        _updatePlaybackState();
+      }
     });
 
     // 监听歌曲时长

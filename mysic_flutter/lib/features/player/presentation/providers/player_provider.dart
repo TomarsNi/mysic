@@ -21,7 +21,6 @@ class PlayerProvider extends ChangeNotifier {
   MysicPlayerState _playerState = MysicPlayerState.idle;
   Song? _currentSong;
   Duration _position = Duration.zero;
-  Duration _lastNotifiedPosition = Duration.zero; // 上次通知的位置
   Duration? _duration;
   List<Song> _playlist = [];
   int _currentIndex = -1;
@@ -30,6 +29,11 @@ class PlayerProvider extends ChangeNotifier {
 
   // 歌词状态
   LyricsResult _currentLyrics = LyricsResult.empty;
+
+  // 歌词行缓存（避免频繁计算）
+  int _cachedLyricIndex = -1;
+  Duration _lastLyricPosition = Duration.zero;
+  static const _lyricUpdateThreshold = Duration(milliseconds: 200);
 
   // 扫描状态
   bool _isScanning = false;
@@ -63,15 +67,11 @@ class PlayerProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    // 监听播放位置变化（降低更新频率）
+    // 监听播放位置变化
+    // AudioPlayerService 已有 500ms 节流，这里直接使用
     _audioPlayerService.positionStream.listen((position) {
       _position = position;
-      // 只在位置变化超过 500ms 时才通知 UI
-      final diff = (position - _lastNotifiedPosition).abs();
-      if (diff >= const Duration(milliseconds: 500)) {
-        _lastNotifiedPosition = position;
-        notifyListeners();
-      }
+      notifyListeners();
     });
 
     // 监听歌曲时长变化
@@ -83,7 +83,11 @@ class PlayerProvider extends ChangeNotifier {
 
     // 监听当前歌曲变化
     _audioPlayerService.currentSongStream.listen((song) {
+      debugPrint('========== PlayerProvider 收到 currentSongStream 事件: ${song?.title} ==========');
       _currentSong = song;
+      // 同步 currentIndex
+      _currentIndex = _audioPlayerService.currentIndex;
+      debugPrint('========== PlayerProvider 同步 currentIndex: $_currentIndex ==========');
       // 保存最后播放的歌曲 ID
       if (song?.id != null) {
         PlayModePreference.saveLastSongId(song!.id!);
@@ -112,6 +116,10 @@ class PlayerProvider extends ChangeNotifier {
 
   /// 加载当前歌曲的歌词
   Future<void> _loadLyricsForSong(Song? song) async {
+    // 重置歌词缓存
+    _cachedLyricIndex = -1;
+    _lastLyricPosition = Duration.zero;
+
     if (song == null) {
       _currentLyrics = LyricsResult.empty;
       return;
@@ -205,16 +213,36 @@ class PlayerProvider extends ChangeNotifier {
   bool get hasPlaylist => _playlist.isNotEmpty;
   bool get hasLyrics => _currentLyrics.isValid;
 
-  /// 获取当前歌词行
+  /// 获取当前歌词行（带缓存）
+  /// 只在位置变化超过阈值时才重新计算
   LyricLine? get currentLyricLine {
     if (!_currentLyrics.isValid) return null;
-    return _currentLyrics.getCurrentLine(_position);
+
+    // 检查是否需要重新计算
+    final diff = (_position - _lastLyricPosition).abs();
+    if (diff < _lyricUpdateThreshold && _cachedLyricIndex >= 0) {
+      // 使用缓存，不重新计算
+      if (_cachedLyricIndex < _currentLyrics.lines.length) {
+        return _currentLyrics.lines[_cachedLyricIndex];
+      }
+    }
+
+    // 重新计算并缓存
+    _lastLyricPosition = _position;
+    _cachedLyricIndex = _currentLyrics.getCurrentLineIndex(_position);
+    if (_cachedLyricIndex < 0 || _cachedLyricIndex >= _currentLyrics.lines.length) {
+      return null;
+    }
+    return _currentLyrics.lines[_cachedLyricIndex];
   }
 
-  /// 获取下一行歌词
+  /// 获取下一行歌词（使用缓存的索引）
   LyricLine? get nextLyricLine {
     if (!_currentLyrics.isValid) return null;
-    final currentIndex = _currentLyrics.getCurrentLineIndex(_position);
+    // 使用缓存的索引，避免重复计算
+    final currentIndex = _cachedLyricIndex >= 0
+        ? _cachedLyricIndex
+        : _currentLyrics.getCurrentLineIndex(_position);
     if (currentIndex < 0 || currentIndex >= _currentLyrics.lines.length - 1) return null;
     return _currentLyrics.lines[currentIndex + 1];
   }
