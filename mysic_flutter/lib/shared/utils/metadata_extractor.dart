@@ -48,6 +48,37 @@ class MetadataExtractor {
     return _extractWithAudiotags(filePath);
   }
 
+  /// 从音频文件提取内嵌封面
+  ///
+  /// [filePath] 音频文件路径
+  /// 返回封面图片字节数据，无封面返回 null
+  static Future<Uint8List?> extractArtwork(String filePath) async {
+    final extension = filePath.toLowerCase();
+
+    // WAV 文件：RIFF INFO 不包含封面，直接返回 null
+    if (extension.endsWith('.wav')) {
+      return null;
+    }
+
+    // 其他格式使用 audiotags 提取
+    try {
+      final tag = await AudioTags.read(filePath);
+      if (tag != null && tag.pictures.isNotEmpty) {
+        // 优先查找 front cover，否则使用第一张图片
+        for (final picture in tag.pictures) {
+          if (picture.pictureType == PictureType.coverFront) {
+            return picture.bytes;
+          }
+        }
+        // 没有 front cover，使用第一张图片
+        return tag.pictures.first.bytes;
+      }
+    } catch (e) {
+      debugPrint('提取内嵌封面失败: $filePath, 错误: $e');
+    }
+    return null;
+  }
+
   /// 提取 WAV 文件元数据（纯 Dart RIFF INFO 解析）
   static Future<AudioMetadata?> _extractWavMetadata(String filePath) async {
     final riffMetadata = await WavMetadataParser.parse(filePath);
