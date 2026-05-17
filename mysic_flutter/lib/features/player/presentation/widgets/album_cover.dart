@@ -5,92 +5,42 @@ import '../../../../core/theme/app_colors.dart';
 import '../../data/models/song.dart';
 
 /// 专辑封面组件
-/// 圆形专辑封面
+/// 正方形专辑封面，带圆角
 class AlbumCover extends StatelessWidget {
   final Song? song;
   final double size;
   final bool isPlaying;
-  final bool showGlow;
 
   const AlbumCover({
     super.key,
     required this.song,
     this.size = 200,
     this.isPlaying = false,
-    this.showGlow = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final coverRadius = size / 2;
-
-    return Transform.scale(
-      scale: isPlaying ? 1.08 : 1.0,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // vinyl-ring 外层边框环
-          Container(
-            width: size + 16,
-            height: size + 16,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.05),
-                width: 2,
-              ),
-            ),
-          ),
-          // vinyl-ring 内层边框环
-          Container(
-            width: size + 8,
-            height: size + 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.03),
-                width: 1,
-              ),
-            ),
-          ),
-          // 主封面
-          Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: showGlow && isPlaying
-                  ? [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        offset: const Offset(0, 25),
-                        blurRadius: 50,
-                        spreadRadius: -12,
-                      ),
-                      BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.3),
-                        blurRadius: 70,
-                        spreadRadius: -17,
-                      ),
-                    ]
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      ),
-                    ],
-            ),
-            child: ClipOval(
-              child: _buildCoverImage(coverRadius),
-            ),
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 20,
+            spreadRadius: 2,
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: _buildCoverImage(),
       ),
     );
   }
 
-  Widget _buildCoverImage(double radius) {
+  Widget _buildCoverImage() {
     // 优先使用同名图片文件（albumArtPath）
     if (song?.albumArtPath != null && song!.albumArtPath!.isNotEmpty) {
       final file = File(song!.albumArtPath!);
@@ -124,7 +74,6 @@ class AlbumCover extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: AppColors.accentGradient,
-        shape: BoxShape.circle,
       ),
       child: Center(
         child: Icon(
