@@ -666,15 +666,15 @@ class WindowsMusicScanner extends PlatformMusicScanner {
       }
     }
 
-    // 4. 批量插入
+    // 4. 批量插入（使用逐条插入确保 ID 顺序对应）
     if (songsToInsert.isNotEmpty) {
       await db.transaction((txn) async {
-        final batch = txn.batch();
-        for (final songData in songsToInsert) {
-          batch.insert(DatabaseHelper.tableSongs, songData);
+        for (int i = 0; i < songsToInsert.length; i++) {
+          final songData = songsToInsert[i];
+          final songId = await txn.insert(DatabaseHelper.tableSongs, songData);
+          newSongIds.add(songId);
+          // 现在 songId 确定对应 filePathsToInsert[i]
         }
-        final results = await batch.commit(noResult: false);
-        newSongIds.addAll(results.cast<int>());
         newAdded = newSongIds.length;
       });
 
