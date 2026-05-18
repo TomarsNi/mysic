@@ -77,10 +77,11 @@ class _PlaylistQueueSheetState extends State<PlaylistQueueSheet> {
         // 获取实际 item 高度
         final itemHeight = _getItemHeight();
 
-        // 计算目标滚动位置，让当前歌曲显示在屏幕上方
-        // 往下调整 3 行高度，让当前歌曲下方能看到 3 首歌
+        // 计算目标滚动位置，让当前歌曲显示在屏幕可见区域内
+        // itemTop 是当前歌曲的顶部位置
+        // 减去 0.5 个 item 高度，让当前歌曲显示在屏幕顶部偏下一点
         final itemTop = widget.currentIndex * itemHeight;
-        final targetOffset = itemTop + (itemHeight * 3) - 50.0;
+        final targetOffset = itemTop - (itemHeight * 0.5);
 
         final clampedOffset = targetOffset.clamp(0.0, maxScroll);
 
