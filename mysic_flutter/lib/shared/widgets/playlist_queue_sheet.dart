@@ -34,10 +34,31 @@ class PlaylistQueueSheet extends StatefulWidget {
 }
 
 class _PlaylistQueueSheetState extends State<PlaylistQueueSheet> {
+  /// 用于测量 item 实际高度的 key
+  final GlobalKey _measureKey = GlobalKey();
+
+  /// 缓存的 item 高度，null 表示未测量
+  double? _itemHeight;
+
   @override
   void initState() {
     super.initState();
     _scrollToCurrentSong();
+  }
+
+  /// 获取 item 高度（优先使用缓存，否则测量）
+  double _getItemHeight() {
+    if (_itemHeight != null) return _itemHeight!;
+
+    final renderBox =
+        _measureKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox != null && renderBox.hasSize) {
+      _itemHeight = renderBox.size.height;
+      return _itemHeight!;
+    }
+
+    // 默认值（基于布局计算）
+    return 60.0;
   }
 
   void _scrollToCurrentSong() {
@@ -53,8 +74,8 @@ class _PlaylistQueueSheetState extends State<PlaylistQueueSheet> {
         final maxScroll = widget.scrollController!.position.maxScrollExtent;
         if (viewportHeight == 0) return;
 
-        // item 高度：约 64px
-        const itemHeight = 64.0;
+        // 获取实际 item 高度
+        final itemHeight = _getItemHeight();
 
         // 计算目标滚动位置，让当前歌曲显示在屏幕上方
         // 往下调整 3 行高度，让当前歌曲下方能看到 3 首歌
@@ -134,6 +155,7 @@ class _PlaylistQueueSheetState extends State<PlaylistQueueSheet> {
                     itemCount: widget.songs.length,
                     itemBuilder: (context, index) {
                       return _SongListTile(
+                        key: index == 0 ? _measureKey : null,
                         song: widget.songs[index],
                         isPlaying: index == widget.currentIndex,
                         onTap: () => widget.onSongTap(index),
@@ -154,6 +176,7 @@ class _SongListTile extends StatelessWidget {
   final VoidCallback onTap;
 
   const _SongListTile({
+    super.key,
     required this.song,
     required this.isPlaying,
     required this.onTap,
