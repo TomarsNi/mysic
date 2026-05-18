@@ -690,6 +690,17 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
       final totalFound = mediaSongs.length;
       updateProgress(ScanProgress(
+        currentPath: '正在收集图片...',
+        filesScanned: totalFound,
+        songsFound: totalFound,
+        progress: 0.7,
+      ));
+
+      // 预收集图片文件到缓存（优化同名图片查找性能）
+      _imageCache.clear();
+      await _scanDirectoryForImages(actualPath);
+
+      updateProgress(ScanProgress(
         currentPath: '正在保存...',
         filesScanned: totalFound,
         songsFound: totalFound,
