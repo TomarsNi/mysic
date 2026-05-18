@@ -34,8 +34,6 @@ class PlaylistQueueSheet extends StatefulWidget {
 }
 
 class _PlaylistQueueSheetState extends State<PlaylistQueueSheet> {
-  final GlobalKey _currentItemKey = GlobalKey();
-
   @override
   void initState() {
     super.initState();
@@ -47,25 +45,29 @@ class _PlaylistQueueSheetState extends State<PlaylistQueueSheet> {
       if (!mounted) return;
       if (widget.songs.isEmpty) return;
       if (widget.currentIndex < 0 || widget.currentIndex >= widget.songs.length) return;
+      if (widget.scrollController == null || !widget.scrollController!.hasClients) return;
 
-      debugPrint('播放列表弹框: currentIndex=${widget.currentIndex}, 歌曲数=${widget.songs.length}');
-      debugPrint('目标歌曲: ${widget.songs[widget.currentIndex].title}');
+      // item 高度：padding(24) + 内容(40) = 约 64px
+      const itemHeight = 64.0;
+      // 计算目标滚动位置，使当前项居中
+      final targetOffset = (widget.currentIndex * itemHeight) -
+          (widget.scrollController!.position.viewportDimension / 2) +
+          (itemHeight / 2);
 
-      final context = _currentItemKey.currentContext;
-      if (context == null) {
-        debugPrint('GlobalKey context 为空，延迟重试');
-        // 控件可能还未渲染，延迟重试
-        Future.delayed(const Duration(milliseconds: 100), _scrollToCurrentSong);
-        return;
-      }
+      // 等待 DraggableScrollableSheet 展开动画完成（约 300ms）
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (!mounted) return;
+        if (widget.scrollController == null || !widget.scrollController!.hasClients) return;
 
-      debugPrint('找到 GlobalKey context，执行滚动');
-      Scrollable.ensureVisible(
-        context,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-        alignment: 0.5, // 将目标项居中显示
-      );
+        final maxScroll = widget.scrollController!.position.maxScrollExtent;
+        final clampedOffset = targetOffset.clamp(0.0, maxScroll);
+
+        widget.scrollController!.animateTo(
+          clampedOffset,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      });
     });
   }
 
@@ -135,7 +137,6 @@ class _PlaylistQueueSheetState extends State<PlaylistQueueSheet> {
                     itemCount: widget.songs.length,
                     itemBuilder: (context, index) {
                       return _SongListTile(
-                        key: index == widget.currentIndex ? _currentItemKey : null,
                         song: widget.songs[index],
                         isPlaying: index == widget.currentIndex,
                         onTap: () => widget.onSongTap(index),
@@ -156,7 +157,6 @@ class _SongListTile extends StatelessWidget {
   final VoidCallback onTap;
 
   const _SongListTile({
-    super.key,
     required this.song,
     required this.isPlaying,
     required this.onTap,
