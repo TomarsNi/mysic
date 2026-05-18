@@ -41,39 +41,29 @@ class _PlaylistQueueSheetState extends State<PlaylistQueueSheet> {
   }
 
   void _scrollToCurrentSong() {
+    // 等待 DraggableScrollableSheet 完全展开后再滚动
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      if (widget.songs.isEmpty) return;
-      if (widget.currentIndex < 0 || widget.currentIndex >= widget.songs.length) return;
-      if (widget.scrollController == null || !widget.scrollController!.hasClients) return;
-      if (widget.scrollController!.position.viewportDimension == 0) return;
-
-      // item 高度计算：
-      // - vertical padding: 12 * 2 = 24px
-      // - 标题 (14px font, ~1.3 line height): ~18px
-      // - 间距: 2px
-      // - 艺术家 (12px font, ~1.3 line height): ~16px
-      // - 内容合计: ~36px
-      // - 总计: 24 + 36 = 60px，取整为 64px 以包含 InkWell 水波纹边距
-      const itemHeight = 64.0;
-      // 计算目标滚动位置，使当前项居中
-      final targetOffset = (widget.currentIndex * itemHeight) -
-          (widget.scrollController!.position.viewportDimension / 2) +
-          (itemHeight / 2);
-
-      // 等待 DraggableScrollableSheet 展开动画完成（约 300ms）
-      Future.delayed(const Duration(milliseconds: 350), () {
+      Future.delayed(const Duration(milliseconds: 400), () {
         if (!mounted) return;
+        if (widget.songs.isEmpty) return;
+        if (widget.currentIndex < 0 || widget.currentIndex >= widget.songs.length) return;
         if (widget.scrollController == null || !widget.scrollController!.hasClients) return;
 
+        final viewportHeight = widget.scrollController!.position.viewportDimension;
         final maxScroll = widget.scrollController!.position.maxScrollExtent;
+        if (viewportHeight == 0) return;
+
+        // item 高度：约 64px
+        const itemHeight = 64.0;
+
+        // 计算目标滚动位置，使当前项显示在屏幕顶部往下一点
+        // 往上调整 3 行高度，让当前歌曲上方能看到 3 首歌
+        final itemTop = widget.currentIndex * itemHeight;
+        final targetOffset = itemTop - (itemHeight * 3) - 50.0;
+
         final clampedOffset = targetOffset.clamp(0.0, maxScroll);
 
-        widget.scrollController!.animateTo(
-          clampedOffset,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        widget.scrollController!.jumpTo(clampedOffset);
       });
     });
   }
