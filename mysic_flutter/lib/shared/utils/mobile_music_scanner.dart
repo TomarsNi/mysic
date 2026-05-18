@@ -832,23 +832,10 @@ class MobileMusicScanner extends PlatformMusicScanner {
           }
 
           // 查找同名图片（优先于 MediaStore 封面）
-          String? sourceImagePath;
-          final fileName = filePath.split(Platform.pathSeparator).last;
-          final nameWithoutExt = fileName.replaceAll(RegExp(r'\.[^.]+$'), '');
-          final dir = File(filePath).parent;
-
-          debugPrint('查找同名图片: 音频文件名=$fileName, 无扩展名=$nameWithoutExt, 目录=${dir.path}');
-
-          // 按优先级查找同名图片
-          for (final ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']) {
-            final imageFileName = '$nameWithoutExt$ext'.toLowerCase();
-            final imageFile = File('${dir.path}${Platform.pathSeparator}$imageFileName');
-            debugPrint('检查图片: ${imageFile.path}, 存在=${await imageFile.exists()}');
-            if (await imageFile.exists()) {
-              sourceImagePath = imageFile.path;
-              debugPrint('找到同名图片: $sourceImagePath');
-              break;
-            }
+          // 使用 ImageCache 快速查找，避免逐个 File.exists() I/O 操作
+          final sourceImagePath = _imageCache.findImagePath(filePath);
+          if (sourceImagePath != null) {
+            debugPrint('找到同名图片: $sourceImagePath');
           }
 
           // 先插入歌曲（album_art_path 暂时为 null）
