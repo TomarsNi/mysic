@@ -98,6 +98,38 @@ class MobileMusicScanner extends PlatformMusicScanner {
     return imageExts.any((ext) => extension.endsWith(ext));
   }
 
+  /// 扫描目录收集图片文件到缓存
+  /// 用于 scanMusicInDirectory 的图片预收集
+  Future<void> _scanDirectoryForImages(String directory) async {
+    final dir = Directory(directory);
+    if (!await dir.exists()) {
+      debugPrint('目录不存在: $directory');
+      return;
+    }
+
+    final imageFiles = <String, String>{};
+
+    try {
+      final entities = dir.list(recursive: true);
+      await for (final entity in entities) {
+        if (isCancelled) break;
+
+        if (entity is File) {
+          final extension = entity.path.toLowerCase();
+          if (_isImageFile(extension)) {
+            final fileName = entity.path.split(Platform.pathSeparator).last;
+            imageFiles[fileName.toLowerCase()] = entity.path;
+          }
+        }
+      }
+
+      _imageCache.addDirectory(directory, imageFiles);
+      debugPrint('图片预收集完成: 目录=$directory, 图片数=${imageFiles.length}');
+    } catch (e) {
+      debugPrint('图片预收集失败: $directory, 错误=$e');
+    }
+  }
+
   /// 获取外部存储根目录
   String _getExternalStorageRoot() {
     return '/storage/emulated/0';
