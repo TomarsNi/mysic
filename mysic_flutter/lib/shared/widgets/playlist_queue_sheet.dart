@@ -46,8 +46,15 @@ class _PlaylistQueueSheetState extends State<PlaylistQueueSheet> {
       if (widget.songs.isEmpty) return;
       if (widget.currentIndex < 0 || widget.currentIndex >= widget.songs.length) return;
       if (widget.scrollController == null || !widget.scrollController!.hasClients) return;
+      if (widget.scrollController!.position.viewportDimension == 0) return;
 
-      // item 高度：padding(24) + 内容(40) = 约 64px
+      // item 高度计算：
+      // - vertical padding: 12 * 2 = 24px
+      // - 标题 (14px font, ~1.3 line height): ~18px
+      // - 间距: 2px
+      // - 艺术家 (12px font, ~1.3 line height): ~16px
+      // - 内容合计: ~36px
+      // - 总计: 24 + 36 = 60px，取整为 64px 以包含 InkWell 水波纹边距
       const itemHeight = 64.0;
       // 计算目标滚动位置，使当前项居中
       final targetOffset = (widget.currentIndex * itemHeight) -
