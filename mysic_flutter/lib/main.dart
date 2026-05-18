@@ -853,10 +853,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
+        initialChildSize: 0.9,
         minChildSize: 0.4,
         maxChildSize: 0.9,
         expand: false,
+        snap: true,
+        snapSizes: const [0.4, 0.9],
         builder: (context, scrollController) => PlaylistQueueSheet(
           songs: playerProvider.playlist,
           currentIndex: playerProvider.currentIndex,
