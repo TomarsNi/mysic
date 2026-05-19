@@ -17,6 +17,8 @@ class PlaylistProvider extends ChangeNotifier {
   List<Song> _playHistory = [];
   Set<int> _excludedSongIds = {}; // 排除歌曲 ID 缓存
   int? _systemPlaylistId; // 系统歌单 ID 缓存
+  Playlist? _favoritesPlaylist; // 收藏歌单
+  Set<int> _favoriteSongIds = {}; // 已收藏歌曲 ID 缓存
   bool _isLoading = false;
   String? _error;
   bool _initialized = false; // 防止重复初始化
@@ -40,6 +42,8 @@ class PlaylistProvider extends ChangeNotifier {
   int get songCount => _allSongs.length;
   int? get systemPlaylistId => _systemPlaylistId;
   Set<int> get excludedSongIds => Set.unmodifiable(_excludedSongIds);
+  Playlist? get favoritesPlaylist => _favoritesPlaylist;
+  Set<int> get favoriteSongIds => Set.unmodifiable(_favoriteSongIds);
 
   /// 加载初始数据
   Future<void> _loadData() async {
@@ -50,6 +54,9 @@ class PlaylistProvider extends ChangeNotifier {
     try {
       // 确保系统歌单存在
       await _ensureSystemPlaylistExists();
+
+      // 确保收藏歌单存在
+      await ensureFavoritesPlaylistExists();
 
       await Future.wait([
         _loadPlaylists(),
@@ -117,6 +124,84 @@ class PlaylistProvider extends ChangeNotifier {
     _systemPlaylistId = created.id;
     debugPrint('创建新的系统歌单，ID: $_systemPlaylistId');
     debugPrint('========== _ensureSystemPlaylistExists 结束 ==========');
+  }
+
+  /// 确保收藏歌单存在
+  Future<void> ensureFavoritesPlaylistExists() async {
+    debugPrint('========== ensureFavoritesPlaylistExists 开始 ==========');
+    _favoritesPlaylist = await _repository.getFavoritesPlaylist();
+
+    if (_favoritesPlaylist == null) {
+      _favoritesPlaylist = await _repository.createFavoritesPlaylist();
+      debugPrint('创建新的收藏歌单，ID: ${_favoritesPlaylist?.id}');
+    } else {
+      debugPrint('已存在收藏歌单，ID: ${_favoritesPlaylist?.id}');
+    }
+
+    // 加载收藏歌曲 ID
+    await _loadFavoriteSongIds();
+    debugPrint('========== ensureFavoritesPlaylistExists 结束 ==========');
+  }
+
+  /// 加载收藏歌曲 ID 列表
+  Future<void> _loadFavoriteSongIds() async {
+    if (_favoritesPlaylist == null) {
+      _favoriteSongIds = {};
+      return;
+    }
+    _favoriteSongIds =
+        _favoritesPlaylist!.songs?.map((s) => s.id!).toSet() ?? {};
+    debugPrint('加载收藏歌曲 ID，数量: ${_favoriteSongIds.length}');
+  }
+
+  /// 刷新收藏数据
+  Future<void> refreshFavorites() async {
+    _favoritesPlaylist = await _repository.getFavoritesPlaylist();
+    await _loadFavoriteSongIds();
+    notifyListeners();
+  }
+
+  /// 切换收藏状态
+  Future<bool> toggleFavorite(Song song) async {
+    if (song.id == null) return false;
+
+    final songId = song.id!;
+    final isFavorite = _favoriteSongIds.contains(songId);
+
+    bool success;
+    if (isFavorite) {
+      success = await _repository.removeFromFavorites(songId);
+      if (success) {
+        _favoriteSongIds.remove(songId);
+        // 更新歌单状态
+        if (_favoritesPlaylist != null) {
+          final updatedSongs =
+              _favoritesPlaylist!.songs?.where((s) => s.id != songId).toList() ??
+                  [];
+          _favoritesPlaylist = _favoritesPlaylist!.copyWith(songs: updatedSongs);
+        }
+      }
+    } else {
+      success = await _repository.addToFavorites(song);
+      if (success) {
+        _favoriteSongIds.add(songId);
+        // 更新歌单状态
+        if (_favoritesPlaylist != null) {
+          final updatedSongs = <Song>[..._favoritesPlaylist!.songs ?? [], song];
+          _favoritesPlaylist = _favoritesPlaylist!.copyWith(songs: updatedSongs);
+        }
+      }
+    }
+
+    if (success) {
+      notifyListeners();
+    }
+    return success;
+  }
+
+  /// 检查歌曲是否已收藏（同步方法，使用缓存）
+  bool isSongFavorite(int songId) {
+    return _favoriteSongIds.contains(songId);
   }
 
   /// 加载排除歌曲 ID 列表

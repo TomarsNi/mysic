@@ -23,8 +23,8 @@ void main() {
       provider = PlaylistProvider(
         repository: PlaylistRepository(dbHelper: dbHelper),
       );
-      // 等待初始加载完成
-      await Future.delayed(Duration(milliseconds: 100));
+      // 等待初始加载完成（包括系统歌单和收藏歌单）
+      await Future.delayed(Duration(milliseconds: 500));
     });
 
     tearDown(() async {
@@ -36,9 +36,10 @@ void main() {
       await Future.delayed(Duration(milliseconds: 200));
       expect(provider.isLoading, isFalse);
       expect(provider.error, isNull);
-      // 系统歌单会自动创建
-      expect(provider.playlists.length, equals(1));
-      expect(provider.playlists.first.name, equals('本地音乐'));
+      // 系统歌单会自动创建（本地音乐 + 我喜欢听）
+      expect(provider.playlists.length, equals(2));
+      expect(provider.playlists.any((p) => p.name == '本地音乐'), isTrue);
+      expect(provider.playlists.any((p) => p.name == '我喜欢听'), isTrue);
       expect(provider.systemPlaylistId, isNotNull);
       expect(provider.allSongs, isEmpty);
       expect(provider.hasPlaylists, isTrue);
@@ -53,8 +54,8 @@ void main() {
 
       expect(playlist, isNotNull);
       expect(playlist!.name, equals('测试歌单'));
-      // 系统歌单 + 新创建的歌单
-      expect(provider.playlists.length, equals(2));
+      // 系统歌单（本地音乐 + 我喜欢听） + 新创建的歌单
+      expect(provider.playlists.length, equals(3));
       expect(provider.hasPlaylists, isTrue);
     });
 
@@ -64,8 +65,8 @@ void main() {
 
       final stats = provider.getStatistics();
 
-      // 系统歌单 + 歌单1 + 歌单2 = 3
-      expect(stats['totalPlaylists'], equals(3));
+      // 系统歌单（本地音乐 + 我喜欢听） + 歌单1 + 歌单2 = 4
+      expect(stats['totalPlaylists'], equals(4));
       expect(stats['totalSongs'], equals(0));
     });
   });
@@ -80,7 +81,7 @@ void main() {
       provider = PlaylistProvider(
         repository: PlaylistRepository(dbHelper: dbHelper),
       );
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(Duration(milliseconds: 500));
     });
 
     tearDown(() async {
@@ -126,9 +127,10 @@ void main() {
       final success = await provider.deletePlaylist(playlist!.id!);
 
       expect(success, isTrue);
-      // 只有系统歌单剩余
-      expect(provider.playlists.length, equals(1));
-      expect(provider.playlists.first.name, equals('本地音乐'));
+      // 只有系统歌单剩余（本地音乐 + 我喜欢听）
+      expect(provider.playlists.length, equals(2));
+      expect(provider.playlists.any((p) => p.name == '本地音乐'), isTrue);
+      expect(provider.playlists.any((p) => p.name == '我喜欢听'), isTrue);
     });
 
     test('删除选中的歌单后清除选择', () async {
@@ -153,7 +155,7 @@ void main() {
       provider = PlaylistProvider(
         repository: PlaylistRepository(dbHelper: dbHelper),
       );
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(Duration(milliseconds: 500));
     });
 
     tearDown(() async {
@@ -238,7 +240,7 @@ void main() {
       provider = PlaylistProvider(
         repository: PlaylistRepository(dbHelper: dbHelper),
       );
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(Duration(milliseconds: 500));
     });
 
     tearDown(() async {
@@ -333,7 +335,7 @@ void main() {
       provider = PlaylistProvider(
         repository: PlaylistRepository(dbHelper: dbHelper),
       );
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(Duration(milliseconds: 500));
     });
 
     tearDown(() async {
@@ -383,7 +385,7 @@ void main() {
       provider = PlaylistProvider(
         repository: PlaylistRepository(dbHelper: dbHelper),
       );
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(Duration(milliseconds: 500));
     });
 
     tearDown(() async {
@@ -399,8 +401,98 @@ void main() {
       await provider.createPlaylist(name: '歌单1');
       await provider.refresh();
 
-      // 系统歌单 + 歌单1 = 2
-      expect(provider.playlists.length, equals(2));
+      // 系统歌单（本地音乐 + 我喜欢听） + 歌单1 = 3
+      expect(provider.playlists.length, equals(3));
+    });
+  });
+
+  group('PlaylistProvider 收藏功能测试', () {
+    late PlaylistProvider provider;
+    late PlaylistRepository repository;
+    late DatabaseHelper dbHelper;
+
+    setUpAll(() {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    });
+
+    setUp(() async {
+      dbHelper = DatabaseHelper();
+      await dbHelper.clearAllTables();
+      repository = PlaylistRepository(dbHelper: dbHelper);
+      provider = PlaylistProvider(repository: repository);
+    });
+
+    tearDown(() async {
+      await dbHelper.close();
+    });
+
+    test('初始化时创建收藏歌单', () async {
+      // 等待初始化完成
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      expect(provider.favoritesPlaylist, isNotNull);
+      expect(provider.favoritesPlaylist!.name, equals('我喜欢听'));
+    });
+
+    test('添加歌曲到收藏', () async {
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      final song = await repository.saveSong(Song(
+        title: '测试歌曲',
+        filePath: '/test/song.mp3',
+        duration: 180000,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+
+      final success = await provider.toggleFavorite(song);
+      expect(success, isTrue);
+      expect(provider.isSongFavorite(song.id!), isTrue);
+    });
+
+    test('从收藏移除歌曲', () async {
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      final song = await repository.saveSong(Song(
+        title: '测试歌曲',
+        filePath: '/test/song.mp3',
+        duration: 180000,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+
+      await provider.toggleFavorite(song);
+      final success = await provider.toggleFavorite(song);
+
+      expect(success, isTrue);
+      expect(provider.isSongFavorite(song.id!), isFalse);
+    });
+
+    test('favoriteSongIds 正确更新', () async {
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      final song1 = await repository.saveSong(Song(
+        title: '歌曲1',
+        filePath: '/test/song1.mp3',
+        duration: 180000,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+      final song2 = await repository.saveSong(Song(
+        title: '歌曲2',
+        filePath: '/test/song2.mp3',
+        duration: 180000,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ));
+
+      await provider.toggleFavorite(song1);
+      await provider.toggleFavorite(song2);
+
+      expect(provider.favoriteSongIds.length, equals(2));
+      expect(provider.favoriteSongIds.contains(song1.id!), isTrue);
+      expect(provider.favoriteSongIds.contains(song2.id!), isTrue);
     });
   });
 }
