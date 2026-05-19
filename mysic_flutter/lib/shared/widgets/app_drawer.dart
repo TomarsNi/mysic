@@ -340,6 +340,11 @@ class AppDrawer extends StatelessWidget {
   }
 
   Widget _buildPlaylistSection(BuildContext context) {
+    // 过滤掉"我喜欢听"歌单（它在上方单独显示）
+    final filteredPlaylists = playlists
+        .where((p) => p.name != '我喜欢听' || p.isSystem != true)
+        .toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -374,13 +379,13 @@ class AppDrawer extends StatelessWidget {
 
         // 歌单列表
         Expanded(
-          child: playlists.isEmpty
+          child: filteredPlaylists.isEmpty
               ? _buildEmptyState(context)
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: playlists.length,
+                  itemCount: filteredPlaylists.length,
                   itemBuilder: (context, index) {
-                    final playlist = playlists[index];
+                    final playlist = filteredPlaylists[index];
                     final isSelected = playlist.id == selectedPlaylistId;
 
                     return _PlaylistListTile(
