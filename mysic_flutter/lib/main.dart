@@ -192,6 +192,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           drawer: AppDrawer(
             playlists: playlistProvider.playlists,
             selectedPlaylistId: playlistProvider.selectedPlaylist?.id,
+            favoritesPlaylist: playlistProvider.favoritesPlaylist,
             onPlaylistTap: (playlist) async {
               final playlistId = playlist.id;
               if (playlistId == null) return;
@@ -212,6 +213,24 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               }
 
               // 5. 抽屉会自动关闭（在 AppDrawer 中处理）
+            },
+            onFavoritesTap: (playlist) async {
+              final playlistId = playlist.id;
+              if (playlistId == null) return;
+
+              // 记录最后播放的歌单
+              final repository = PlaylistRepository();
+              await repository.setAppState('last_playlist_id', playlistId.toString());
+
+              // 选择歌单
+              await playlistProvider.selectPlaylist(playlistId);
+
+              // 获取歌曲列表
+              final songs = playlistProvider.selectedPlaylistSongs;
+
+              if (songs.isNotEmpty) {
+                await playerProvider.setPlaylist(songs, autoPlay: true);
+              }
             },
             onScanSettingsTap: () => _showScanSettings(context),
             onSettingsTap: () => _showSettings(context),
