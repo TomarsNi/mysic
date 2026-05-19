@@ -63,6 +63,82 @@ class PlaylistRepository {
     return playlist.copyWith(songs: songs);
   }
 
+  // ==================== 收藏歌单操作 ====================
+
+  /// 收藏歌单名称常量
+  static const String favoritesPlaylistName = '我喜欢听';
+
+  /// 获取"我喜欢听"歌单
+  Future<Playlist?> getFavoritesPlaylist() async {
+    final db = await _db;
+    final List<Map<String, dynamic>> maps = await db.query(
+      DatabaseHelper.tablePlaylists,
+      where: 'name = ? AND is_system = ?',
+      whereArgs: [favoritesPlaylistName, 1],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+
+    final playlist = Playlist.fromMap(maps.first);
+    final songs = await getSongsInPlaylist(playlist.id!);
+    return playlist.copyWith(songs: songs);
+  }
+
+  /// 创建"我喜欢听"系统歌单
+  Future<Playlist> createFavoritesPlaylist() async {
+    final db = await _db;
+    final now = DateTime.now();
+
+    final id = await db.insert(
+      DatabaseHelper.tablePlaylists,
+      {
+        'name': favoritesPlaylistName,
+        'description': '我喜欢的歌曲',
+        'is_system': 1,
+        'created_at': now.toIso8601String(),
+        'updated_at': now.toIso8601String(),
+      },
+    );
+
+    return Playlist(
+      id: id,
+      name: favoritesPlaylistName,
+      description: '我喜欢的歌曲',
+      isSystem: true,
+      createdAt: now,
+      updatedAt: now,
+      songs: [],
+    );
+  }
+
+  /// 确保收藏歌单存在（不存在则创建）
+  Future<Playlist> ensureFavoritesPlaylistExists() async {
+    final existing = await getFavoritesPlaylist();
+    if (existing != null) return existing;
+    return await createFavoritesPlaylist();
+  }
+
+  /// 检查歌曲是否已收藏
+  Future<bool> isSongFavorite(int songId) async {
+    final favorites = await getFavoritesPlaylist();
+    if (favorites == null) return false;
+    return await isSongInPlaylist(favorites.id!, songId);
+  }
+
+  /// 添加歌曲到收藏
+  Future<bool> addToFavorites(Song song) async {
+    final favorites = await ensureFavoritesPlaylistExists();
+    return await addSongToPlaylist(favorites.id!, song);
+  }
+
+  /// 从收藏移除歌曲
+  Future<bool> removeFromFavorites(int songId) async {
+    final favorites = await getFavoritesPlaylist();
+    if (favorites == null) return false;
+    return await removeSongFromPlaylist(favorites.id!, songId);
+  }
+
   /// 获取名为"本地音乐"的歌单（无论是否为系统歌单）
   Future<Playlist?> getLocalMusicPlaylist() async {
     final db = await _db;

@@ -424,4 +424,93 @@ void main() {
       expect(history, isEmpty);
     });
   });
+
+  group('PlaylistRepository 收藏功能测试', () {
+    late PlaylistRepository repository;
+    late DatabaseHelper dbHelper;
+
+    setUp(() async {
+      dbHelper = DatabaseHelper();
+      await dbHelper.clearAllTables();
+      repository = PlaylistRepository(dbHelper: dbHelper);
+    });
+
+    tearDown(() async {
+      await dbHelper.close();
+    });
+
+    Song createTestSong(String title) {
+      final now = DateTime.now();
+      return Song(
+        title: title,
+        artist: '艺术家',
+        duration: 180000,
+        filePath: '/test/$title.mp3',
+        createdAt: now,
+        updatedAt: now,
+      );
+    }
+
+    test('创建收藏歌单', () async {
+      final favorites = await repository.createFavoritesPlaylist();
+
+      expect(favorites.id, isNotNull);
+      expect(favorites.name, equals('我喜欢听'));
+      expect(favorites.isSystem, isTrue);
+    });
+
+    test('获取收藏歌单 - 不存在时返回 null', () async {
+      final favorites = await repository.getFavoritesPlaylist();
+      expect(favorites, isNull);
+    });
+
+    test('获取收藏歌单 - 存在时返回歌单', () async {
+      await repository.createFavoritesPlaylist();
+      final favorites = await repository.getFavoritesPlaylist();
+
+      expect(favorites, isNotNull);
+      expect(favorites!.name, equals('我喜欢听'));
+    });
+
+    test('确保收藏歌单存在 - 不存在时创建', () async {
+      final favorites = await repository.ensureFavoritesPlaylistExists();
+
+      expect(favorites.id, isNotNull);
+      expect(favorites.name, equals('我喜欢听'));
+    });
+
+    test('确保收藏歌单存在 - 已存在时返回现有歌单', () async {
+      final created = await repository.createFavoritesPlaylist();
+      final found = await repository.ensureFavoritesPlaylistExists();
+
+      expect(found.id, equals(created.id));
+    });
+
+    test('添加歌曲到收藏', () async {
+      // 先创建歌曲
+      final song = await repository.saveSong(createTestSong('测试歌曲'));
+
+      final success = await repository.addToFavorites(song);
+      expect(success, isTrue);
+
+      final isFavorite = await repository.isSongFavorite(song.id!);
+      expect(isFavorite, isTrue);
+    });
+
+    test('从收藏移除歌曲', () async {
+      final song = await repository.saveSong(createTestSong('测试歌曲'));
+
+      await repository.addToFavorites(song);
+      final success = await repository.removeFromFavorites(song.id!);
+
+      expect(success, isTrue);
+      expect(await repository.isSongFavorite(song.id!), isFalse);
+    });
+
+    test('检查未收藏歌曲返回 false', () async {
+      final song = await repository.saveSong(createTestSong('测试歌曲'));
+
+      expect(await repository.isSongFavorite(song.id!), isFalse);
+    });
+  });
 }
