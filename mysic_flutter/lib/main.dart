@@ -38,6 +38,9 @@ import 'features/player/presentation/widgets/album_cover.dart';
 import 'features/player/presentation/widgets/play_controls.dart';
 import 'features/player/presentation/widgets/progress_bar.dart';
 
+/// 收藏按钮红色
+const Color _favoriteRed = Color(0xFFEF4444);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -508,33 +511,74 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildSongInfo(Song? song) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          song?.title ?? '未选择歌曲',
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          song != null
-              ? '${song.displayArtist} · ${song.displayAlbum}'
-              : '扫描本地音乐开始播放',
-          style: const TextStyle(
-            fontSize: 14,
-            color: Color(0xFF9CA3AF),
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+    return Consumer<PlaylistProvider>(
+      builder: (context, playlistProvider, _) {
+        final isFavorite = song?.id != null && playlistProvider.isSongFavorite(song!.id!);
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // 歌曲名称区域
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    song?.title ?? '未选择歌曲',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    song != null
+                        ? '${song.displayArtist} · ${song.displayAlbum}'
+                        : '扫描本地音乐开始播放',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF9CA3AF),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+
+            // 爱心按钮
+            if (song != null)
+              _FavoriteButton(
+                isFavorite: isFavorite,
+                onTap: () => _toggleFavorite(context, song),
+              ),
+          ],
+        );
+      },
     );
+  }
+
+  /// 切换收藏状态
+  Future<void> _toggleFavorite(BuildContext context, Song song) async {
+    final playlistProvider = context.read<PlaylistProvider>();
+    final wasFavorite = playlistProvider.isSongFavorite(song.id!);
+
+    final success = await playlistProvider.toggleFavorite(song);
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            wasFavorite ? '已从我喜欢移除' : '已添加到我喜欢',
+          ),
+          backgroundColor: wasFavorite ? AppColors.muted : const Color(0xFFEF4444),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   Widget _buildLyricsPreviewStatic(String? currentLyric, String? nextLyric) {
@@ -1621,6 +1665,56 @@ class _AddButtonState extends State<_AddButton> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 收藏按钮组件
+/// 白色线框（未收藏）→ 红色实心（已收藏）
+class _FavoriteButton extends StatefulWidget {
+  final bool isFavorite;
+  final VoidCallback onTap;
+
+  const _FavoriteButton({
+    required this.isFavorite,
+    required this.onTap,
+  });
+
+  @override
+  State<_FavoriteButton> createState() => _FavoriteButtonState();
+}
+
+class _FavoriteButtonState extends State<_FavoriteButton> {
+  bool _isHovering = false;
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 100),
+          scale: _isPressed ? 0.9 : (_isHovering ? 1.1 : 1.0),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: Icon(
+              widget.isFavorite
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+              color: widget.isFavorite
+                  ? _favoriteRed
+                  : (_isHovering ? AppColors.accent : AppColors.white),
+              size: 24,
+            ),
           ),
         ),
       ),
