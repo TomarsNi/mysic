@@ -23,6 +23,7 @@ class PlayerProvider extends ChangeNotifier {
   Duration _position = Duration.zero;
   Duration? _duration;
   List<Song> _playlist = [];
+  String _playlistName = ''; // 当前播放歌单名称
   int _currentIndex = -1;
   bool _isShuffleMode = false;
   MysicLoopMode _loopMode = MysicLoopMode.off;
@@ -196,6 +197,7 @@ class PlayerProvider extends ChangeNotifier {
   Duration get position => _position;
   Duration? get duration => _duration;
   List<Song> get playlist => List.unmodifiable(_playlist);
+  String get playlistName => _playlistName;
   int get currentIndex {
     debugPrint('========== PlayerProvider.currentIndex getter: $_currentIndex ==========');
     return _currentIndex;
@@ -281,7 +283,12 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   /// 设置播放列表
-  Future<void> setPlaylist(List<Song> songs, {int startIndex = 0, bool autoPlay = false}) async {
+  Future<void> setPlaylist(
+    List<Song> songs, {
+    int startIndex = 0,
+    bool autoPlay = false,
+    String? playlistName,
+  }) async {
     debugPrint('========== PlayerProvider.setPlaylist 开始 ==========');
     debugPrint('传入歌曲数量: ${songs.length}, startIndex: $startIndex, autoPlay: $autoPlay');
     if (songs.isNotEmpty) {
@@ -290,6 +297,7 @@ class PlayerProvider extends ChangeNotifier {
 
     _playlist = List.from(songs);
     _currentIndex = startIndex;
+    _playlistName = playlistName ?? '';
 
     // 立即更新当前歌曲，不等待异步流事件
     if (songs.isNotEmpty && startIndex >= 0 && startIndex < songs.length) {

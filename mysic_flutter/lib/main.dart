@@ -174,7 +174,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
 
     // 5. 播放歌单
-    await playerProvider.setPlaylist(songs, startIndex: startIndex, autoPlay: true);
+    final playlistName = playlistProvider.selectedPlaylist?.name ?? '';
+    await playerProvider.setPlaylist(
+      songs,
+      startIndex: startIndex,
+      autoPlay: true,
+      playlistName: playlistName,
+    );
   }
 
   @override
@@ -209,7 +215,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
               if (songs.isNotEmpty) {
                 // 4. 设置播放列表并自动播放
-                await playerProvider.setPlaylist(songs, autoPlay: true);
+                await playerProvider.setPlaylist(
+                  songs,
+                  autoPlay: true,
+                  playlistName: playlist.name,
+                );
               }
 
               // 5. 抽屉会自动关闭（在 AppDrawer 中处理）
@@ -229,7 +239,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               final songs = playlistProvider.selectedPlaylistSongs;
 
               if (songs.isNotEmpty) {
-                await playerProvider.setPlaylist(songs, autoPlay: true);
+                await playerProvider.setPlaylist(
+                  songs,
+                  autoPlay: true,
+                  playlistName: playlist.name,
+                );
               }
             },
             onScanSettingsTap: () => _showScanSettings(context),
@@ -440,13 +454,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     return Consumer2<PlayerProvider, ApiConfigProvider>(
       builder: (context, playerProvider, apiConfigProvider, child) {
         final currentSong = playerProvider.currentSong;
+        final playlistName = playerProvider.playlistName;
         final hasEnabledApi = apiConfigProvider.enabledConfig != null;
         return Padding(
           padding: const EdgeInsets.only(left: 0, right: 0, top: 16, bottom: 16),
           child: Stack(
             children: [
               // 文字层 - 绝对居中于屏幕
-              const Center(
+              Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -459,7 +474,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     ),
                     SizedBox(height: 2),
                     Text(
-                      '全部歌曲',
+                      playlistName.isNotEmpty ? playlistName : '全部歌曲',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
