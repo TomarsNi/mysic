@@ -585,15 +585,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final playlistProvider = context.read<PlaylistProvider>();
     final wasFavorite = playlistProvider.isSongFavorite(song.id!);
 
-    final success = await playlistProvider.toggleFavorite(song);
+    await playlistProvider.toggleFavorite(song);
 
-    if (success && mounted) {
+    // 只在添加收藏时显示通知
+    if (!wasFavorite && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            wasFavorite ? '已从我喜欢移除' : '已添加到我喜欢',
-          ),
-          backgroundColor: wasFavorite ? AppColors.muted : const Color(0xFFEF4444),
+          content: const Text('已添加到我喜欢'),
+          backgroundColor: const Color(0xFFEF4444),
           duration: const Duration(seconds: 1),
         ),
       );
