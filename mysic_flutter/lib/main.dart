@@ -583,20 +583,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   /// 切换收藏状态
   Future<void> _toggleFavorite(BuildContext context, Song song) async {
     final playlistProvider = context.read<PlaylistProvider>();
-    final wasFavorite = playlistProvider.isSongFavorite(song.id!);
-
     await playlistProvider.toggleFavorite(song);
-
-    // 只在添加收藏时显示通知
-    if (!wasFavorite && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('已添加到我喜欢'),
-          backgroundColor: const Color(0xFFEF4444),
-          duration: const Duration(seconds: 1),
-        ),
-      );
-    }
   }
 
   Widget _buildLyricsPreviewStatic(String? currentLyric, String? nextLyric) {
