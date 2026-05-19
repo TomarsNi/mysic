@@ -1678,8 +1678,8 @@ class _AddButtonState extends State<_AddButton> {
 }
 
 /// 收藏按钮组件
-/// 白色线框（未收藏）→ 红色实心（已收藏）
-/// 优化设计：更大的触摸区域、流畅动画、视觉反馈
+/// 白色线框（未收藏）→ 柔和红色实心（已收藏）
+/// 双击触发收藏，带弹跳动画
 class _FavoriteButton extends StatefulWidget {
   final bool isFavorite;
   final VoidCallback onTap;
@@ -1700,28 +1700,28 @@ class _FavoriteButtonState extends State<_FavoriteButton>
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
+  // 柔和的红色（不那么刺眼）
+  static const Color _softRed = Color(0xFFE57373);
+
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.3), weight: 0.4),
+      TweenSequenceItem(tween: Tween(begin: 1.3, end: 1.0), weight: 0.6),
+    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
   }
 
   @override
   void didUpdateWidget(_FavoriteButton oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 当收藏状态改变时触发动画
-    if (widget.isFavorite != oldWidget.isFavorite) {
-      if (widget.isFavorite) {
-        _controller.forward();
-      } else {
-        _controller.reverse();
-      }
+    // 当变为收藏状态时触发弹跳动画
+    if (widget.isFavorite && !oldWidget.isFavorite) {
+      _controller.forward(from: 0.0);
     }
   }
 
@@ -1736,7 +1736,7 @@ class _FavoriteButtonState extends State<_FavoriteButton>
     // 确定当前颜色
     Color iconColor;
     if (widget.isFavorite) {
-      iconColor = _favoriteRed;
+      iconColor = _softRed;
     } else if (_isHovering) {
       iconColor = AppColors.accent;
     } else {
@@ -1744,52 +1744,31 @@ class _FavoriteButtonState extends State<_FavoriteButton>
     }
 
     return MouseRegion(
+      cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
       child: GestureDetector(
         onTapDown: (_) => setState(() => _isPressed = true),
         onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
-        onTap: widget.onTap,
+        onDoubleTap: widget.onTap, // 双击触发收藏
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
             return Transform.scale(
               scale: _isPressed
-                  ? 0.85
-                  : (_scaleAnimation.value * (_isHovering ? 1.05 : 1.0)),
+                  ? 0.9
+                  : (_scaleAnimation.value * (_isHovering ? 1.08 : 1.0)),
               child: Container(
                 width: 44, // 最小触摸区域 44x44
                 height: 44,
                 alignment: Alignment.center,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // 发光效果（已收藏时）
-                    if (widget.isFavorite)
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: _favoriteRed.withValues(alpha: 0.3),
-                              blurRadius: 12,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                      ),
-                    // 爱心图标
-                    Icon(
-                      widget.isFavorite
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      color: iconColor,
-                      size: 26,
-                    ),
-                  ],
+                child: Icon(
+                  widget.isFavorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  color: iconColor,
+                  size: 26,
                 ),
               ),
             );
