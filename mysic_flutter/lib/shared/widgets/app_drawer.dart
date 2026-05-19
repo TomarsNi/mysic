@@ -750,7 +750,7 @@ class _FavoritesListTileState extends State<_FavoritesListTile> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${widget.playlist.songs?.length ?? 0} 首歌曲',
+                        '${widget.playlist.songCount} 首歌曲',
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.muted,
