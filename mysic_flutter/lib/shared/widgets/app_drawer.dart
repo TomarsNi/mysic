@@ -14,8 +14,14 @@ class AppDrawer extends StatelessWidget {
   /// 歌单列表
   final List<Playlist> playlists;
 
+  /// 收藏歌单
+  final Playlist? favoritesPlaylist;
+
   /// 歌单点击回调（支持异步）
   final Future<void> Function(Playlist)? onPlaylistTap;
+
+  /// 收藏歌单点击回调
+  final Future<void> Function(Playlist)? onFavoritesTap;
 
   /// 扫描设置点击回调
   final VoidCallback? onScanSettingsTap;
@@ -36,7 +42,9 @@ class AppDrawer extends StatelessWidget {
     super.key,
     this.selectedPlaylistId,
     this.playlists = const [],
+    this.favoritesPlaylist,
     this.onPlaylistTap,
+    this.onFavoritesTap,
     this.onScanSettingsTap,
     this.onSettingsTap,
     this.onAboutTap,
@@ -56,6 +64,9 @@ class AppDrawer extends StatelessWidget {
 
             // 播放模式选择区
             _buildPlayModeSection(context),
+
+            // 收藏歌单入口
+            _buildFavoritesSection(context),
 
             // 歌单列表（可滚动）
             Expanded(
@@ -174,6 +185,49 @@ class AppDrawer extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildFavoritesSection(BuildContext context) {
+    final favoritesPlaylist = this.favoritesPlaylist;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 标题栏
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '我喜欢听',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // 收藏歌单入口
+        if (favoritesPlaylist != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: _FavoritesListTile(
+              playlist: favoritesPlaylist,
+              isSelected: selectedPlaylistId == favoritesPlaylist.id,
+              onTap: () async {
+                await onFavoritesTap?.call(favoritesPlaylist);
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ),
+      ],
     );
   }
 
@@ -618,6 +672,109 @@ class _PlaylistListTileState extends State<_PlaylistListTile> {
       Icons.playlist_play_rounded,
       color: AppColors.white,
       size: 20,
+    );
+  }
+}
+
+/// 收藏歌单列表项
+/// 使用红色渐变图标
+class _FavoritesListTile extends StatefulWidget {
+  final Playlist playlist;
+  final bool isSelected;
+  final VoidCallback? onTap;
+
+  const _FavoritesListTile({
+    required this.playlist,
+    this.isSelected = false,
+    this.onTap,
+  });
+
+  @override
+  State<_FavoritesListTile> createState() => _FavoritesListTileState();
+}
+
+class _FavoritesListTileState extends State<_FavoritesListTile> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: Material(
+        color: widget.isSelected
+            ? AppColors.accent.withValues(alpha: 0.15)
+            : _isHovering
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: widget.onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                // 红色渐变图标
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.roseGradient,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.favorite_rounded,
+                    color: AppColors.white,
+                    size: 20,
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // 歌单信息
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.playlist.name,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight:
+                              widget.isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: widget.isSelected ? AppColors.accent : AppColors.white,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${widget.playlist.songs?.length ?? 0} 首歌曲',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 选中指示器
+                if (widget.isSelected)
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
