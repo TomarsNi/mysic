@@ -15,7 +15,9 @@ void main() {
       WidgetTester tester, {
       List<Playlist> playlists = const [],
       int? selectedPlaylistId,
+      Playlist? favoritesPlaylist,
       Future<void> Function(Playlist)? onPlaylistTap,
+      Future<void> Function(Playlist)? onFavoritesTap,
       VoidCallback? onScanSettingsTap,
       VoidCallback? onSettingsTap,
       VoidCallback? onAboutTap,
@@ -37,7 +39,9 @@ void main() {
                   AppDrawer(
                     playlists: playlists,
                     selectedPlaylistId: selectedPlaylistId,
+                    favoritesPlaylist: favoritesPlaylist,
                     onPlaylistTap: onPlaylistTap,
+                    onFavoritesTap: onFavoritesTap,
                     onScanSettingsTap: onScanSettingsTap,
                     onSettingsTap: onSettingsTap,
                     onAboutTap: onAboutTap,
@@ -236,6 +240,85 @@ void main() {
       await pumpAppDrawer(tester, playlists: playlists);
 
       expect(find.text('10 首歌曲'), findsOneWidget);
+    });
+
+    testWidgets('should render favorites section when favoritesPlaylist is provided', (tester) async {
+      final favoritesPlaylist = Playlist(
+        id: 100,
+        name: '我喜欢听',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        songs: [_createMockSong(1), _createMockSong(2)],
+      );
+
+      await pumpAppDrawer(tester, favoritesPlaylist: favoritesPlaylist);
+
+      // 应该显示"我喜欢听"文本（标题 + 歌单名称，共2个）
+      expect(find.text('我喜欢听'), findsWidgets);
+      // 应该显示歌曲数量
+      expect(find.text('2 首歌曲'), findsOneWidget);
+    });
+
+    testWidgets('should not render favorites entry when favoritesPlaylist is null', (tester) async {
+      await pumpAppDrawer(tester, favoritesPlaylist: null);
+
+      // "我喜欢听"标题仍然存在，但没有歌单条目
+      // 由于 favoritesPlaylist 为 null，_FavoritesListTile 不会渲染
+      // 所以只会找到一个"我喜欢听"（标题）
+      expect(find.text('我喜欢听'), findsOneWidget);
+    });
+
+    testWidgets('should call onFavoritesTap when favorites playlist is tapped', (tester) async {
+      Playlist? tappedPlaylist;
+      final favoritesPlaylist = Playlist(
+        id: 100,
+        name: '我喜欢听',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        songs: [],
+      );
+
+      await pumpAppDrawer(
+        tester,
+        favoritesPlaylist: favoritesPlaylist,
+        onFavoritesTap: (playlist) async {
+          tappedPlaylist = playlist;
+        },
+      );
+
+      // 点击"我喜欢听"歌单条目（第二个，即歌单名称）
+      // 第一个是标题，第二个是歌单条目
+      final textWidgets = find.text('我喜欢听');
+      expect(textWidgets, findsWidgets);
+      await tester.tap(textWidgets.last);
+      await tester.pumpAndSettle();
+
+      expect(tappedPlaylist, isNotNull);
+      expect(tappedPlaylist?.id, 100);
+    });
+
+    testWidgets('should highlight selected favorites playlist', (tester) async {
+      final favoritesPlaylist = Playlist(
+        id: 100,
+        name: '我喜欢听',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        songs: [],
+      );
+
+      await pumpAppDrawer(
+        tester,
+        favoritesPlaylist: favoritesPlaylist,
+        selectedPlaylistId: 100,
+      );
+
+      // 找到"我喜欢听"文本
+      final textWidgets = find.text('我喜欢听');
+      expect(textWidgets, findsWidgets);
+
+      // 验证选中状态（accent 颜色）
+      final selectedTextWidget = tester.widget<Text>(textWidgets.last);
+      expect(selectedTextWidget.style?.color, AppColors.accent);
     });
   });
 }
