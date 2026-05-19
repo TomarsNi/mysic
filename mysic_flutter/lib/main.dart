@@ -1679,6 +1679,7 @@ class _AddButtonState extends State<_AddButton> {
 
 /// 收藏按钮组件
 /// 白色线框（未收藏）→ 红色实心（已收藏）
+/// 优化设计：更大的触摸区域、流畅动画、视觉反馈
 class _FavoriteButton extends StatefulWidget {
   final bool isFavorite;
   final VoidCallback onTap;
@@ -1692,12 +1693,56 @@ class _FavoriteButton extends StatefulWidget {
   State<_FavoriteButton> createState() => _FavoriteButtonState();
 }
 
-class _FavoriteButtonState extends State<_FavoriteButton> {
+class _FavoriteButtonState extends State<_FavoriteButton>
+    with SingleTickerProviderStateMixin {
   bool _isHovering = false;
   bool _isPressed = false;
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
+  }
+
+  @override
+  void didUpdateWidget(_FavoriteButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 当收藏状态改变时触发动画
+    if (widget.isFavorite != oldWidget.isFavorite) {
+      if (widget.isFavorite) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    // 确定当前颜色
+    Color iconColor;
+    if (widget.isFavorite) {
+      iconColor = _favoriteRed;
+    } else if (_isHovering) {
+      iconColor = AppColors.accent;
+    } else {
+      iconColor = AppColors.white;
+    }
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
@@ -1706,21 +1751,49 @@ class _FavoriteButtonState extends State<_FavoriteButton> {
         onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
         onTap: widget.onTap,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 100),
-          scale: _isPressed ? 0.9 : (_isHovering ? 1.1 : 1.0),
-          child: Padding(
-            padding: const EdgeInsets.only(left: 12),
-            child: Icon(
-              widget.isFavorite
-                  ? Icons.favorite_rounded
-                  : Icons.favorite_border_rounded,
-              color: widget.isFavorite
-                  ? _favoriteRed
-                  : (_isHovering ? AppColors.accent : AppColors.white),
-              size: 24,
-            ),
-          ),
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _isPressed
+                  ? 0.85
+                  : (_scaleAnimation.value * (_isHovering ? 1.05 : 1.0)),
+              child: Container(
+                width: 44, // 最小触摸区域 44x44
+                height: 44,
+                alignment: Alignment.center,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // 发光效果（已收藏时）
+                    if (widget.isFavorite)
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: _favoriteRed.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                    // 爱心图标
+                    Icon(
+                      widget.isFavorite
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      color: iconColor,
+                      size: 26,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
