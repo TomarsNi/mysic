@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:mysic_flutter/core/utils/app_logger.dart';
 
 /// SAF (Storage Access Framework) 文件读取服务
 /// 用于在 Android 上读取需要 SAF 授权的文件
@@ -18,13 +18,13 @@ class SafFileService {
     try {
       final result = await _channel.invokeMethod<String>('pickDirectory');
       if (result == null) {
-        debugPrint('用户取消目录选择');
+        AppLogger.i('SafFileService#pickDirectory', '用户取消目录选择');
         return null;
       }
-      debugPrint('用户选择目录: $result');
+      AppLogger.i('SafFileService#pickDirectory', '用户选择目录: $result');
       return result;
     } catch (e) {
-      debugPrint('SAF 目录选择失败: $e');
+      AppLogger.e('SafFileService#pickDirectory', 'SAF 目录选择失败', e);
       return null;
     }
   }
@@ -35,7 +35,7 @@ class SafFileService {
   /// 返回文件字节数据，失败返回 null
   static Future<Uint8List?> readFileFromSafUri(String safUri) async {
     if (!isSafUri(safUri)) {
-      debugPrint('不是 SAF URI: $safUri');
+      AppLogger.w('SafFileService#readFileFromSafUri', '不是 SAF URI: $safUri');
       return null;
     }
 
@@ -43,7 +43,7 @@ class SafFileService {
       final result = await _channel.invokeMethod<Uint8List>('readFile', {'uri': safUri});
       return result;
     } on PlatformException catch (e) {
-      debugPrint('SAF 读取文件失败: ${e.message}');
+      AppLogger.e('SafFileService#readFileFromSafUri', 'SAF 读取文件失败: ${e.message}', e);
       return null;
     }
   }
@@ -55,7 +55,7 @@ class SafFileService {
   /// 返回文件字节数据，失败返回 null
   static Future<Uint8List?> readFileFromTreeUri(String treeUri, String relativePath) async {
     if (!isSafUri(treeUri)) {
-      debugPrint('不是 SAF 树 URI: $treeUri');
+      AppLogger.w('SafFileService#readFileFromTreeUri', '不是 SAF 树 URI: $treeUri');
       return null;
     }
 
@@ -66,7 +66,7 @@ class SafFileService {
       });
       return result;
     } on PlatformException catch (e) {
-      debugPrint('SAF 从树读取文件失败: ${e.message}');
+      AppLogger.e('SafFileService#readFileFromTreeUri', 'SAF 从树读取文件失败: ${e.message}', e);
       return null;
     }
   }
@@ -106,7 +106,7 @@ class SafFileService {
       final result = await _channel.invokeMethod<bool>('persistUriPermission', {'uri': uri});
       return result ?? false;
     } on PlatformException catch (e) {
-      debugPrint('持久化 SAF 权限失败: ${e.message}');
+      AppLogger.e('SafFileService#persistUriPermission', '持久化 SAF 权限失败: ${e.message}', e);
       return false;
     }
   }
@@ -122,7 +122,7 @@ class SafFileService {
     try {
       await _channel.invokeMethod('releaseUriPermission', {'uri': uri});
     } on PlatformException catch (e) {
-      debugPrint('释放 SAF 权限失败: ${e.message}');
+      AppLogger.e('SafFileService#releaseUriPermission', '释放 SAF 权限失败: ${e.message}', e);
     }
   }
 
@@ -138,7 +138,7 @@ class SafFileService {
       final result = await _channel.invokeMethod<bool>('hasUriPermission', {'uri': uri});
       return result ?? false;
     } on PlatformException catch (e) {
-      debugPrint('检查 SAF 权限失败: ${e.message}');
+      AppLogger.e('SafFileService#hasUriPermission', '检查 SAF 权限失败: ${e.message}', e);
       return false;
     }
   }
