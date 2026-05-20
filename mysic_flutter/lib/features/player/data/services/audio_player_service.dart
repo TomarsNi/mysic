@@ -98,8 +98,8 @@ class AudioPlayerService {
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.mysic.app.audio',
         androidNotificationChannelName: 'Mysic 播放器',
-        androidNotificationOngoing: true,
-        androidStopForegroundOnPause: true,
+        androidNotificationOngoing: false,
+        androidStopForegroundOnPause: false,
       ),
     );
 
