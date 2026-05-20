@@ -17,7 +17,8 @@ class SleepTimerSheet extends StatefulWidget {
 class _SleepTimerSheetState extends State<SleepTimerSheet>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final TextEditingController _customController = TextEditingController();
+  final TextEditingController _timeController = TextEditingController();
+  final TextEditingController _songCountController = TextEditingController();
 
   /// 时间预设选项（分钟）
   static const List<int> _timePresets = [5, 10, 15, 30, 60];
@@ -29,20 +30,31 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    // 切换选项卡时清空输入框
+    if (_tabController.indexIsChanging) {
+      _timeController.clear();
+      _songCountController.clear();
+    }
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
-    _customController.dispose();
+    _timeController.dispose();
+    _songCountController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<SleepTimerProvider>(
-      builder: (context, provider, _) {
-        final state = provider.state;
+    return Consumer2<SleepTimerProvider, PlayerProvider>(
+      builder: (context, sleepTimerProvider, playerProvider, _) {
+        final state = sleepTimerProvider.state;
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -65,14 +77,14 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildTimeTab(provider),
-                    _buildSongCountTab(provider),
+                    _buildTimeTab(sleepTimerProvider),
+                    _buildSongCountTab(sleepTimerProvider, playerProvider.currentIndex),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
               // 当前状态和取消按钮
-              if (state.isActive) _buildActiveState(provider, state),
+              if (state.isActive) _buildActiveState(sleepTimerProvider, state),
               const SizedBox(height: 24),
             ],
           ),
@@ -161,6 +173,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
         const SizedBox(height: 16),
         // 自定义输入
         _buildCustomInput(
+          controller: _timeController,
           hint: '自定义分钟数',
           onSubmitted: (value) {
             final minutes = int.tryParse(value);
@@ -174,11 +187,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
   }
 
   /// 歌曲数选项卡
-  Widget _buildSongCountTab(SleepTimerProvider provider) {
-    // 获取当前歌曲索引
-    final playerProvider = context.read<PlayerProvider>();
-    final currentIndex = playerProvider.currentIndex;
-
+  Widget _buildSongCountTab(SleepTimerProvider provider, int currentIndex) {
     return Column(
       children: [
         // 预设按钮
@@ -195,6 +204,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
         const SizedBox(height: 16),
         // 自定义输入
         _buildCustomInput(
+          controller: _songCountController,
           hint: '自定义歌曲数',
           onSubmitted: (value) {
             final count = int.tryParse(value);
@@ -239,11 +249,12 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
 
   /// 自定义输入框
   Widget _buildCustomInput({
+    required TextEditingController controller,
     required String hint,
     required void Function(String) onSubmitted,
   }) {
     return TextField(
-      controller: _customController,
+      controller: controller,
       keyboardType: TextInputType.number,
       textInputAction: TextInputAction.done,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
