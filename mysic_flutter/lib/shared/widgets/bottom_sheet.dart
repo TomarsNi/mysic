@@ -4,6 +4,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mysic_flutter/core/theme/app_colors.dart';
+import 'package:mysic_flutter/core/utils/app_logger.dart';
 import 'package:mysic_flutter/features/player/data/models/playlist.dart';
 import 'package:mysic_flutter/features/player/data/models/song.dart';
 import 'package:mysic_flutter/shared/utils/music_scanner.dart';
@@ -662,7 +663,7 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
           }
         },
         onError: (error) {
-          debugPrint('扫描进度错误: $error');
+          AppLogger.w('CreatePlaylistDialog#_scanAndCreate', '扫描进度错误: $error');
         },
       );
 
@@ -670,15 +671,15 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
 
       if (!mounted) return;
 
-      debugPrint('扫描结果: isSuccess=${result.isSuccess}, totalFound=${result.totalFound}, newAdded=${result.newAdded}, newSongIds.length=${result.newSongIds.length}');
+      AppLogger.d('CreatePlaylistDialog#_scanAndCreate', '扫描结果: isSuccess=${result.isSuccess}, totalFound=${result.totalFound}, newAdded=${result.newAdded}, newSongIds.length=${result.newSongIds.length}');
 
       // 获取本次扫描的歌曲（使用 newSongIds 精确获取）
       List<Song>? scannedSongs;
       if (result.isSuccess && result.newSongIds.isNotEmpty) {
         scannedSongs = await scanner.getSongsByIds(result.newSongIds);
-        debugPrint('获取歌曲数量: ${scannedSongs.length}');
+        AppLogger.d('CreatePlaylistDialog#_scanAndCreate', '获取歌曲数量: ${scannedSongs.length}');
       } else {
-        debugPrint('跳过获取歌曲: isSuccess=${result.isSuccess}, newSongIds.isEmpty=${result.newSongIds.isEmpty}');
+        AppLogger.d('CreatePlaylistDialog#_scanAndCreate', '跳过获取歌曲: isSuccess=${result.isSuccess}, newSongIds.isEmpty=${result.newSongIds.isEmpty}');
       }
 
       setState(() {
