@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/app_logger.dart';
 
 /// 关于页面
 /// 显示应用信息、版本、开发者信息、支持作者等
@@ -476,13 +477,13 @@ class AboutPage extends StatelessWidget {
   void _launchUrl(String url) {
     // TODO: 使用 url_launcher 打开链接
     // 目前仅打印日志
-    debugPrint('Launch URL: $url');
+    AppLogger.d('AboutPage#_launchUrl', 'Launch URL: $url');
   }
 
   void _sendEmail(String email) {
     // TODO: 使用 url_launcher 打开邮件客户端
     // 目前仅打印日志
-    debugPrint('Send email to: $email');
+    AppLogger.d('AboutPage#_sendEmail', 'Send email to: $email');
   }
 
   void _showStarDialog(BuildContext context) {
