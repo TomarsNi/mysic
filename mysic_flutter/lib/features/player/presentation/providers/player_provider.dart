@@ -8,6 +8,7 @@ import '../../../lyrics/data/services/lyrics_parser.dart';
 import '../../../playlist/data/playlist_repository.dart';
 import '../../../../core/database/database_helper.dart';
 import '../../../settings/data/play_mode_preference.dart';
+import '../../../../core/utils/app_logger.dart';
 
 /// 播放器状态管理 Provider
 /// 使用 ChangeNotifier 管理播放器状态，供 UI 层使用
@@ -54,16 +55,16 @@ class PlayerProvider extends ChangeNotifier {
 
   /// 初始化
   Future<void> _init() async {
-    debugPrint('========== PlayerProvider._init 开始 ==========');
+    AppLogger.d('PlayerProvider#_init', '开始初始化');
     await _audioPlayerService.initialize();
-    debugPrint('========== AudioPlayerService.initialize 完成 ==========');
+    AppLogger.i('PlayerProvider#_init', 'AudioPlayerService 初始化完成');
 
     // 加载持久化的播放模式
     await _loadPlayMode();
 
     // 监听播放器状态变化
     _audioPlayerService.stateStream.listen((state) {
-      debugPrint('========== PlayerProvider 收到 stateStream 事件: $state ==========');
+      AppLogger.d('PlayerProvider#_init', '收到 stateStream 事件: $state');
       _playerState = state;
       notifyListeners();
     });
@@ -77,18 +78,18 @@ class PlayerProvider extends ChangeNotifier {
 
     // 监听歌曲时长变化
     _audioPlayerService.durationStream.listen((duration) {
-      debugPrint('========== PlayerProvider 收到 durationStream 事件: $duration ==========');
+      AppLogger.d('PlayerProvider#_init', '收到 durationStream 事件: $duration');
       _duration = duration;
       notifyListeners();
     });
 
     // 监听当前歌曲变化
     _audioPlayerService.currentSongStream.listen((song) {
-      debugPrint('========== PlayerProvider 收到 currentSongStream 事件: ${song?.title} ==========');
+      AppLogger.i('PlayerProvider#_init', '收到 currentSongStream 事件: ${song?.title}');
       _currentSong = song;
       // 同步 currentIndex
       _currentIndex = _audioPlayerService.currentIndex;
-      debugPrint('========== PlayerProvider 同步 currentIndex: $_currentIndex ==========');
+      AppLogger.d('PlayerProvider#_init', '同步 currentIndex: $_currentIndex');
       // 保存最后播放的歌曲 ID
       if (song?.id != null) {
         PlayModePreference.saveLastSongId(song!.id!);
@@ -97,7 +98,7 @@ class PlayerProvider extends ChangeNotifier {
       _loadLyricsForSong(song);
       notifyListeners();
     });
-    debugPrint('========== PlayerProvider._init 完成，监听器已设置 ==========');
+    AppLogger.i('PlayerProvider#_init', '初始化完成，监听器已设置');
   }
 
   /// 加载持久化的播放模式
@@ -126,31 +127,30 @@ class PlayerProvider extends ChangeNotifier {
       return;
     }
 
-    debugPrint('========== _loadLyricsForSong 开始 ==========');
-    debugPrint('歌曲: ${song.title}, id: ${song.id}');
-    debugPrint('lyricsPath: ${song.lyricsPath}');
+    AppLogger.d('PlayerProvider#_loadLyricsForSong', '歌曲: ${song.title}, id: ${song.id}');
+    AppLogger.d('PlayerProvider#_loadLyricsForSong', 'lyricsPath: ${song.lyricsPath}');
 
     // 1. 优先从 songs.lyrics_path 读取（应用目录内的 .lrc 文件）
     if (song.lyricsPath != null && song.lyricsPath!.isNotEmpty) {
-      debugPrint('尝试从 lyrics_path 读取: ${song.lyricsPath}');
+      AppLogger.d('PlayerProvider#_loadLyricsForSong', '尝试从 lyrics_path 读取: ${song.lyricsPath}');
       final lyricsFile = File(song.lyricsPath!);
       if (await lyricsFile.exists()) {
-        debugPrint('歌词文件存在，开始解析');
+        AppLogger.d('PlayerProvider#_loadLyricsForSong', '歌词文件存在，开始解析');
         _currentLyrics = await _lyricsParser.parseFile(song.lyricsPath!);
         if (_currentLyrics.isValid) {
-          debugPrint('歌词解析成功，共 ${_currentLyrics.lines.length} 行');
+          AppLogger.i('PlayerProvider#_loadLyricsForSong', '歌词解析成功，共 ${_currentLyrics.lines.length} 行');
           notifyListeners();
           return;
         } else {
-          debugPrint('歌词解析失败');
+          AppLogger.w('PlayerProvider#_loadLyricsForSong', '歌词解析失败');
         }
       } else {
-        debugPrint('歌词文件不存在: ${song.lyricsPath}');
+        AppLogger.w('PlayerProvider#_loadLyricsForSong', '歌词文件不存在: ${song.lyricsPath}');
       }
     }
 
     // 2. 从数据库 lyrics 表加载
-    debugPrint('尝试从数据库 lyrics 表加载');
+    AppLogger.d('PlayerProvider#_loadLyricsForSong', '尝试从数据库 lyrics 表加载');
     final db = await DatabaseHelper().database;
     final dbResult = await db.query(
       DatabaseHelper.tableLyrics,
@@ -159,30 +159,30 @@ class PlayerProvider extends ChangeNotifier {
     );
 
     if (dbResult.isNotEmpty) {
-      debugPrint('数据库中有歌词记录');
+      AppLogger.d('PlayerProvider#_loadLyricsForSong', '数据库中有歌词记录');
       final lrcContent = dbResult.first['lrc_content'] as String?;
       if (lrcContent != null && lrcContent.isNotEmpty) {
         _currentLyrics = _lyricsParser.parse(lrcContent);
-        debugPrint('从数据库加载歌词: ${_currentLyrics.isValid ? "成功" : "失败"}');
+        AppLogger.i('PlayerProvider#_loadLyricsForSong', '从数据库加载歌词: ${_currentLyrics.isValid ? "成功" : "失败"}');
         notifyListeners();
         return;
       }
     } else {
-      debugPrint('数据库中无歌词记录');
+      AppLogger.d('PlayerProvider#_loadLyricsForSong', '数据库中无歌词记录');
     }
 
     // 3. 从文件系统查找同名 .lrc 文件
-    debugPrint('尝试从文件系统查找同名 .lrc 文件');
+    AppLogger.d('PlayerProvider#_loadLyricsForSong', '尝试从文件系统查找同名 .lrc 文件');
     final lyricsPath = _lyricsParser.findLyricsFile(song.filePath);
     if (lyricsPath != null) {
-      debugPrint('找到歌词文件: $lyricsPath');
+      AppLogger.i('PlayerProvider#_loadLyricsForSong', '找到歌词文件: $lyricsPath');
       _currentLyrics = await _lyricsParser.parseFile(lyricsPath);
-      debugPrint('歌词解析: ${_currentLyrics.isValid ? "成功" : "失败"}');
+      AppLogger.i('PlayerProvider#_loadLyricsForSong', '歌词解析: ${_currentLyrics.isValid ? "成功" : "失败"}');
     } else {
-      debugPrint('未找到同名歌词文件');
+      AppLogger.d('PlayerProvider#_loadLyricsForSong', '未找到同名歌词文件');
       _currentLyrics = LyricsResult.empty;
     }
-    debugPrint('========== _loadLyricsForSong 结束 ==========');
+    AppLogger.d('PlayerProvider#_loadLyricsForSong', '加载结束');
     notifyListeners();
   }
 
@@ -199,7 +199,7 @@ class PlayerProvider extends ChangeNotifier {
   List<Song> get playlist => List.unmodifiable(_playlist);
   String get playlistName => _playlistName;
   int get currentIndex {
-    debugPrint('========== PlayerProvider.currentIndex getter: $_currentIndex ==========');
+    AppLogger.d('PlayerProvider#currentIndex', 'getter: $_currentIndex');
     return _currentIndex;
   }
   bool get isShuffleMode => _isShuffleMode;
@@ -273,12 +273,12 @@ class PlayerProvider extends ChangeNotifier {
 
   /// 播放歌曲
   Future<void> playSong(Song song) async {
-    debugPrint('========== PlayerProvider.playSong: ${song.title} ==========');
+    AppLogger.i('PlayerProvider#playSong', '播放歌曲: ${song.title}');
     await _audioPlayerService.playSong(song);
     _currentSong = song;
     // 同步 currentIndex
     _currentIndex = _audioPlayerService.currentIndex;
-    debugPrint('PlayerProvider.playSong 后 currentIndex: $_currentIndex');
+    AppLogger.d('PlayerProvider#playSong', 'currentIndex: $_currentIndex');
     notifyListeners();
   }
 
@@ -289,10 +289,9 @@ class PlayerProvider extends ChangeNotifier {
     bool autoPlay = false,
     String? playlistName,
   }) async {
-    debugPrint('========== PlayerProvider.setPlaylist 开始 ==========');
-    debugPrint('传入歌曲数量: ${songs.length}, startIndex: $startIndex, autoPlay: $autoPlay');
+    AppLogger.d('PlayerProvider#setPlaylist', '开始: 歌曲数量=${songs.length}, startIndex=$startIndex, autoPlay=$autoPlay');
     if (songs.isNotEmpty) {
-      debugPrint('第一首歌: ${songs.first.title}, 路径: ${songs.first.filePath}');
+      AppLogger.d('PlayerProvider#setPlaylist', '第一首歌: ${songs.first.title}');
     }
 
     _playlist = List.from(songs);
@@ -307,11 +306,11 @@ class PlayerProvider extends ChangeNotifier {
     }
 
     notifyListeners();
-    debugPrint('========== 调用 AudioPlayerService.setPlaylist 前，_playerState=$_playerState, _duration=$_duration ==========');
+    AppLogger.d('PlayerProvider#setPlaylist', '调用 AudioPlayerService 前: _playerState=$_playerState, _duration=$_duration');
 
     await _audioPlayerService.setPlaylist(songs, startIndex: startIndex, autoPlay: autoPlay);
 
-    debugPrint('========== AudioPlayerService.setPlaylist 返回后，service.state=${_audioPlayerService.state}, service.duration=${_audioPlayerService.duration} ==========');
+    AppLogger.d('PlayerProvider#setPlaylist', 'AudioPlayerService 返回后: service.state=${_audioPlayerService.state}, service.duration=${_audioPlayerService.duration}');
 
     // 同步状态和时长（确保 UI 立即更新）
     _playerState = _audioPlayerService.state;
@@ -319,7 +318,7 @@ class PlayerProvider extends ChangeNotifier {
     _position = _audioPlayerService.position;
     notifyListeners();
 
-    debugPrint('========== PlayerProvider.setPlaylist 完成，_playerState=$_playerState, _duration=$_duration ==========');
+    AppLogger.i('PlayerProvider#setPlaylist', '完成: _playerState=$_playerState, _duration=$_duration');
   }
 
   /// 播放
@@ -543,7 +542,7 @@ class PlayerProvider extends ChangeNotifier {
         await _songRepository.markAsDeleted(songId);
         await _playlistRepository.removeFromAllPlaylists(songId);
       } catch (e) {
-        debugPrint('删除歌曲数据库操作失败: $e');
+        AppLogger.e('PlayerProvider#_performDeleteAsync', '删除歌曲数据库操作失败', e);
       }
     }();
   }
@@ -589,7 +588,7 @@ class PlayerProvider extends ChangeNotifier {
       final db = DatabaseHelper();
       await db.updateLyricsContent(_currentSong!.id!, lrcContent);
     } catch (e) {
-      debugPrint('保存歌词调整失败: $e');
+      AppLogger.e('PlayerProvider#saveLyricsAdjustment', '保存歌词调整失败', e);
       return false;
     }
 
