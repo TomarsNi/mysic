@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
+import 'package:mysic_flutter/core/utils/app_logger.dart';
 
 /// 文件操作工具类
 class FileUtils {
@@ -18,7 +18,7 @@ class FileUtils {
       return false;
     } catch (e) {
       // 文件删除失败不阻塞流程，仅记录日志
-      debugPrint('删除文件失败: $e');
+      AppLogger.w('FileUtils#deleteFile', '删除文件失败: $e');
       return false;
     }
   }
