@@ -90,7 +90,12 @@ class SleepTimerService {
     onStateChanged?.call();
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      final elapsed = DateTime.now().difference(_state.startTime!).inSeconds;
+      final startTime = _state.startTime;
+      if (startTime == null) {
+        _cancelTimer();
+        return;
+      }
+      final elapsed = DateTime.now().difference(startTime).inSeconds;
       final remaining = targetSeconds - elapsed;
 
       if (remaining <= 0) {
@@ -122,7 +127,13 @@ class SleepTimerService {
       return;
     }
 
-    final played = currentSongIndex - _state.startSongIndex!;
+    final startSongIndex = _state.startSongIndex;
+    if (startSongIndex == null) {
+      cancel();
+      return;
+    }
+
+    final played = currentSongIndex - startSongIndex;
     final remaining = _state.targetValue - played;
 
     if (remaining <= 0) {
