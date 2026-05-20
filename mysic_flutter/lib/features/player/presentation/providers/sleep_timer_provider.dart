@@ -22,13 +22,11 @@ class SleepTimerProvider extends ChangeNotifier {
   /// 启动时间倒计时
   void startTimeTimer(int minutes) {
     _service.startTimeTimer(minutes);
-    notifyListeners();
   }
 
   /// 启动歌曲数倒计时
   void startSongCountTimer(int songCount, int currentSongIndex) {
     _service.startSongCountTimer(songCount, currentSongIndex);
-    notifyListeners();
   }
 
   /// 歌曲变化时调用
@@ -39,7 +37,6 @@ class SleepTimerProvider extends ChangeNotifier {
   /// 取消倒计时
   void cancel() {
     _service.cancel();
-    notifyListeners();
   }
 
   /// 设置完成回调（用于暂停播放）
