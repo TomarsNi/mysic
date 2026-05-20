@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../core/database/database_helper.dart';
+import '../../core/utils/app_logger.dart';
 import '../../features/player/data/models/song.dart';
 import 'platform_music_scanner.dart';
 import 'scan_directory_provider.dart';
@@ -103,7 +104,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
   Future<void> _scanDirectoryForImages(String directory) async {
     final dir = Directory(directory);
     if (!await dir.exists()) {
-      debugPrint('目录不存在: $directory');
+      AppLogger.w('MobileMusicScanner#_scanDirectoryForImages', '目录不存在: $directory');
       return;
     }
 
@@ -124,9 +125,9 @@ class MobileMusicScanner extends PlatformMusicScanner {
       }
 
       _imageCache.addDirectory(directory, imageFiles);
-      debugPrint('图片预收集完成: 目录=$directory, 图片数=${imageFiles.length}');
+      AppLogger.i('MobileMusicScanner#_scanDirectoryForImages', '图片预收集完成: 目录=$directory, 图片数=${imageFiles.length}');
     } catch (e) {
-      debugPrint('图片预收集失败: $directory, 错误=$e');
+      AppLogger.e('MobileMusicScanner#_scanDirectoryForImages', '图片预收集失败: $directory', e);
     }
   }
 
@@ -156,14 +157,14 @@ class MobileMusicScanner extends PlatformMusicScanner {
     // 格式：content://com.android.externalstorage.documents/tree/<encoded_path>
     final uriParts = uri.split('/');
     if (uriParts.length < 5) {
-      debugPrint('SAF URI 格式无效: $uri');
+      AppLogger.w('MobileMusicScanner#_convertSafUriToFilePath', 'SAF URI 格式无效: $uri');
       return null;
     }
 
     // 找到 "tree" 后面的路径段
     int treeIndex = uriParts.indexOf('tree');
     if (treeIndex == -1 || treeIndex + 1 >= uriParts.length) {
-      debugPrint('SAF URI 缺少 tree 段: $uri');
+      AppLogger.w('MobileMusicScanner#_convertSafUriToFilePath', 'SAF URI 缺少 tree 段: $uri');
       return null;
     }
 
@@ -175,7 +176,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
     try {
       decodedPath = Uri.decodeComponent(encodedPath);
     } catch (e) {
-      debugPrint('SAF URI 解码失败: $encodedPath, 错误: $e');
+      AppLogger.e('MobileMusicScanner#_convertSafUriToFilePath', 'SAF URI 解码失败: $encodedPath', e);
       return null;
     }
 
@@ -194,7 +195,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
       return decodedPath.substring('raw:'.length);
     } else if (decodedPath.contains(':')) {
       // 其他存储类型（如 external: 表示 SD 卡），暂不支持
-      debugPrint('SAF URI 不支持的存储类型: $decodedPath');
+      AppLogger.w('MobileMusicScanner#_convertSafUriToFilePath', 'SAF URI 不支持的存储类型: $decodedPath');
       return null;
     } else {
       // 某些情况下可能直接是相对路径
@@ -255,13 +256,13 @@ class MobileMusicScanner extends PlatformMusicScanner {
       if (safTreeUri != null && SafFileService.isSafUri(safTreeUri)) {
         // 计算相对于扫描目录的图片路径
         final imageFileName = sourcePath.split(Platform.pathSeparator).last;
-        debugPrint('尝试通过 SAF 读取同名图片: treeUri=$safTreeUri, fileName=$imageFileName');
+        AppLogger.d('MobileMusicScanner#_copyImageToPrivateDir', '尝试通过 SAF 读取同名图片: treeUri=$safTreeUri, fileName=$imageFileName');
 
         bytes = await SafFileService.readFileFromTreeUri(safTreeUri, imageFileName);
         if (bytes != null) {
-          debugPrint('SAF 读取同名图片成功: $imageFileName (${bytes.length} bytes)');
+          AppLogger.i('MobileMusicScanner#_copyImageToPrivateDir', 'SAF 读取同名图片成功: $imageFileName (${bytes.length} bytes)');
         } else {
-          debugPrint('SAF 读取同名图片失败: $imageFileName');
+          AppLogger.w('MobileMusicScanner#_copyImageToPrivateDir', 'SAF 读取同名图片失败: $imageFileName');
         }
       }
 
@@ -270,16 +271,16 @@ class MobileMusicScanner extends PlatformMusicScanner {
         final sourceFile = File(sourcePath);
         try {
           bytes = await sourceFile.readAsBytes();
-          debugPrint('直接读取同名图片成功: $sourcePath (${bytes.length} bytes)');
+          AppLogger.i('MobileMusicScanner#_copyImageToPrivateDir', '直接读取同名图片成功: $sourcePath (${bytes.length} bytes)');
         } catch (e) {
-          debugPrint('直接读取同名图片失败: $sourcePath, 错误: $e');
+          AppLogger.e('MobileMusicScanner#_copyImageToPrivateDir', '直接读取同名图片失败: $sourcePath', e);
           // 两种方式都失败，返回 null
           return null;
         }
       }
 
       if (bytes.isEmpty) {
-        debugPrint('同名图片内容为空: $sourcePath');
+        AppLogger.w('MobileMusicScanner#_copyImageToPrivateDir', '同名图片内容为空: $sourcePath');
         return null;
       }
 
@@ -294,10 +295,10 @@ class MobileMusicScanner extends PlatformMusicScanner {
       final targetFile = File(targetPath);
       await targetFile.writeAsBytes(bytes);
 
-      debugPrint('复制同名图片成功: $sourcePath -> $targetPath');
+      AppLogger.i('MobileMusicScanner#_copyImageToPrivateDir', '复制同名图片成功: $sourcePath -> $targetPath');
       return targetPath;
     } catch (e) {
-      debugPrint('复制同名图片失败: $sourcePath, 错误: $e');
+      AppLogger.e('MobileMusicScanner#_copyImageToPrivateDir', '复制同名图片失败: $sourcePath', e);
       return null;
     }
   }
@@ -320,10 +321,10 @@ class MobileMusicScanner extends PlatformMusicScanner {
       final file = File(targetPath);
       await file.writeAsBytes(artworkBytes);
 
-      debugPrint('内嵌封面保存成功: $targetPath (${artworkBytes.length} bytes)');
+      AppLogger.i('MobileMusicScanner#_extractAndSaveEmbeddedArtwork', '内嵌封面保存成功: $targetPath (${artworkBytes.length} bytes)');
       return targetPath;
     } catch (e) {
-      debugPrint('提取内嵌封面失败: $filePath, error=$e');
+      AppLogger.e('MobileMusicScanner#_extractAndSaveEmbeddedArtwork', '提取内嵌封面失败: $filePath', e);
       return null;
     }
   }
@@ -365,7 +366,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
       );
 
       if (artwork == null || artwork.isEmpty) {
-        debugPrint('歌曲无封面: songId=$songId, mediaId=$mediaId');
+        AppLogger.d('MobileMusicScanner#_fetchAndSaveArtwork', '歌曲无封面: songId=$songId, mediaId=$mediaId');
         return null;
       }
 
@@ -377,10 +378,10 @@ class MobileMusicScanner extends PlatformMusicScanner {
       final file = File(filePath);
       await file.writeAsBytes(artwork);
 
-      debugPrint('封面保存成功: $filePath (${artwork.length} bytes)');
+      AppLogger.i('MobileMusicScanner#_fetchAndSaveArtwork', '封面保存成功: $filePath (${artwork.length} bytes)');
       return filePath;
     } catch (e) {
-      debugPrint('获取封面失败: songId=$songId, mediaId=$mediaId, error=$e');
+      AppLogger.e('MobileMusicScanner#_fetchAndSaveArtwork', '获取封面失败: songId=$songId, mediaId=$mediaId', e);
       return null;
     }
   }
@@ -538,7 +539,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
       updateState(ScanState.completed);
       stopwatch.stop();
-      debugPrint('Mobile扫描完成: totalFound=$totalFound, newAdded=${result['newAdded']}, duplicates=${result['duplicates']}');
+      AppLogger.i('MobileMusicScanner#scanMusic', 'Mobile扫描完成: totalFound=$totalFound, newAdded=${result['newAdded']}, duplicates=${result['duplicates']}');
 
       updateProgress(ScanProgress(
         currentPath: '完成',
@@ -569,8 +570,8 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
   @override
   Future<ScanResult> scanMusicInDirectory(String directory) async {
-    debugPrint('========== scanMusicInDirectory 开始 (MediaStore) ==========');
-    debugPrint('原始目录路径: $directory');
+    AppLogger.d('MobileMusicScanner#scanMusicInDirectory', '========== scanMusicInDirectory 开始 (MediaStore) ==========');
+    AppLogger.d('MobileMusicScanner#scanMusicInDirectory', '原始目录路径: $directory');
 
     if (isScanning) {
       return const ScanResult(
@@ -591,23 +592,23 @@ class MobileMusicScanner extends PlatformMusicScanner {
       // 尝试将 SAF URI 转换为文件系统路径
       String actualPath = directory;
       if (directory.startsWith('content://')) {
-        debugPrint('检测到 SAF URI，尝试转换...');
+        AppLogger.d('MobileMusicScanner#scanMusicInDirectory', '检测到 SAF URI，尝试转换...');
 
         // 保存原始 SAF 树 URI 用于后续读取同名图片
         _currentSafTreeUri = directory;
 
         // 持久化 SAF 权限，以便后续可以读取文件
         final persisted = await SafFileService.persistUriPermission(directory);
-        debugPrint('SAF 权限持久化: ${persisted ? "成功" : "失败"}');
+        AppLogger.i('MobileMusicScanner#scanMusicInDirectory', 'SAF 权限持久化: ${persisted ? "成功" : "失败"}');
 
         final convertedPath = _convertSafUriToFilePath(directory);
-        debugPrint('转换结果: $convertedPath');
+        AppLogger.d('MobileMusicScanner#scanMusicInDirectory', '转换结果: $convertedPath');
         if (convertedPath != null) {
           actualPath = convertedPath;
-          debugPrint('SAF URI 转换: $directory -> $actualPath');
+          AppLogger.i('MobileMusicScanner#scanMusicInDirectory', 'SAF URI 转换: $directory -> $actualPath');
         } else {
           // 无法转换，返回错误
-          debugPrint('SAF URI 转换失败');
+          AppLogger.w('MobileMusicScanner#scanMusicInDirectory', 'SAF URI 转换失败');
           updateState(ScanState.completed);
           stopwatch.stop();
           return ScanResult(
@@ -623,12 +624,12 @@ class MobileMusicScanner extends PlatformMusicScanner {
       updateState(ScanState.scanning);
 
       // 使用 MediaStore API 查询指定目录的歌曲
-      debugPrint('使用 MediaStore 查询目录: $actualPath');
+      AppLogger.d('MobileMusicScanner#scanMusicInDirectory', '使用 MediaStore 查询目录: $actualPath');
 
       // 检查权限
       final hasPermission = await _audioQuery.checkAndRequest();
       if (!hasPermission) {
-        debugPrint('没有存储权限');
+        AppLogger.w('MobileMusicScanner#scanMusicInDirectory', '没有存储权限');
         updateState(ScanState.completed);
         stopwatch.stop();
         return ScanResult(
@@ -645,14 +646,14 @@ class MobileMusicScanner extends PlatformMusicScanner {
       try {
         // querySongs 支持 path 参数来过滤特定目录
         mediaSongs = await _audioQuery.querySongs(path: actualPath);
-        debugPrint('MediaStore 查询到 ${mediaSongs.length} 首歌曲');
+        AppLogger.i('MobileMusicScanner#scanMusicInDirectory', 'MediaStore 查询到 ${mediaSongs.length} 首歌曲');
       } catch (e) {
-        debugPrint('MediaStore querySongs 失败: $e');
+        AppLogger.e('MobileMusicScanner#scanMusicInDirectory', 'MediaStore querySongs 失败', e);
         // 如果 path 参数不支持，尝试查询所有歌曲然后过滤
         try {
-          debugPrint('尝试查询所有歌曲然后按路径过滤...');
+          AppLogger.d('MobileMusicScanner#scanMusicInDirectory', '尝试查询所有歌曲然后按路径过滤...');
           final allSongs = await _audioQuery.querySongs();
-          debugPrint('查询到所有歌曲: ${allSongs.length} 首');
+          AppLogger.d('MobileMusicScanner#scanMusicInDirectory', '查询到所有歌曲: ${allSongs.length} 首');
 
           // 按目录路径过滤
           mediaSongs = allSongs.where((song) {
@@ -661,9 +662,9 @@ class MobileMusicScanner extends PlatformMusicScanner {
             // 检查歌曲路径是否在目标目录下
             return songPath.startsWith(actualPath);
           }).toList();
-          debugPrint('过滤后歌曲数量: ${mediaSongs.length}');
+          AppLogger.i('MobileMusicScanner#scanMusicInDirectory', '过滤后歌曲数量: ${mediaSongs.length}');
         } catch (e2) {
-          debugPrint('MediaStore 查询失败: $e2');
+          AppLogger.e('MobileMusicScanner#scanMusicInDirectory', 'MediaStore 查询失败', e2);
           updateState(ScanState.completed);
           stopwatch.stop();
           return ScanResult(
@@ -714,7 +715,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
       updateState(ScanState.completed);
       stopwatch.stop();
-      debugPrint('Mobile目录扫描完成: directory=$directory, totalFound=$totalFound, newAdded=${result['newAdded']}');
+      AppLogger.i('MobileMusicScanner#scanMusicInDirectory', 'Mobile目录扫描完成: directory=$directory, totalFound=$totalFound, newAdded=${result['newAdded']}');
 
       updateProgress(ScanProgress(
         currentPath: '完成',
@@ -731,7 +732,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
         newSongIds: result['newSongIds']! as List<int>,
       );
     } catch (e) {
-      debugPrint('扫描异常: $e');
+      AppLogger.e('MobileMusicScanner#scanMusicInDirectory', '扫描异常', e);
       updateState(ScanState.error);
       stopwatch.stop();
       return ScanResult(
@@ -796,7 +797,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
           final durationSec = durationMs ~/ 1000;
           if (durationSec > 0 && (durationSec < _minDurationSec || durationSec > _maxDurationSec)) {
             filtered++;
-            debugPrint('歌曲时长不在范围内，跳过: ${mediaSong.title} ($durationSec秒)');
+            AppLogger.d('MobileMusicScanner#_saveMediaSongsToDatabase', '歌曲时长不在范围内，跳过: ${mediaSong.title} ($durationSec秒)');
             continue;
           }
 
@@ -807,7 +808,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
           String? album = mediaSong.album;
 
           if (filePath.toLowerCase().endsWith('.wav')) {
-            debugPrint('WAV 文件，尝试从文件提取元数据: $filePath');
+            AppLogger.d('MobileMusicScanner#_saveMediaSongsToDatabase', 'WAV 文件，尝试从文件提取元数据: $filePath');
             final metadata = await MetadataExtractor.extract(filePath);
             if (metadata != null) {
               // 只有当提取的元数据有效时才使用
@@ -820,14 +821,14 @@ class MobileMusicScanner extends PlatformMusicScanner {
               if (metadata.album != null && metadata.album!.isNotEmpty) {
                 album = metadata.album;
               }
-              debugPrint('WAV 元数据提取结果: title=$title, artist=$artist, album=$album');
+              AppLogger.d('MobileMusicScanner#_saveMediaSongsToDatabase', 'WAV 元数据提取结果: title=$title, artist=$artist, album=$album');
             }
 
             // 如果元数据无效（来自 MediaStore 或文件提取），从文件名提取
             if (title.isEmpty || _isInvalidMetadata(title)) {
               final fileName = filePath.split(Platform.pathSeparator).last;
               title = _cleanTitleFromFileName(fileName);
-              debugPrint('从文件名提取标题: $title');
+              AppLogger.d('MobileMusicScanner#_saveMediaSongsToDatabase', '从文件名提取标题: $title');
             }
           }
 
@@ -835,7 +836,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
           // 使用 ImageCache 快速查找，避免逐个 File.exists() I/O 操作
           final sourceImagePath = _imageCache.findImagePath(filePath);
           if (sourceImagePath != null) {
-            debugPrint('找到同名图片: $sourceImagePath');
+            AppLogger.d('MobileMusicScanner#_saveMediaSongsToDatabase', '找到同名图片: $sourceImagePath');
           }
 
           // 先插入歌曲（album_art_path 暂时为 null）
@@ -853,7 +854,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
               'updated_at': nowIso,
             },
           );
-          debugPrint('插入歌曲: id=$songId, title=$title, sourceImagePath=$sourceImagePath');
+          AppLogger.d('MobileMusicScanner#_saveMediaSongsToDatabase', '插入歌曲: id=$songId, title=$title, sourceImagePath=$sourceImagePath');
           newSongIds.add(songId);
 
           // 记录封面信息，用于事务外按优先级处理：内嵌 > 同名图片 > MediaStore
@@ -864,17 +865,17 @@ class MobileMusicScanner extends PlatformMusicScanner {
     });
 
     // 调试：事务结束后检查 _pendingArtworkInfo
-    debugPrint('========== 事务结束，检查 _pendingArtworkInfo ==========');
-    debugPrint('_pendingArtworkInfo 数量: ${_pendingArtworkInfo.length}');
-    debugPrint('isCancelled: $isCancelled');
+    AppLogger.d('MobileMusicScanner#_saveMediaSongsToDatabase', '========== 事务结束，检查 _pendingArtworkInfo ==========');
+    AppLogger.d('MobileMusicScanner#_saveMediaSongsToDatabase', '_pendingArtworkInfo 数量: ${_pendingArtworkInfo.length}');
+    AppLogger.d('MobileMusicScanner#_saveMediaSongsToDatabase', 'isCancelled: $isCancelled');
     for (final entry in _pendingArtworkInfo.entries) {
       final (filePath, sourceImagePath, mediaId) = entry.value;
-      debugPrint('待处理封面: songId=${entry.key}, filePath=$filePath, sourceImagePath=$sourceImagePath, mediaId=$mediaId');
+      AppLogger.d('MobileMusicScanner#_saveMediaSongsToDatabase', '待处理封面: songId=${entry.key}, filePath=$filePath, sourceImagePath=$sourceImagePath, mediaId=$mediaId');
     }
 
     // 4. 按优先级处理封面：内嵌 > 同名图片 > MediaStore（批量并行处理）
     if (!isCancelled && _pendingArtworkInfo.isNotEmpty) {
-      debugPrint('开始处理封面，共 ${_pendingArtworkInfo.length} 首');
+      AppLogger.d('MobileMusicScanner#_saveMediaSongsToDatabase', '开始处理封面，共 ${_pendingArtworkInfo.length} 首');
       final stillNeedMediaStore = <int, int>{}; // songId -> mediaId
 
       // 批量并行处理内嵌封面和同名图片
@@ -884,13 +885,13 @@ class MobileMusicScanner extends PlatformMusicScanner {
 
       // 5. 批量从 MediaStore 获取封面
       if (!isCancelled && stillNeedMediaStore.isNotEmpty) {
-        debugPrint('开始从 MediaStore 获取封面，共 ${stillNeedMediaStore.length} 首');
+        AppLogger.d('MobileMusicScanner#_saveMediaSongsToDatabase', '开始从 MediaStore 获取封面，共 ${stillNeedMediaStore.length} 首');
         await _fetchArtworksParallel(stillNeedMediaStore);
-        debugPrint('MediaStore 封面获取完成');
+        AppLogger.i('MobileMusicScanner#_saveMediaSongsToDatabase', 'MediaStore 封面获取完成');
       }
     }
 
-    debugPrint('MediaStore扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered');
+    AppLogger.i('MobileMusicScanner#_saveMediaSongsToDatabase', 'MediaStore扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered');
     return {'newAdded': newAdded, 'duplicates': duplicates, 'newSongIds': newSongIds};
   }
 
@@ -943,7 +944,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
             where: 'id = ?',
             whereArgs: [result.songId],
           );
-          debugPrint('封面更新成功: songId=${result.songId}, path=${result.artPath}');
+          AppLogger.i('MobileMusicScanner#_processArtworksParallel', '封面更新成功: songId=${result.songId}, path=${result.artPath}');
         } else {
           // 优先级 3: MediaStore（稍后批量处理）
           stillNeedMediaStore[result.songId] = result.mediaId;
@@ -1006,7 +1007,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
     try {
       final dir = Directory(path);
       if (!await dir.exists()) {
-        debugPrint('目录不存在: $path');
+        AppLogger.w('MobileMusicScanner#_scanDirectory', '目录不存在: $path');
         return;
       }
 
@@ -1027,14 +1028,14 @@ class MobileMusicScanner extends PlatformMusicScanner {
           dirCount++;
           final dirName = entity.path.split(Platform.pathSeparator).last;
           if (_skipDirectories.contains(dirName)) {
-            debugPrint('跳过目录: $dirName');
+            AppLogger.d('MobileMusicScanner#_scanDirectory', '跳过目录: $dirName');
             continue;
           }
 
           try {
             await _scanDirectory(entity.path, songs, onProgress);
           } catch (e) {
-            debugPrint('无法访问目录 ${entity.path}: $e');
+            AppLogger.e('MobileMusicScanner#_scanDirectory', '无法访问目录 ${entity.path}', e);
           }
         } else if (entity is File) {
           fileCount++;
@@ -1063,7 +1064,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
             if (extension.endsWith(ext)) {
               // 检查文件名是否像非音乐文件
               if (_isLikelyNonMusicFile(entity.path)) {
-                debugPrint('跳过非音乐文件: ${entity.path}');
+                AppLogger.d('MobileMusicScanner#_scanDirectory', '跳过非音乐文件: ${entity.path}');
                 break;
               }
               // 检查文件大小
@@ -1073,10 +1074,10 @@ class MobileMusicScanner extends PlatformMusicScanner {
                   songs.add(entity);
                   onProgress(entity.path, 1);
                 } else {
-                  debugPrint('文件太小，跳过: ${entity.path} ($fileSize bytes)');
+                  AppLogger.d('MobileMusicScanner#_scanDirectory', '文件太小，跳过: ${entity.path} ($fileSize bytes)');
                 }
               } catch (e) {
-                debugPrint('无法读取文件 ${entity.path}: $e');
+                AppLogger.e('MobileMusicScanner#_scanDirectory', '无法读取文件 ${entity.path}', e);
               }
               break;
             }
@@ -1090,9 +1091,9 @@ class MobileMusicScanner extends PlatformMusicScanner {
       // 将当前目录的图片文件添加到缓存
       _imageCache.addDirectory(path, imageFiles);
 
-      debugPrint('目录 $path: 共 $entityCount 个实体, $dirCount 个目录, $fileCount 个文件, 找到 ${songs.length} 首歌曲');
+      AppLogger.d('MobileMusicScanner#_scanDirectory', '目录 $path: 共 $entityCount 个实体, $dirCount 个目录, $fileCount 个文件, 找到 ${songs.length} 首歌曲');
     } catch (e) {
-      debugPrint('扫描目录失败 $path: $e');
+      AppLogger.e('MobileMusicScanner#_scanDirectory', '扫描目录失败 $path', e);
     }
   }
 
@@ -1278,7 +1279,7 @@ class MobileMusicScanner extends PlatformMusicScanner {
       });
     }
 
-    debugPrint('Mobile扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered, skipped=$skipped');
+    AppLogger.i('MobileMusicScanner#_saveSongsToDatabase', 'Mobile扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered, skipped=$skipped');
     return {'newAdded': newAdded, 'duplicates': duplicates, 'newSongIds': newSongIds};
   }
 
