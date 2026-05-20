@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:mysic_flutter/core/utils/app_logger.dart';
 import '../../data/playlist_repository.dart';
 import '../../../player/data/models/song.dart';
 import '../../../player/data/models/playlist.dart';
@@ -74,9 +75,9 @@ class PlaylistProvider extends ChangeNotifier {
   /// 加载所有歌单
   Future<void> _loadPlaylists() async {
     _playlists = await _repository.getAllPlaylistsWithSongs();
-    debugPrint('加载歌单列表，数量: ${_playlists.length}');
+    AppLogger.i('PlaylistProvider#_loadPlaylists', '加载歌单列表，数量: ${_playlists.length}');
     for (final p in _playlists) {
-      debugPrint('  歌单: id=${p.id}, name=${p.name}, isSystem=${p.isSystem}');
+      AppLogger.d('PlaylistProvider#_loadPlaylists', '歌单: id=${p.id}, name=${p.name}, isSystem=${p.isSystem}');
     }
     notifyListeners();
   }
@@ -95,24 +96,24 @@ class PlaylistProvider extends ChangeNotifier {
 
   /// 确保系统歌单存在
   Future<void> _ensureSystemPlaylistExists() async {
-    debugPrint('========== _ensureSystemPlaylistExists 开始 ==========');
+    AppLogger.d('PlaylistProvider#_ensureSystemPlaylistExists', '========== 开始 ==========');
 
     // 先检查是否已有系统歌单
     final systemPlaylist = await _repository.getSystemPlaylist();
-    debugPrint('系统歌单查询结果: ${systemPlaylist?.id} - ${systemPlaylist?.name}');
+    AppLogger.d('PlaylistProvider#_ensureSystemPlaylistExists', '系统歌单查询结果: ${systemPlaylist?.id} - ${systemPlaylist?.name}');
     if (systemPlaylist != null) {
       _systemPlaylistId = systemPlaylist.id;
-      debugPrint('已存在系统歌单，ID: $_systemPlaylistId');
+      AppLogger.i('PlaylistProvider#_ensureSystemPlaylistExists', '已存在系统歌单，ID: $_systemPlaylistId');
       return;
     }
 
     // 检查是否存在名为"本地音乐"的普通歌单，如果有则升级为系统歌单
     final existingPlaylist = await _repository.getLocalMusicPlaylist();
-    debugPrint('本地音乐歌单查询结果: ${existingPlaylist?.id} - ${existingPlaylist?.name}');
+    AppLogger.d('PlaylistProvider#_ensureSystemPlaylistExists', '本地音乐歌单查询结果: ${existingPlaylist?.id} - ${existingPlaylist?.name}');
     if (existingPlaylist != null) {
       await _repository.upgradeToSystemPlaylist(existingPlaylist.id!);
       _systemPlaylistId = existingPlaylist.id;
-      debugPrint('升级现有歌单为系统歌单，ID: $_systemPlaylistId');
+      AppLogger.i('PlaylistProvider#_ensureSystemPlaylistExists', '升级现有歌单为系统歌单，ID: $_systemPlaylistId');
       return;
     }
 
@@ -122,25 +123,25 @@ class PlaylistProvider extends ChangeNotifier {
       description: '自动同步本地扫描的所有音乐',
     );
     _systemPlaylistId = created.id;
-    debugPrint('创建新的系统歌单，ID: $_systemPlaylistId');
-    debugPrint('========== _ensureSystemPlaylistExists 结束 ==========');
+    AppLogger.i('PlaylistProvider#_ensureSystemPlaylistExists', '创建新的系统歌单，ID: $_systemPlaylistId');
+    AppLogger.d('PlaylistProvider#_ensureSystemPlaylistExists', '========== 结束 ==========');
   }
 
   /// 确保收藏歌单存在
   Future<void> ensureFavoritesPlaylistExists() async {
-    debugPrint('========== ensureFavoritesPlaylistExists 开始 ==========');
+    AppLogger.d('PlaylistProvider#ensureFavoritesPlaylistExists', '========== 开始 ==========');
     _favoritesPlaylist = await _repository.getFavoritesPlaylist();
 
     if (_favoritesPlaylist == null) {
       _favoritesPlaylist = await _repository.createFavoritesPlaylist();
-      debugPrint('创建新的收藏歌单，ID: ${_favoritesPlaylist?.id}');
+      AppLogger.i('PlaylistProvider#ensureFavoritesPlaylistExists', '创建新的收藏歌单，ID: ${_favoritesPlaylist?.id}');
     } else {
-      debugPrint('已存在收藏歌单，ID: ${_favoritesPlaylist?.id}');
+      AppLogger.i('PlaylistProvider#ensureFavoritesPlaylistExists', '已存在收藏歌单，ID: ${_favoritesPlaylist?.id}');
     }
 
     // 加载收藏歌曲 ID
     await _loadFavoriteSongIds();
-    debugPrint('========== ensureFavoritesPlaylistExists 结束 ==========');
+    AppLogger.d('PlaylistProvider#ensureFavoritesPlaylistExists', '========== 结束 ==========');
   }
 
   /// 加载收藏歌曲 ID 列表
@@ -151,7 +152,7 @@ class PlaylistProvider extends ChangeNotifier {
     }
     _favoriteSongIds =
         _favoritesPlaylist!.songs?.map((s) => s.id!).toSet() ?? {};
-    debugPrint('加载收藏歌曲 ID，数量: ${_favoriteSongIds.length}');
+    AppLogger.i('PlaylistProvider#_loadFavoriteSongIds', '加载收藏歌曲 ID，数量: ${_favoriteSongIds.length}');
   }
 
   /// 刷新收藏数据
@@ -321,24 +322,24 @@ class PlaylistProvider extends ChangeNotifier {
 
   /// 选择歌单
   Future<void> selectPlaylist(int playlistId) async {
-    debugPrint('========== selectPlaylist 开始, playlistId=$playlistId ==========');
+    AppLogger.d('PlaylistProvider#selectPlaylist', '========== 开始, playlistId=$playlistId ==========');
     _setLoading(true);
     try {
       _selectedPlaylist = await _repository.getPlaylistById(playlistId);
-      debugPrint('获取到的歌单: id=${_selectedPlaylist?.id}, name=${_selectedPlaylist?.name}');
+      AppLogger.d('PlaylistProvider#selectPlaylist', '获取到的歌单: id=${_selectedPlaylist?.id}, name=${_selectedPlaylist?.name}');
       _selectedPlaylistSongs = _selectedPlaylist?.songs ?? [];
-      debugPrint('歌曲数量: ${_selectedPlaylistSongs.length}');
+      AppLogger.i('PlaylistProvider#selectPlaylist', '歌曲数量: ${_selectedPlaylistSongs.length}');
       if (_selectedPlaylistSongs.isNotEmpty) {
-        debugPrint('第一首歌: ${_selectedPlaylistSongs.first.title}');
+        AppLogger.d('PlaylistProvider#selectPlaylist', '第一首歌: ${_selectedPlaylistSongs.first.title}');
       }
       notifyListeners();
     } catch (e) {
-      debugPrint('selectPlaylist 错误: $e');
+      AppLogger.e('PlaylistProvider#selectPlaylist', 'selectPlaylist 错误', e);
       _setError('加载歌单失败: $e');
     } finally {
       _setLoading(false);
     }
-    debugPrint('========== selectPlaylist 完成 ==========');
+    AppLogger.d('PlaylistProvider#selectPlaylist', '========== 完成 ==========');
   }
 
   /// 取消选择歌单
