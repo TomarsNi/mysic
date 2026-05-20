@@ -1,5 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:audiotags/audiotags.dart';
-import 'package:flutter/foundation.dart';
+import 'package:mysic_flutter/core/utils/app_logger.dart';
 import 'wav_metadata_parser.dart';
 
 /// 音频元数据
@@ -74,7 +76,7 @@ class MetadataExtractor {
         return tag.pictures.first.bytes;
       }
     } catch (e) {
-      debugPrint('提取内嵌封面失败: $filePath, 错误: $e');
+      AppLogger.w('MetadataExtractor#extractArtwork', '提取内嵌封面失败: $filePath, 错误: $e');
     }
     return null;
   }
@@ -111,7 +113,7 @@ class MetadataExtractor {
       }
     } catch (e) {
       // audiotags 失败时返回 null，让调用方回退到文件名
-      debugPrint('audiotags 读取失败: $filePath, 错误: $e');
+      AppLogger.w('MetadataExtractor#_extractWithAudiotags', 'audiotags 读取失败: $filePath, 错误: $e');
     }
     return null;
   }
