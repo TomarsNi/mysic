@@ -11,6 +11,7 @@ import 'core/theme/app_colors.dart';
 import 'core/database/database_helper.dart';
 import 'core/utils/app_logger.dart';
 import 'features/player/presentation/providers/player_provider.dart';
+import 'features/player/presentation/providers/sleep_timer_provider.dart';
 import 'features/playlist/presentation/providers/playlist_provider.dart';
 import 'features/lyrics/presentation/pages/lyrics_page.dart' show LyricsPage;
 import 'features/lyrics/data/services/lyrics_parser.dart' show LyricLine;
@@ -38,6 +39,7 @@ import 'features/player/data/models/song.dart';
 import 'features/player/presentation/widgets/album_cover.dart';
 import 'features/player/presentation/widgets/play_controls.dart';
 import 'features/player/presentation/widgets/progress_bar.dart';
+import 'features/player/presentation/widgets/sleep_timer_button.dart';
 
 /// 收藏按钮红色
 const Color _favoriteRed = Color(0xFFEF4444);
@@ -82,6 +84,7 @@ class MysicApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => PlayerProvider()),
+        ChangeNotifierProvider(create: (_) => SleepTimerProvider()),
         ChangeNotifierProvider(create: (_) => PlaylistProvider()),
         ChangeNotifierProvider(create: (_) => ApiConfigProvider()..load()),
         ChangeNotifierProvider(create: (_) => AiSkillsProvider()),
@@ -120,10 +123,39 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
     // 加载歌单并恢复播放 - 延迟到 build 完成后执行
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // 设置睡眠倒计时完成回调
+      _setupSleepTimerCallback();
       await _loadPlaylists();
       // 恢复上次播放的歌单
       await _restoreLastPlaylist();
     });
+  }
+
+  /// 设置睡眠倒计时完成回调
+  void _setupSleepTimerCallback() {
+    final sleepTimerProvider = context.read<SleepTimerProvider>();
+    final playerProvider = context.read<PlayerProvider>();
+
+    // 设置睡眠倒计时完成回调
+    sleepTimerProvider.setOnComplete(() {
+      // 暂停播放
+      playerProvider.pause();
+
+      // 显示提示
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('睡眠倒计时已结束，播放已暂停'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      }
+    });
+
+    // 设置歌曲变化回调（用于通知 SleepTimerProvider 更新歌曲计数）
+    playerProvider.onSongChanged = (newIndex) {
+      sleepTimerProvider.onSongChanged(newIndex);
+    };
   }
 
   Future<void> _loadPlaylists() async {
@@ -422,6 +454,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             onPlayPause: () => playerProvider.togglePlayPause(),
                             onNext: () => playerProvider.next(),
                             onPrevious: () => playerProvider.previous(),
+                          ),
+
+                          // 睡眠倒计时按钮 - 固定左侧
+                          Positioned(
+                            left: 0,
+                            child: const SleepTimerButton(),
                           ),
 
                           // 歌单按钮 - 固定右侧，与播放控制垂直对齐

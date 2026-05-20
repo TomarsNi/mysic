@@ -43,6 +43,9 @@ class PlayerProvider extends ChangeNotifier {
   String _scanPath = '';
   int _scanFound = 0;
 
+  /// 歌曲变化回调（用于通知 SleepTimerProvider）
+  void Function(int newIndex)? onSongChanged;
+
   PlayerProvider({
     AudioPlayerService? audioPlayerService,
     SongRepository? songRepository,
@@ -96,6 +99,8 @@ class PlayerProvider extends ChangeNotifier {
       }
       // 加载歌词
       _loadLyricsForSong(song);
+      // 通知歌曲变化回调（用于 SleepTimerProvider）
+      onSongChanged?.call(_currentIndex);
       notifyListeners();
     });
     AppLogger.i('PlayerProvider#_init', '初始化完成，监听器已设置');
