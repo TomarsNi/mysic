@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:charset_converter/charset_converter.dart';
-import 'package:flutter/foundation.dart';
+import 'package:mysic_flutter/core/utils/app_logger.dart';
 
 /// WAV 文件 RIFF INFO 元数据解析器
 ///
@@ -26,17 +27,17 @@ class WavMetadataParser {
     try {
       final file = File(filePath);
       if (!await file.exists()) {
-        debugPrint('WavMetadataParser: 文件不存在 $filePath');
+        AppLogger.w('WavMetadataParser#parse', '文件不存在 $filePath');
         return null;
       }
 
       final bytes = await file.readAsBytes();
-      debugPrint('WavMetadataParser: 文件大小 ${bytes.length} bytes, 路径 $filePath');
+      AppLogger.d('WavMetadataParser#parse', '文件大小 ${bytes.length} bytes, 路径 $filePath');
       final result = await _parseBytes(bytes);
-      debugPrint('WavMetadataParser: 解析结果 $result');
+      AppLogger.i('WavMetadataParser#parse', '解析结果 $result');
       return result;
     } catch (e) {
-      debugPrint('WavMetadataParser: 解析异常 $e');
+      AppLogger.e('WavMetadataParser#parse', '解析异常 $e', e);
       return null;
     }
   }
@@ -47,21 +48,21 @@ class WavMetadataParser {
   /// 从字节数组解析 RIFF INFO
   static Future<Map<String, String>?> _parseBytes(Uint8List bytes) async {
     if (bytes.length < 12) {
-      debugPrint('WavMetadataParser: 文件太小 ${bytes.length} bytes');
+      AppLogger.w('WavMetadataParser#_parseBytes', '文件太小 ${bytes.length} bytes');
       return null;
     }
 
     // 验证 RIFF 头
     final riffHeader = String.fromCharCodes(bytes.sublist(0, 4));
     if (riffHeader != 'RIFF') {
-      debugPrint('WavMetadataParser: 非 RIFF 格式，头为 $riffHeader');
+      AppLogger.w('WavMetadataParser#_parseBytes', '非 RIFF 格式，头为 $riffHeader');
       return null;
     }
 
     // 验证 WAVE 格式
     final waveFormat = String.fromCharCodes(bytes.sublist(8, 12));
     if (waveFormat != 'WAVE') {
-      debugPrint('WavMetadataParser: 非 WAVE 格式，格式为 $waveFormat');
+      AppLogger.w('WavMetadataParser#_parseBytes', '非 WAVE 格式，格式为 $waveFormat');
       return null;
     }
 
@@ -70,13 +71,13 @@ class WavMetadataParser {
     while (offset < bytes.length - 8) {
       final chunkId = String.fromCharCodes(bytes.sublist(offset, offset + 4));
       final chunkSize = _readLittleEndian32(bytes, offset + 4);
-      debugPrint('WavMetadataParser: 发现块 $chunkId, 大小 $chunkSize, 偏移 $offset');
+      AppLogger.d('WavMetadataParser#_parseBytes', '发现块 $chunkId, 大小 $chunkSize, 偏移 $offset');
 
       if (chunkId == 'LIST' && offset + 8 + chunkSize <= bytes.length) {
         final listType = String.fromCharCodes(bytes.sublist(offset + 8, offset + 12));
-        debugPrint('WavMetadataParser: LIST 类型 $listType');
+        AppLogger.d('WavMetadataParser#_parseBytes', 'LIST 类型 $listType');
         if (listType == 'INFO') {
-          debugPrint('WavMetadataParser: 找到 INFO 块');
+          AppLogger.i('WavMetadataParser#_parseBytes', '找到 INFO 块');
           return await _parseInfoChunk(bytes, offset + 12, chunkSize - 4);
         }
       }
@@ -86,7 +87,7 @@ class WavMetadataParser {
       if (chunkSize % 2 != 0) offset++;
     }
 
-    debugPrint('WavMetadataParser: 未找到 INFO 块');
+    AppLogger.w('WavMetadataParser#_parseBytes', '未找到 INFO 块');
     return null; // 未找到 INFO 块
   }
 
@@ -96,7 +97,7 @@ class WavMetadataParser {
     int offset = start;
     final end = start + size;
 
-    debugPrint('WavMetadataParser: 解析 INFO 块, start=$start, size=$size');
+    AppLogger.d('WavMetadataParser#_parseInfoChunk', '解析 INFO 块, start=$start, size=$size');
 
     while (offset < end - 8) {
       // 读取标签 ID（4 字节）
@@ -105,18 +106,18 @@ class WavMetadataParser {
       // 读取数据大小（4 字节，little-endian）
       final dataSize = _readLittleEndian32(bytes, offset + 4);
 
-      debugPrint('WavMetadataParser: 标签 $tagId, 数据大小 $dataSize');
+      AppLogger.d('WavMetadataParser#_parseInfoChunk', '标签 $tagId, 数据大小 $dataSize');
 
       if (dataSize <= 0 || offset + 8 + dataSize > end) {
-        debugPrint('WavMetadataParser: 数据大小无效，停止解析');
+        AppLogger.w('WavMetadataParser#_parseInfoChunk', '数据大小无效，停止解析');
         break;
       }
 
       // 读取数据（null-terminated string）
       final dataBytes = bytes.sublist(offset + 8, offset + 8 + dataSize);
-      debugPrint('WavMetadataParser: 原始字节 ${dataBytes.toList()}');
+      AppLogger.d('WavMetadataParser#_parseInfoChunk', '原始字节 ${dataBytes.toList()}');
       final value = await _decodeString(dataBytes);
-      debugPrint('WavMetadataParser: 解码结果 "$value"');
+      AppLogger.d('WavMetadataParser#_parseInfoChunk', '解码结果 "$value"');
 
       // 映射到标准字段名
       // 跳过无效值（全是问号或乱码）
@@ -158,11 +159,11 @@ class WavMetadataParser {
     if (end == 0) return '';
 
     final contentBytes = bytes.sublist(0, end);
-    debugPrint('WavMetadataParser._decodeString: 内容字节 ${contentBytes.toList()}');
+    AppLogger.d('WavMetadataParser#_decodeString', '内容字节 ${contentBytes.toList()}');
 
     // 纯 ASCII 字节可以直接解码
     if (_isPureAscii(contentBytes)) {
-      debugPrint('WavMetadataParser._decodeString: 纯 ASCII');
+      AppLogger.d('WavMetadataParser#_decodeString', '纯 ASCII');
       return String.fromCharCodes(contentBytes).trim();
     }
 
@@ -171,30 +172,30 @@ class WavMetadataParser {
     final gbkCharsets = ['GBK', 'gb18030', 'GB2312'];
     for (final charset in gbkCharsets) {
       try {
-        debugPrint('WavMetadataParser._decodeString: 尝试 $charset 解码');
+        AppLogger.d('WavMetadataParser#_decodeString', '尝试 $charset 解码');
         final result = await CharsetConverter.decode(charset, contentBytes);
-        debugPrint('WavMetadataParser._decodeString: $charset 结果 "$result"');
+        AppLogger.d('WavMetadataParser#_decodeString', '$charset 结果 "$result"');
         // 检查结果是否有效（不包含大量问号或乱码）
         if (result.isNotEmpty && !_isGarbled(result)) {
           return result.trim();
         }
       } catch (e) {
-        debugPrint('WavMetadataParser._decodeString: $charset 解码失败 $e');
+        AppLogger.w('WavMetadataParser#_decodeString', '$charset 解码失败 $e');
       }
     }
 
     // GBK 失败，尝试 UTF-8 解码
     try {
-      debugPrint('WavMetadataParser._decodeString: 尝试 UTF-8 解码');
+      AppLogger.d('WavMetadataParser#_decodeString', '尝试 UTF-8 解码');
       final utf8Result = utf8.decode(contentBytes);
-      debugPrint('WavMetadataParser._decodeString: UTF-8 结果 "$utf8Result"');
+      AppLogger.d('WavMetadataParser#_decodeString', 'UTF-8 结果 "$utf8Result"');
       return utf8Result.trim();
     } catch (e) {
-      debugPrint('WavMetadataParser._decodeString: UTF-8 解码失败 $e');
+      AppLogger.w('WavMetadataParser#_decodeString', 'UTF-8 解码失败 $e');
     }
 
     // 最后回退到原始字节解码
-    debugPrint('WavMetadataParser._decodeString: 回退到原始字节');
+    AppLogger.w('WavMetadataParser#_decodeString', '回退到原始字节');
     return String.fromCharCodes(contentBytes).trim();
   }
 
