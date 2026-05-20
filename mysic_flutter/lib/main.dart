@@ -9,6 +9,7 @@ import 'dart:io';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_colors.dart';
 import 'core/database/database_helper.dart';
+import 'core/utils/app_logger.dart';
 import 'features/player/presentation/providers/player_provider.dart';
 import 'features/playlist/presentation/providers/playlist_provider.dart';
 import 'features/lyrics/presentation/pages/lyrics_page.dart' show LyricsPage;
@@ -648,7 +649,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   // 操作方法
   Future<void> _startScan() async {
-    print('========== 开始扫描 ==========');
+    AppLogger.d('HomePage#_startScan', '开始扫描');
     final playerProvider = context.read<PlayerProvider>();
     playerProvider.startScan();
 
@@ -673,7 +674,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       });
 
       final result = await scanner.scanMusic();
-      print('扫描结果: success=${result.isSuccess}, totalFound=${result.totalFound}, newAdded=${result.newAdded}, error=${result.errorMessage}');
+      AppLogger.d('HomePage#_startScan', '扫描结果: success=${result.isSuccess}, totalFound=${result.totalFound}, newAdded=${result.newAdded}, error=${result.errorMessage}');
 
       if (mounted && result.isSuccess) {
         // 先刷新 Provider 数据，确保歌曲列表是最新的
@@ -682,10 +683,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         // 直接从数据库验证数据是否保存成功
         final db = await DatabaseHelper().database;
         final dbCount = await db.rawQuery('SELECT COUNT(*) as count FROM ${DatabaseHelper.tableSongs}');
-        print('数据库中实际歌曲数: ${dbCount.first['count']}');
+        AppLogger.d('HomePage#_startScan', '数据库中实际歌曲数: ${dbCount.first['count']}');
 
         await playlistProvider.refresh();
-        print('刷新 Provider 完成，allSongs 数量: ${playlistProvider.allSongs.length}');
+        AppLogger.i('HomePage#_startScan', '刷新 Provider 完成，allSongs 数量: ${playlistProvider.allSongs.length}');
 
         // 同步到系统"本地音乐"歌单
         await playlistProvider.syncToLocalMusicPlaylist(playlistProvider.allSongs);
@@ -798,10 +799,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     showCreatePlaylistDialog(
       context,
       onCreate: (name, description, scannedSongs, scannedDirectory) async {
-        debugPrint('========== _createPlaylist 开始 ==========');
-        debugPrint('歌单名称: $name');
-        debugPrint('scannedSongs: ${scannedSongs?.length ?? "null"}');
-        debugPrint('scannedDirectory: $scannedDirectory');
+        AppLogger.d('HomePage#_createPlaylist', '开始创建歌单: $name');
+        AppLogger.d('HomePage#_createPlaylist', 'scannedSongs: ${scannedSongs?.length ?? "null"}, scannedDirectory: $scannedDirectory');
 
         final playlistProvider = context.read<PlaylistProvider>();
 
@@ -810,7 +809,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           name: name,
           description: description,
         );
-        debugPrint('创建歌单结果: ${playlist?.id}, ${playlist?.name}');
+        AppLogger.d('HomePage#_createPlaylist', '创建歌单结果: ${playlist?.id}, ${playlist?.name}');
 
         if (playlist != null) {
           // 如果选择了目录，存储目录与歌单的关联
@@ -821,22 +820,22 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               playlistId: playlist.id!,
               playlistName: playlist.name,
             );
-            debugPrint('目录关联已保存');
+            AppLogger.i('HomePage#_createPlaylist', '目录关联已保存');
           }
 
           if (scannedSongs != null && scannedSongs.isNotEmpty) {
-            debugPrint('开始添加歌曲到歌单...');
+            AppLogger.d('HomePage#_createPlaylist', '开始添加歌曲到歌单...');
             // 添加到新创建的歌单
             final addedCount = await playlistProvider.addSongsToPlaylist(playlist.id!, scannedSongs);
-            debugPrint('添加歌曲结果: $addedCount');
+            AppLogger.i('HomePage#_createPlaylist', '添加歌曲结果: $addedCount');
 
             // 同步到系统"本地音乐"歌单
             await playlistProvider.syncToLocalMusicPlaylist(scannedSongs);
-            debugPrint('同步到本地音乐歌单完成');
+            AppLogger.i('HomePage#_createPlaylist', '同步到本地音乐歌单完成');
 
             // 刷新数据
             await playlistProvider.refresh();
-            debugPrint('刷新数据完成');
+            AppLogger.i('HomePage#_createPlaylist', '刷新数据完成');
 
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -847,7 +846,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               );
             }
           } else if (mounted) {
-            debugPrint('没有扫描歌曲，跳过添加');
+            AppLogger.d('HomePage#_createPlaylist', '没有扫描歌曲，跳过添加');
             // 歌单创建成功但没有扫描歌曲
             await playlistProvider.refresh();
             ScaffoldMessenger.of(context).showSnackBar(
@@ -858,7 +857,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             );
           }
         }
-        debugPrint('========== _createPlaylist 结束 ==========');
+        AppLogger.d('HomePage#_createPlaylist', '创建歌单流程结束');
       },
     );
   }
