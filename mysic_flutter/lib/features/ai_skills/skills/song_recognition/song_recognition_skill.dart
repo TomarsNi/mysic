@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
+import 'package:mysic_flutter/core/utils/app_logger.dart';
 import 'package:mysic_flutter/features/ai_skills/core/ai_skill.dart';
 import 'package:mysic_flutter/features/ai_skills/core/llm_service.dart';
 import 'package:mysic_flutter/features/ai_skills/core/skill_result.dart';
@@ -128,7 +129,7 @@ class SongRecognitionSkill implements AiSkill {
       final compressedBytes = img.encodeJpg(processedImage, quality: 85);
       return base64Encode(compressedBytes);
     } catch (e) {
-      debugPrint('封面下载失败: $e');
+      AppLogger.w('SongRecognitionSkill#_downloadAndConvertToBase64', '封面下载失败: $e');
       return null;
     }
   }
