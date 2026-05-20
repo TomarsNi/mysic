@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../core/database/database_helper.dart';
+import '../../core/utils/app_logger.dart';
 import '../../features/player/data/models/song.dart';
 import 'image_cache.dart';
 import 'lyrics_cache.dart';
@@ -142,10 +143,10 @@ class WindowsMusicScanner extends PlatformMusicScanner {
       final file = File(filePath);
       await file.writeAsBytes(artworkBytes);
 
-      debugPrint('内嵌封面保存成功: $filePath (${artworkBytes.length} bytes)');
+      AppLogger.i('WindowsMusicScanner#_saveArtworkToFile', '内嵌封面保存成功: $filePath (${artworkBytes.length} bytes)');
       return filePath;
     } catch (e) {
-      debugPrint('保存封面失败: songId=$songId, error=$e');
+      AppLogger.w('WindowsMusicScanner#_saveArtworkToFile', '保存封面失败: songId=$songId, error=$e');
       return null;
     }
   }
@@ -325,7 +326,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
       updateState(ScanState.completed);
       stopwatch.stop();
-      debugPrint('Windows扫描完成: totalFound=$totalFound, newAdded=${result['newAdded']}, duplicates=${result['duplicates']}');
+      AppLogger.i('WindowsMusicScanner#_executeScan', 'Windows扫描完成: totalFound=$totalFound, newAdded=${result['newAdded']}, duplicates=${result['duplicates']}');
 
       updateProgress(ScanProgress(
         currentPath: '完成',
@@ -684,7 +685,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
       }
     }
 
-    debugPrint(
+    AppLogger.i('WindowsMusicScanner#_saveSongsToDatabase',
         'Windows扫描完成: newAdded=$newAdded, duplicates=$duplicates, filtered=$filtered, skipped=$skipped');
     return {'newAdded': newAdded, 'duplicates': duplicates, 'newSongIds': newSongIds};
   }
@@ -698,7 +699,7 @@ class WindowsMusicScanner extends PlatformMusicScanner {
     List<String> filePaths,
   ) async {
     if (songIds.length != filePaths.length) {
-      debugPrint('警告: songIds 和 filePaths 长度不匹配');
+      AppLogger.w('WindowsMusicScanner#_extractAndSaveEmbeddedArtwork', 'songIds 和 filePaths 长度不匹配');
       return;
     }
 
@@ -729,12 +730,12 @@ class WindowsMusicScanner extends PlatformMusicScanner {
           }
         }
       } catch (e) {
-        debugPrint('提取内嵌封面失败: songId=$songId, filePath=$filePath, error=$e');
+        AppLogger.w('WindowsMusicScanner#_extractAndSaveEmbeddedArtwork', '提取内嵌封面失败: songId=$songId, filePath=$filePath, error=$e');
       }
     }
 
     if (embeddedCount > 0) {
-      debugPrint('内嵌封面提取完成: $embeddedCount 首歌曲');
+      AppLogger.i('WindowsMusicScanner#_extractAndSaveEmbeddedArtwork', '内嵌封面提取完成: $embeddedCount 首歌曲');
     }
   }
 
