@@ -83,6 +83,9 @@ dependencies:
   on_audio_query: ^2.9.0
   permission_handler: ^12.0.1
 
+  # 日志框架
+  logger: ^2.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
