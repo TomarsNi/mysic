@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import 'package:charset_converter/charset_converter.dart';
+import 'package:mysic_flutter/core/utils/app_logger.dart';
 
 /// 歌词行数据模型
 class LyricLine {
@@ -230,13 +231,13 @@ class LyricsParser {
       final content = utf8.decode(bytes);
       // 检查是否有乱码特征（替换字符）
       if (!content.contains('�')) {
-        debugPrint('UTF-8 解码成功');
+        AppLogger.i('LyricsParser#_decodeBytes', 'UTF-8 解码成功');
         return content;
       } else {
-        debugPrint('UTF-8 解码有乱码，尝试 GBK');
+        AppLogger.d('LyricsParser#_decodeBytes', 'UTF-8 解码有乱码，尝试 GBK');
       }
     } catch (e) {
-      debugPrint('UTF-8 解码失败: $e');
+      AppLogger.w('LyricsParser#_decodeBytes', 'UTF-8 解码失败: $e');
     }
 
     // 尝试 GBK 解码（使用 charset_converter）
@@ -247,17 +248,17 @@ class LyricsParser {
 
     for (final charset in charsetNames) {
       try {
-        debugPrint('尝试 $charset 解码，字节数: ${bytes.length}');
+        AppLogger.d('LyricsParser#_decodeBytes', '尝试 $charset 解码，字节数: ${bytes.length}');
         final decoded = await CharsetConverter.decode(charset, bytes);
-        debugPrint('$charset 解码成功');
+        AppLogger.i('LyricsParser#_decodeBytes', '$charset 解码成功');
         return decoded;
       } catch (e) {
-        debugPrint('$charset 解码失败: $e');
+        AppLogger.w('LyricsParser#_decodeBytes', '$charset 解码失败: $e');
       }
     }
 
     // 回退：返回容错 UTF-8
-    debugPrint('回退到容错 UTF-8 解码');
+    AppLogger.d('LyricsParser#_decodeBytes', '回退到容错 UTF-8 解码');
     return utf8.decode(bytes, allowMalformed: true);
   }
 
