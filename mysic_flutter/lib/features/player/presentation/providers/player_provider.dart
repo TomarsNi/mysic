@@ -606,6 +606,7 @@ class PlayerProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    onSongChanged = null;  // 清除回调
     _audioPlayerService.dispose();
     super.dispose();
   }

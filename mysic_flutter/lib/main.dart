@@ -218,6 +218,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   void dispose() {
+    // 清除回调，防止内存泄漏
+    context.read<PlayerProvider>().onSongChanged = null;
     _fabAnimationController.dispose();
     super.dispose();
   }
