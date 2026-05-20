@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:mysic_flutter/core/utils/app_logger.dart';
 import '../models/song.dart';
 
 // 条件导入：移动端使用 just_audio，Windows 使用 audioplayers
@@ -72,8 +72,8 @@ class AudioPlayerService {
 
   /// 初始化音频播放服务
   Future<void> initialize() async {
-    debugPrint('========== AudioPlayerService.initialize ==========');
-    debugPrint('Platform: ${Platform.operatingSystem}');
+    AppLogger.d('AudioPlayerService#initialize', '========== AudioPlayerService.initialize ==========');
+    AppLogger.d('AudioPlayerService#initialize', 'Platform: ${Platform.operatingSystem}');
 
     if (Platform.isAndroid || Platform.isIOS) {
       await _initMobile();
@@ -84,7 +84,7 @@ class AudioPlayerService {
 
   // ========== 移动端初始化（just_audio + audio_service）==========
   Future<void> _initMobile() async {
-    debugPrint('使用 just_audio + audio_service');
+    AppLogger.i('AudioPlayerService#_initMobile', '使用 just_audio + audio_service');
 
     _justAudioPlayer = just_audio.AudioPlayer();
 
@@ -105,7 +105,7 @@ class AudioPlayerService {
 
     // 监听播放器状态
     _justAudioPlayer!.playerStateStream.listen((state) {
-      debugPrint('========== playerStateStream 事件: processingState=${state.processingState}, playing=${state.playing} ==========');
+      AppLogger.d('AudioPlayerService#_initMobile', '========== playerStateStream 事件: processingState=${state.processingState}, playing=${state.playing} ==========');
       _handleMobilePlayerState(state);
     });
 
@@ -124,14 +124,14 @@ class AudioPlayerService {
     _justAudioPlayer!.durationStream.listen((duration) {
       _duration = duration;
       _durationController.add(duration);
-      debugPrint('========== durationStream 事件: $duration ==========');
+      AppLogger.d('AudioPlayerService#_initMobile', '========== durationStream 事件: $duration ==========');
     });
 
-    debugPrint('移动端播放器初始化完成');
+    AppLogger.i('AudioPlayerService#_initMobile', '移动端播放器初始化完成');
   }
 
   void _handleMobilePlayerState(just_audio.PlayerState state) {
-    debugPrint('just_audio state: ${state.processingState}, playing: ${state.playing}');
+    AppLogger.d('AudioPlayerService#_handleMobilePlayerState', 'just_audio state: ${state.processingState}, playing: ${state.playing}');
     switch (state.processingState) {
       case just_audio.ProcessingState.idle:
         _updateState(MysicPlayerState.idle);
@@ -151,13 +151,13 @@ class AudioPlayerService {
 
   // ========== Windows 初始化（audioplayers）==========
   Future<void> _initWindows() async {
-    debugPrint('使用 audioplayers');
+    AppLogger.i('AudioPlayerService#_initWindows', '使用 audioplayers');
 
     _audioplayersPlayer = audioplayers.AudioPlayer();
 
     // 监听播放器状态
     _audioplayersPlayer!.onPlayerStateChanged.listen((state) {
-      debugPrint('audioplayers state: $state');
+      AppLogger.d('AudioPlayerService#_initWindows', 'audioplayers state: $state');
       switch (state) {
         case audioplayers.PlayerState.stopped:
           _updateState(MysicPlayerState.idle);
@@ -192,10 +192,10 @@ class AudioPlayerService {
     _audioplayersPlayer!.onDurationChanged.listen((duration) {
       _duration = duration;
       _durationController.add(duration);
-      debugPrint('Duration changed: $duration');
+      AppLogger.d('AudioPlayerService#_initWindows', 'Duration changed: $duration');
     });
 
-    debugPrint('Windows 播放器初始化完成');
+    AppLogger.i('AudioPlayerService#_initWindows', 'Windows 播放器初始化完成');
   }
 
   /// 更新状态
@@ -211,8 +211,8 @@ class AudioPlayerService {
   /// 播放歌曲
   Future<void> playSong(Song song) async {
     try {
-      debugPrint('========== AudioPlayerService.playSong ==========');
-      debugPrint('歌曲: ${song.title}');
+      AppLogger.i('AudioPlayerService#playSong', '========== AudioPlayerService.playSong ==========');
+      AppLogger.i('AudioPlayerService#playSong', '歌曲: ${song.title}');
       _updateState(MysicPlayerState.loading);
       _currentSong = song;
 
@@ -220,7 +220,7 @@ class AudioPlayerService {
       final index = _playlist.indexWhere((s) => s.filePath == song.filePath);
       if (index >= 0) {
         _currentIndex = index;
-        debugPrint('更新 currentIndex: $_currentIndex');
+        AppLogger.d('AudioPlayerService#playSong', '更新 currentIndex: $_currentIndex');
       }
 
       _currentSongController.add(_currentSong);
@@ -234,7 +234,7 @@ class AudioPlayerService {
       // 不手动更新状态，依赖流的状态更新
     } catch (e) {
       _updateState(MysicPlayerState.error);
-      debugPrint('播放失败: $e');
+      AppLogger.e('AudioPlayerService#playSong', '播放失败', e);
       rethrow;
     }
   }
@@ -243,8 +243,8 @@ class AudioPlayerService {
   Future<void> setPlaylist(List<Song> songs, {int startIndex = 0, bool autoPlay = false}) async {
     if (songs.isEmpty) return;
 
-    debugPrint('========== AudioPlayerService.setPlaylist 开始 ==========');
-    debugPrint('歌曲数量: ${songs.length}, startIndex: $startIndex, autoPlay: $autoPlay');
+    AppLogger.i('AudioPlayerService#setPlaylist', '========== AudioPlayerService.setPlaylist 开始 ==========');
+    AppLogger.i('AudioPlayerService#setPlaylist', '歌曲数量: ${songs.length}, startIndex: $startIndex, autoPlay: $autoPlay');
 
     _playlist = List.from(songs);
     _currentIndex = startIndex;
@@ -274,19 +274,19 @@ class AudioPlayerService {
                 .timeout(const Duration(seconds: 2))
                 .first;
           } catch (_) {
-            debugPrint('等待 duration 超时，尝试再次获取');
+            AppLogger.w('AudioPlayerService#setPlaylist', '等待 duration 超时，尝试再次获取');
             loadedDuration = _justAudioPlayer!.duration;
           }
         }
         // 同步 duration 到本地变量
         _duration = loadedDuration;
         _durationController.add(_duration);
-        debugPrint('Duration loaded: $_duration');
+        AppLogger.i('AudioPlayerService#setPlaylist', 'Duration loaded: $_duration');
 
         if (autoPlay) {
           await _justAudioPlayer!.play();
           // 不手动更新状态，依赖 playerStateStream 的状态更新
-          debugPrint('播放命令已执行');
+          AppLogger.i('AudioPlayerService#setPlaylist', '播放命令已执行');
         } else {
           // 非自动播放时，手动设置为 ready 状态
           _updateState(MysicPlayerState.ready);
@@ -302,15 +302,15 @@ class AudioPlayerService {
         if (autoPlay) {
           await _audioplayersPlayer!.resume();
           // 不手动更新状态，依赖 onPlayerStateChanged 的状态更新
-          debugPrint('播放命令已执行');
+          AppLogger.i('AudioPlayerService#setPlaylist', '播放命令已执行');
         } else {
           _updateState(MysicPlayerState.ready);
         }
       }
 
-      debugPrint('========== AudioPlayerService.setPlaylist 完成，state=$_state, duration=$_duration ==========');
+      AppLogger.i('AudioPlayerService#setPlaylist', '========== AudioPlayerService.setPlaylist 完成，state=$_state, duration=$_duration ==========');
     } catch (e) {
-      debugPrint('播放错误: $e');
+      AppLogger.e('AudioPlayerService#setPlaylist', '播放错误', e);
       _updateState(MysicPlayerState.error);
       rethrow;
     }
@@ -514,14 +514,14 @@ class AudioPlayerService {
 
   /// 歌曲播放完成回调
   void _onSongCompleted() {
-    debugPrint('========== _onSongCompleted ==========');
-    debugPrint('currentIndex: $_currentIndex, playlist length: ${_playlist.length}, loopMode: $_loopMode');
+    AppLogger.d('AudioPlayerService#_onSongCompleted', '========== _onSongCompleted ==========');
+    AppLogger.d('AudioPlayerService#_onSongCompleted', 'currentIndex: $_currentIndex, playlist length: ${_playlist.length}, loopMode: $_loopMode');
 
     if (_currentIndex < _playlist.length - 1 || _loopMode == MysicLoopMode.all) {
-      debugPrint('准备播放下一首');
+      AppLogger.i('AudioPlayerService#_onSongCompleted', '准备播放下一首');
       next();
     } else {
-      debugPrint('播放列表结束');
+      AppLogger.i('AudioPlayerService#_onSongCompleted', '播放列表结束');
       _updateState(MysicPlayerState.completed);
     }
   }
