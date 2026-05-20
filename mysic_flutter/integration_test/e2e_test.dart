@@ -11,6 +11,7 @@ import 'package:mysic_flutter/core/theme/app_theme.dart';
 import 'package:mysic_flutter/features/player/presentation/widgets/play_controls.dart';
 import 'package:mysic_flutter/features/player/presentation/widgets/progress_bar.dart';
 import 'package:mysic_flutter/features/player/data/services/audio_player_service.dart';
+import 'package:mysic_flutter/core/utils/app_logger.dart';
 
 /// Mock 仓库 - 用于测试
 class MockPlaylistRepository extends PlaylistRepository {
@@ -350,7 +351,16 @@ class _E2ETestAppState extends State<E2ETestApp> {
   }
 
   void _log(String message) {
-    debugPrint(message);
+    // 根据消息内容选择日志级别
+    if (message.contains('[PASS]') || message.contains('✓') ||
+        message.contains('成功') || message.contains('完成')) {
+      AppLogger.i('E2ETest#_log', message);
+    } else if (message.contains('[FAIL]') || message.contains('验证失败') ||
+               message.contains('失败') || message.contains('错误')) {
+      AppLogger.w('E2ETest#_log', message);
+    } else {
+      AppLogger.d('E2ETest#_log', message);
+    }
     setState(() {
       _testLog.add(message);
     });
