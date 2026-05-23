@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -34,7 +36,6 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
   }
 
   void _onTabChanged() {
-    // 切换选项卡时清空输入框
     if (_tabController.indexIsChanging) {
       _timeController.clear();
       _songCountController.clear();
@@ -62,29 +63,27 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 12),
-              // 拖动指示器
               _buildDragHandle(),
               const SizedBox(height: 20),
-              // 标题
-              _buildHeader(state),
-              const SizedBox(height: 16),
-              // 选项卡
-              _buildTabBar(),
-              const SizedBox(height: 16),
-              // 内容区域
-              SizedBox(
-                height: 200,
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildTimeTab(sleepTimerProvider),
-                    _buildSongCountTab(sleepTimerProvider, playerProvider.currentIndex),
-                  ],
-                ),
+              _buildHeader(),
+              const SizedBox(height: 20),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeInOut,
+                switchOutCurve: Curves.easeInOut,
+                transitionBuilder: (child, animation) =>
+                    FadeTransition(opacity: animation, child: child),
+                child: state.isActive
+                    ? _buildActiveView(
+                        sleepTimerProvider,
+                        key: const ValueKey('active'),
+                      )
+                    : _buildSettingView(
+                        sleepTimerProvider,
+                        playerProvider.currentIndex,
+                        key: const ValueKey('setting'),
+                      ),
               ),
-              const SizedBox(height: 16),
-              // 当前状态和取消按钮
-              if (state.isActive) _buildActiveState(sleepTimerProvider, state),
               const SizedBox(height: 24),
             ],
           ),
@@ -93,7 +92,6 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
     );
   }
 
-  /// 拖动指示器
   Widget _buildDragHandle() {
     return Container(
       width: 40,
@@ -105,13 +103,12 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
     );
   }
 
-  /// 标题
-  Widget _buildHeader(SleepTimerState state) {
+  Widget _buildHeader() {
     return Row(
       children: [
-        Icon(
+        const Icon(
           Icons.timer_outlined,
-          color: state.isActive ? AppColors.accent : AppColors.muted,
+          color: AppColors.accent,
         ),
         const SizedBox(width: 12),
         const Text(
@@ -122,62 +119,91 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
             color: AppColors.white,
           ),
         ),
+        const Spacer(),
+        IconButton(
+          icon: const Icon(Icons.close_rounded, color: AppColors.muted),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ],
     );
   }
 
-  /// 选项卡栏
-  Widget _buildTabBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(12),
+  // ── 设置态 ──
+
+  Widget _buildSettingView(
+    SleepTimerProvider provider,
+    int currentIndex, {
+    Key? key,
+  }) {
+    return Column(
+      key: key,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildTabBar(),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 200,
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildTimeTab(provider),
+              _buildSongCountTab(provider, currentIndex),
+            ],
+          ),
         ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: Colors.transparent,
-        labelColor: AppColors.white,
-        unselectedLabelColor: AppColors.muted,
-        labelStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-        tabs: const [
-          Tab(text: '按时间'),
-          Tab(text: '按歌曲数'),
-        ],
-      ),
+      ],
     );
   }
 
-  /// 时间选项卡
+  Widget _buildTabBar() {
+    return TabBar(
+      controller: _tabController,
+      indicator: UnderlineTabIndicator(
+        borderSide: BorderSide(
+          color: AppColors.accent,
+          width: 2,
+        ),
+      ),
+      indicatorSize: TabBarIndicatorSize.label,
+      dividerColor: Colors.transparent,
+      labelColor: AppColors.white,
+      unselectedLabelColor: AppColors.muted,
+      labelStyle: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+      unselectedLabelStyle: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      tabs: const [
+        Tab(text: '按时间'),
+        Tab(text: '按歌曲数'),
+      ],
+    );
+  }
+
   Widget _buildTimeTab(SleepTimerProvider provider) {
     return Column(
       children: [
-        // 预设按钮
         Wrap(
-          spacing: 12,
-          runSpacing: 12,
+          spacing: 10,
+          runSpacing: 10,
           children: _timePresets.map((minutes) {
             return _buildPresetButton(
-              label: '$minutes 分钟',
+              label: '$minutes',
+              subtitle: '分钟',
               onTap: () => _setTimeTimer(provider, minutes),
             );
           }).toList(),
         ),
         const SizedBox(height: 16),
-        // 自定义输入
         _buildCustomInput(
           controller: _timeController,
           hint: '自定义分钟数',
           onSubmitted: (value) {
             final minutes = int.tryParse(value);
-            if (minutes != null && minutes > 0) {
+            if (minutes != null && minutes > 0 && minutes <= 999) {
               _setTimeTimer(provider, minutes);
             }
           },
@@ -186,29 +212,31 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
     );
   }
 
-  /// 歌曲数选项卡
-  Widget _buildSongCountTab(SleepTimerProvider provider, int currentIndex) {
+  Widget _buildSongCountTab(
+    SleepTimerProvider provider,
+    int currentIndex,
+  ) {
     return Column(
       children: [
-        // 预设按钮
         Wrap(
-          spacing: 12,
-          runSpacing: 12,
+          spacing: 10,
+          runSpacing: 10,
           children: _songCountPresets.map((count) {
             return _buildPresetButton(
-              label: '$count 首',
-              onTap: () => _setSongCountTimer(provider, count, currentIndex),
+              label: '$count',
+              subtitle: '首',
+              onTap: () =>
+                  _setSongCountTimer(provider, count, currentIndex),
             );
           }).toList(),
         ),
         const SizedBox(height: 16),
-        // 自定义输入
         _buildCustomInput(
           controller: _songCountController,
           hint: '自定义歌曲数',
           onSubmitted: (value) {
             final count = int.tryParse(value);
-            if (count != null && count > 0) {
+            if (count != null && count > 0 && count <= 999) {
               _setSongCountTimer(provider, count, currentIndex);
             }
           },
@@ -217,9 +245,9 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
     );
   }
 
-  /// 预设按钮
   Widget _buildPresetButton({
     required String label,
+    required String subtitle,
     required VoidCallback onTap,
   }) {
     return Material(
@@ -228,26 +256,41 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          constraints: const BoxConstraints(minWidth: 56),
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.card,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.card),
           ),
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.white,
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.white,
+                  height: 1.0,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: AppColors.muted,
+                  height: 1.0,
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  /// 自定义输入框
   Widget _buildCustomInput({
     required TextEditingController controller,
     required String hint,
@@ -257,110 +300,240 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
       controller: controller,
       keyboardType: TextInputType.number,
       textInputAction: TextInputAction.done,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(3),
+      ],
       onSubmitted: onSubmitted,
-      style: const TextStyle(color: AppColors.white),
+      style: const TextStyle(
+        color: AppColors.white,
+        fontSize: 14,
+      ),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: AppColors.muted),
         filled: true,
         fillColor: AppColors.surface,
+        suffixIcon: IconButton(
+          icon: const Icon(
+            Icons.check_rounded,
+            color: AppColors.accent,
+            size: 20,
+          ),
+          onPressed: () {
+            if (controller.text.isNotEmpty) {
+              onSubmitted(controller.text);
+            }
+          },
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
       ),
     );
   }
 
-  /// 激活状态显示
-  Widget _buildActiveState(SleepTimerProvider provider, SleepTimerState state) {
-    final modeText = state.mode == SleepTimerMode.time ? '时间' : '歌曲数';
-    final valueText = state.mode == SleepTimerMode.time
-        ? _formatTime(state.remainingValue)
-        : '${state.remainingValue} 首';
+  // ── 激活态 ──
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.timer_outlined,
-            color: AppColors.accent,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '当前：$modeText模式',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.muted,
-                  ),
+  Widget _buildActiveView(
+    SleepTimerProvider provider, {
+    Key? key,
+  }) {
+    final state = provider.state;
+    final progress = _computeProgress(state);
+    final countdownText = _formatCountdown(state);
+    final modeLabel =
+        state.mode == SleepTimerMode.time ? '按时间' : '按歌曲数';
+    final targetLabel = state.mode == SleepTimerMode.time
+        ? '${state.targetValue}分钟'
+        : '${state.targetValue}首';
+    final subtitleText = state.mode == SleepTimerMode.time
+        ? '剩余时间'
+        : '剩余歌曲';
+
+    return Column(
+      key: key,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 进度环 + 倒计时
+        SizedBox(
+          width: 120,
+          height: 120,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CustomPaint(
+                painter: _SheetProgressPainter(
+                  progress: progress,
+                  ringColor: AppColors.accent,
+                  trackColor: AppColors.accent.withValues(alpha: 0.15),
+                  strokeWidth: 4.0,
                 ),
-                Text(
-                  '剩余 $valueText',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.white,
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    countdownText,
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.white,
+                      height: 1.0,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitleText,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
+                      height: 1.0,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          // 取消按钮
-          TextButton(
+        ),
+        const SizedBox(height: 16),
+        // 模式标签
+        Text(
+          '$modeLabel · $targetLabel',
+          style: const TextStyle(
+            fontSize: 13,
+            color: AppColors.muted,
+          ),
+        ),
+        const SizedBox(height: 20),
+        // 取消按钮
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: TextButton(
             onPressed: () {
               provider.cancel();
+              Navigator.pop(context);
             },
             style: TextButton.styleFrom(
+              backgroundColor: AppColors.card,
               foregroundColor: AppColors.accent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text('取消'),
+            child: const Text(
+              '取消倒计时',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  /// 设置时间倒计时
+  double _computeProgress(SleepTimerState state) {
+    if (state.mode == SleepTimerMode.time) {
+      final totalSeconds = state.targetValue * 60;
+      if (totalSeconds <= 0) return 0.0;
+      return (state.remainingValue / totalSeconds).clamp(0.0, 1.0);
+    } else {
+      if (state.targetValue <= 0) return 0.0;
+      return (state.remainingValue / state.targetValue).clamp(0.0, 1.0);
+    }
+  }
+
+  String _formatCountdown(SleepTimerState state) {
+    if (state.mode == SleepTimerMode.time) {
+      final remaining = state.remainingValue;
+      if (remaining >= 3600) {
+        final hours = remaining ~/ 3600;
+        final minutes = (remaining % 3600) ~/ 60;
+        final seconds = remaining % 60;
+        return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+      }
+      final minutes = remaining ~/ 60;
+      final seconds = remaining % 60;
+      return '$minutes:${seconds.toString().padLeft(2, '0')}';
+    } else {
+      return '${state.remainingValue}首';
+    }
+  }
+
+  // ── 操作 ──
+
   void _setTimeTimer(SleepTimerProvider provider, int minutes) {
     provider.startTimeTimer(minutes);
     Navigator.pop(context);
-    _showSnackBar('已设置 $minutes 分钟后暂停');
   }
 
-  /// 设置歌曲数倒计时
-  void _setSongCountTimer(SleepTimerProvider provider, int count, int currentIndex) {
+  void _setSongCountTimer(
+    SleepTimerProvider provider,
+    int count,
+    int currentIndex,
+  ) {
     provider.startSongCountTimer(count, currentIndex);
     Navigator.pop(context);
-    _showSnackBar('已设置 $count 首后暂停');
+  }
+}
+
+/// 面板内大号进度环画笔
+class _SheetProgressPainter extends CustomPainter {
+  final double progress;
+  final Color ringColor;
+  final Color trackColor;
+  final double strokeWidth;
+
+  _SheetProgressPainter({
+    required this.progress,
+    required this.ringColor,
+    required this.trackColor,
+    required this.strokeWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    canvas.drawCircle(center, radius, trackPaint);
+
+    if (progress > 0) {
+      final sweepAngle = 2 * pi * progress;
+      final progressPaint = Paint()
+        ..color = ringColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+
+      const startAngle = -pi / 2;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        progressPaint,
+      );
+    }
   }
 
-  /// 显示提示
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.accent,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  /// 格式化时间
-  String _formatTime(int seconds) {
-    final minutes = seconds ~/ 60;
-    final secs = seconds % 60;
-    return '$minutes:${secs.toString().padLeft(2, '0')}';
+  @override
+  bool shouldRepaint(_SheetProgressPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.ringColor != ringColor ||
+        oldDelegate.trackColor != trackColor ||
+        oldDelegate.strokeWidth != strokeWidth;
   }
 }
