@@ -201,11 +201,16 @@ class _LyricsPageState extends State<LyricsPage> {
           });
         }
 
-        return ScrollConfiguration(
+        final halfHeight = constraints.maxHeight / 2;
+
+    return ScrollConfiguration(
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: ListView.builder(
             controller: _scrollController,
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: EdgeInsets.only(
+            top: halfHeight,
+            bottom: halfHeight,
+          ),
             itemCount: lyrics.length,
             itemBuilder: (context, index) {
               final line = lyrics[index];
