@@ -146,8 +146,8 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildTimeTab(provider),
               _buildSongCountTab(provider, currentIndex),
+              _buildTimeTab(provider),
             ],
           ),
         ),
@@ -177,8 +177,8 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
         fontWeight: FontWeight.w500,
       ),
       tabs: const [
-        Tab(text: '按时间'),
         Tab(text: '按歌曲数'),
+        Tab(text: '按时间'),
       ],
     );
   }
