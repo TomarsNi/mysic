@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../providers/player_provider.dart';
 import '../providers/sleep_timer_provider.dart';
 import '../../data/services/sleep_timer_service.dart';
 
@@ -53,8 +52,8 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<SleepTimerProvider, PlayerProvider>(
-      builder: (context, sleepTimerProvider, playerProvider, _) {
+    return Consumer<SleepTimerProvider>(
+      builder: (context, sleepTimerProvider, _) {
         final state = sleepTimerProvider.state;
 
         return SingleChildScrollView(
@@ -80,7 +79,6 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
                       )
                     : _buildSettingView(
                         sleepTimerProvider,
-                        playerProvider.currentIndex,
                         key: const ValueKey('setting'),
                       ),
               ),
@@ -132,7 +130,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
 
   Widget _buildSettingView(
     SleepTimerProvider provider,
-    int currentIndex, {
+    {
     Key? key,
   }) {
     return Column(
@@ -146,7 +144,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildSongCountTab(provider, currentIndex),
+              _buildSongCountTab(provider),
               _buildTimeTab(provider),
             ],
           ),
@@ -214,7 +212,6 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
 
   Widget _buildSongCountTab(
     SleepTimerProvider provider,
-    int currentIndex,
   ) {
     return Column(
       children: [
@@ -226,7 +223,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
               label: '$count',
               subtitle: '首',
               onTap: () =>
-                  _setSongCountTimer(provider, count, currentIndex),
+                  _setSongCountTimer(provider, count),
             );
           }).toList(),
         ),
@@ -237,7 +234,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
           onSubmitted: (value) {
             final count = int.tryParse(value);
             if (count != null && count > 0 && count <= 999) {
-              _setSongCountTimer(provider, count, currentIndex);
+              _setSongCountTimer(provider, count);
             }
           },
         ),
@@ -478,9 +475,8 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
   void _setSongCountTimer(
     SleepTimerProvider provider,
     int count,
-    int currentIndex,
   ) {
-    provider.startSongCountTimer(count, currentIndex);
+    provider.startSongCountTimer(count);
     Navigator.pop(context);
   }
 }

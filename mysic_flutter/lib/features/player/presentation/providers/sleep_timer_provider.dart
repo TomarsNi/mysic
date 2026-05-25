@@ -25,13 +25,13 @@ class SleepTimerProvider extends ChangeNotifier {
   }
 
   /// 启动歌曲数倒计时
-  void startSongCountTimer(int songCount, int currentSongIndex) {
-    _service.startSongCountTimer(songCount, currentSongIndex);
+  void startSongCountTimer(int songCount) {
+    _service.startSongCountTimer(songCount);
   }
 
-  /// 歌曲变化时调用
-  void onSongChanged(int newIndex) {
-    _service.updateSongCount(newIndex);
+  /// 歌曲播放完成时调用（递减倒计时）
+  void onSongCompleted() {
+    _service.onSongCompleted();
   }
 
   /// 取消倒计时

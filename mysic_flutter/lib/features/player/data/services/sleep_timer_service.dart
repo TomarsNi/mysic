@@ -15,7 +15,6 @@ class SleepTimerState {
   final int remainingValue;    // 剩余值：时间(秒) 或 歌曲数
   final bool isActive;
   final DateTime? startTime;   // 开始时间（时间模式）
-  final int? startSongIndex;   // 开始时的歌曲索引（歌曲数模式）
 
   const SleepTimerState({
     required this.mode,
@@ -23,7 +22,6 @@ class SleepTimerState {
     required this.remainingValue,
     required this.isActive,
     this.startTime,
-    this.startSongIndex,
   });
 
   /// 创建未激活状态
@@ -43,9 +41,7 @@ class SleepTimerState {
     int? remainingValue,
     bool? isActive,
     DateTime? startTime,
-    int? startSongIndex,
     bool clearStartTime = false,
-    bool clearStartSongIndex = false,
   }) {
     return SleepTimerState(
       mode: mode ?? this.mode,
@@ -53,7 +49,6 @@ class SleepTimerState {
       remainingValue: remainingValue ?? this.remainingValue,
       isActive: isActive ?? this.isActive,
       startTime: clearStartTime ? null : (startTime ?? this.startTime),
-      startSongIndex: clearStartSongIndex ? null : (startSongIndex ?? this.startSongIndex),
     );
   }
 }
@@ -108,7 +103,7 @@ class SleepTimerService {
   }
 
   /// 启动歌曲数倒计时
-  void startSongCountTimer(int songCount, int currentSongIndex) {
+  void startSongCountTimer(int songCount) {
     _cancelTimer();
 
     _state = SleepTimerState(
@@ -116,25 +111,17 @@ class SleepTimerService {
       targetValue: songCount,
       remainingValue: songCount,
       isActive: true,
-      startSongIndex: currentSongIndex,
     );
     onStateChanged?.call();
   }
 
-  /// 更新歌曲数倒计时（当歌曲变化时调用）
-  void updateSongCount(int currentSongIndex) {
+  /// 歌曲播放完成时递减倒计时
+  void onSongCompleted() {
     if (!_state.isActive || _state.mode != SleepTimerMode.songCount) {
       return;
     }
 
-    final startSongIndex = _state.startSongIndex;
-    if (startSongIndex == null) {
-      cancel();
-      return;
-    }
-
-    final played = currentSongIndex - startSongIndex;
-    final remaining = _state.targetValue - played;
+    final remaining = _state.remainingValue - 1;
 
     if (remaining <= 0) {
       _complete();

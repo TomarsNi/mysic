@@ -154,9 +154,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       }
     });
 
-    // 设置歌曲变化回调（用于通知 SleepTimerProvider 更新歌曲计数）
-    playerProvider.onSongChanged = (newIndex) {
-      sleepTimerProvider.onSongChanged(newIndex);
+    // 设置歌曲播放完成回调（用于通知 SleepTimerProvider 递减歌曲计数）
+    playerProvider.onSongCompleted = () {
+      sleepTimerProvider.onSongCompleted();
     };
   }
 
@@ -220,7 +220,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   void dispose() {
-    _playerProvider?.onSongChanged = null;
+    _playerProvider?.onSongCompleted = null;
     _fabAnimationController.dispose();
     super.dispose();
   }

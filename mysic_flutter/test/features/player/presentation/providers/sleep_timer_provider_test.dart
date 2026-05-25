@@ -19,7 +19,7 @@ void main() {
 
     test('startSongCountTimer sets active state', () {
       final provider = SleepTimerProvider();
-      provider.startSongCountTimer(3, 0);
+      provider.startSongCountTimer(3);
       expect(provider.state.isActive, isTrue);
       expect(provider.state.mode, SleepTimerMode.songCount);
       expect(provider.state.targetValue, 3);
@@ -34,23 +34,32 @@ void main() {
       expect(provider.state.isActive, isFalse);
     });
 
-    test('onSongChanged updates remaining count in song mode', () {
+    test('onSongCompleted decrements remaining count in song mode', () {
       final provider = SleepTimerProvider();
-      provider.startSongCountTimer(3, 0);
+      provider.startSongCountTimer(3);
       expect(provider.state.remainingValue, 3);
 
-      provider.onSongChanged(1);
+      provider.onSongCompleted();
       expect(provider.state.remainingValue, 2);
 
-      provider.onSongChanged(2);
+      provider.onSongCompleted();
       expect(provider.state.remainingValue, 1);
     });
 
-    test('onSongChanged does nothing in time mode', () {
+    test('onSongCompleted completes timer when remaining reaches 0', () {
+      final provider = SleepTimerProvider();
+      provider.startSongCountTimer(1);
+      expect(provider.state.remainingValue, 1);
+
+      provider.onSongCompleted();
+      expect(provider.state.isActive, isFalse);
+    });
+
+    test('onSongCompleted does nothing in time mode', () {
       final provider = SleepTimerProvider();
       provider.startTimeTimer(5);
 
-      provider.onSongChanged(1);
+      provider.onSongCompleted();
       expect(provider.state.mode, SleepTimerMode.time);
     });
   });

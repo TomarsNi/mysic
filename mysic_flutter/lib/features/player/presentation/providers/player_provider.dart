@@ -43,8 +43,8 @@ class PlayerProvider extends ChangeNotifier {
   String _scanPath = '';
   int _scanFound = 0;
 
-  /// 歌曲变化回调（用于通知 SleepTimerProvider）
-  void Function(int newIndex)? onSongChanged;
+  /// 歌曲播放完成回调（用于睡眠定时器歌曲数模式）
+  void Function()? onSongCompleted;
 
   PlayerProvider({
     AudioPlayerService? audioPlayerService,
@@ -86,6 +86,11 @@ class PlayerProvider extends ChangeNotifier {
       notifyListeners();
     });
 
+    // 监听歌曲播放完成（用于睡眠定时器歌曲数模式）
+    _audioPlayerService.songCompletedStream.listen((_) {
+      onSongCompleted?.call();
+    });
+
     // 监听当前歌曲变化
     _audioPlayerService.currentSongStream.listen((song) {
       AppLogger.i('PlayerProvider#_init', '收到 currentSongStream 事件: ${song?.title}');
@@ -99,8 +104,6 @@ class PlayerProvider extends ChangeNotifier {
       }
       // 加载歌词
       _loadLyricsForSong(song);
-      // 通知歌曲变化回调（用于 SleepTimerProvider）
-      onSongChanged?.call(_currentIndex);
       notifyListeners();
     });
     AppLogger.i('PlayerProvider#_init', '初始化完成，监听器已设置');
@@ -606,7 +609,7 @@ class PlayerProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    onSongChanged = null;  // 清除回调
+    onSongCompleted = null;  // 清除回调
     _audioPlayerService.dispose();
     super.dispose();
   }

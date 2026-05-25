@@ -47,6 +47,7 @@ class AudioPlayerService {
   final _positionController = StreamController<Duration>.broadcast();
   final _durationController = StreamController<Duration?>.broadcast();
   final _currentSongController = StreamController<Song?>.broadcast();
+  final _songCompletedController = StreamController<void>.broadcast();
 
   // 平台特定播放器
   just_audio.AudioPlayer? _justAudioPlayer;        // 移动端
@@ -58,6 +59,7 @@ class AudioPlayerService {
   Stream<Duration> get positionStream => _positionController.stream;
   Stream<Duration?> get durationStream => _durationController.stream;
   Stream<Song?> get currentSongStream => _currentSongController.stream;
+  Stream<void> get songCompletedStream => _songCompletedController.stream;
 
   // 当前状态
   MysicPlayerState get state => _state;
@@ -516,6 +518,7 @@ class AudioPlayerService {
   void _onSongCompleted() {
     AppLogger.d('AudioPlayerService#_onSongCompleted', '========== _onSongCompleted ==========');
     AppLogger.d('AudioPlayerService#_onSongCompleted', 'currentIndex: $_currentIndex, playlist length: ${_playlist.length}, loopMode: $_loopMode');
+    _songCompletedController.add(null);
 
     if (_currentIndex < _playlist.length - 1 || _loopMode == MysicLoopMode.all) {
       AppLogger.i('AudioPlayerService#_onSongCompleted', '准备播放下一首');
@@ -623,5 +626,6 @@ class AudioPlayerService {
     await _positionController.close();
     await _durationController.close();
     await _currentSongController.close();
+    await _songCompletedController.close();
   }
 }
