@@ -112,6 +112,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   late AnimationController _fabAnimationController;
   bool _isScanning = false;
   MusicScanner? _currentScanner;
+  PlayerProvider? _playerProvider;
 
   @override
   void initState() {
@@ -123,6 +124,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
     // 加载歌单并恢复播放 - 延迟到 build 完成后执行
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _playerProvider = context.read<PlayerProvider>();
       // 设置睡眠倒计时完成回调
       _setupSleepTimerCallback();
       await _loadPlaylists();
@@ -218,8 +220,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   void dispose() {
-    // 清除回调，防止内存泄漏
-    context.read<PlayerProvider>().onSongChanged = null;
+    _playerProvider?.onSongChanged = null;
     _fabAnimationController.dispose();
     super.dispose();
   }
