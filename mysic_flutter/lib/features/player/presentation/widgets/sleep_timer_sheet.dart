@@ -57,7 +57,7 @@ class _SleepTimerSheetState extends State<SleepTimerSheet>
       builder: (context, sleepTimerProvider, playerProvider, _) {
         final state = sleepTimerProvider.state;
 
-        return Container(
+        return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
