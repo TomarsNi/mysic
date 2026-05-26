@@ -407,17 +407,20 @@ class AudioPlayerService {
     }
   }
 
-  /// 加载当前索引的歌曲但不播放（用于睡眠定时器暂停场景）
-  Future<void> _loadCurrentSong() async {
+  /// 加载当前索引的歌曲并暂停（用于睡眠定时器暂停场景）
+  Future<void> _loadCurrentSongAndPause() async {
     if (Platform.isAndroid || Platform.isIOS) {
       _audioHandler?.updateCurrentIndex(_currentIndex);
       await _justAudioPlayer!.stop();
       await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
       _audioHandler?.setMediaItem(_currentSong!, duration: _justAudioPlayer!.duration);
+      await _justAudioPlayer!.pause();
     } else {
       await _audioplayersPlayer!.stop();
       await _audioplayersPlayer!.setSource(audioplayers.DeviceFileSource(_currentSong!.filePath));
+      await _audioplayersPlayer!.pause();
     }
+    _updateState(MysicPlayerState.paused);
   }
 
   /// 播放上一首
