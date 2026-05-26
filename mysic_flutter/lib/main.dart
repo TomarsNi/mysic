@@ -154,7 +154,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       }
     });
 
-    // 设置歌曲播放完成回调（用于通知 SleepTimerProvider 递减歌曲计数）
+    // 设置歌曲播放完成同步回调（用于在 _onSongCompleted 中同步递减睡眠定时器）
+    // 通过 onSongCompletedSync 同步调用，确保 shouldAutoNext 检查前 justCompleted 已设置
     playerProvider.onSongCompleted = () {
       sleepTimerProvider.onSongCompleted();
     };

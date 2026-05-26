@@ -43,7 +43,7 @@ class PlayerProvider extends ChangeNotifier {
   String _scanPath = '';
   int _scanFound = 0;
 
-  /// 歌曲播放完成回调（用于睡眠定时器歌曲数模式）
+  /// 歌曲播放完成回调（通过流异步触发，用于 UI 通知等）
   void Function()? onSongCompleted;
 
   /// 是否允许自动播放下一首的回调（用于睡眠定时器阻止自动下一首）
@@ -93,6 +93,9 @@ class PlayerProvider extends ChangeNotifier {
     _audioPlayerService.songCompletedStream.listen((_) {
       onSongCompleted?.call();
     });
+
+    // 透传 onSongCompletedSync 到 AudioPlayerService（动态引用，同步调用睡眠定时器递减）
+    _audioPlayerService.onSongCompletedSync = () => onSongCompleted?.call();
 
     // 透传 shouldAutoNext 回调到 AudioPlayerService（动态引用，每次调用时读取当前值）
     _audioPlayerService.shouldAutoNext = () => shouldAutoNext?.call() ?? true;
@@ -616,7 +619,8 @@ class PlayerProvider extends ChangeNotifier {
   @override
   void dispose() {
     onSongCompleted = null;  // 清除回调
-    shouldAutoNext = null;  // 清除回调
+    shouldAutoNext = null;
+    onSongCompleted = null;  // 清除回调
     _audioPlayerService.dispose();
     super.dispose();
   }

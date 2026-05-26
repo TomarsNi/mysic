@@ -49,6 +49,9 @@ class AudioPlayerService {
   final _currentSongController = StreamController<Song?>.broadcast();
   final _songCompletedController = StreamController<void>.broadcast();
 
+  /// 歌曲播放完成时同步通知（用于睡眠定时器在 shouldAutoNext 检查前递减计数）
+  void Function()? onSongCompletedSync;
+
   /// 外部回调：是否允许自动播放下一首
   /// 返回 false 时，_onSongCompleted 不会调用 next()
   bool Function()? shouldAutoNext;
@@ -522,10 +525,17 @@ class AudioPlayerService {
   void _onSongCompleted() {
     AppLogger.d('AudioPlayerService#_onSongCompleted', '========== _onSongCompleted ==========');
     AppLogger.d('AudioPlayerService#_onSongCompleted', 'currentIndex: $_currentIndex, playlist length: ${_playlist.length}, loopMode: $_loopMode');
+
+    // 先同步通知睡眠定时器递减（必须在 shouldAutoNext 检查前执行，
+    // 因为流事件通过微任务调度，无法在当前同步调用栈中触发监听器）
+    onSongCompletedSync?.call();
+
     _songCompletedController.add(null);
 
     // 检查外部是否允许自动播放下一首
-    if (shouldAutoNext != null && !shouldAutoNext!()) {
+    final autoNext = shouldAutoNext?.call() ?? true;
+    AppLogger.i('AudioPlayerService#_onSongCompleted', 'shouldAutoNext 结果: $autoNext');
+    if (!autoNext) {
       AppLogger.i('AudioPlayerService#_onSongCompleted', '外部阻止自动下一首，停止播放');
       _updateState(MysicPlayerState.completed);
       return;
