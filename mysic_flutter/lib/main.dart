@@ -158,6 +158,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     playerProvider.onSongCompleted = () {
       sleepTimerProvider.onSongCompleted();
     };
+
+    // 设置是否允许自动播放下一首（睡眠定时器刚完成时阻止）
+    playerProvider.shouldAutoNext = () {
+      return !sleepTimerProvider.justCompleted;
+    };
   }
 
   Future<void> _loadPlaylists() async {
