@@ -58,9 +58,13 @@ class SleepTimerState {
 class SleepTimerService {
   Timer? _timer;
   SleepTimerState _state = SleepTimerState.inactive();
+  bool _justCompleted = false;
 
   /// 当前状态
   SleepTimerState get state => _state;
+
+  /// 定时器刚完成标志，用于阻止自动下一首
+  bool get justCompleted => _justCompleted;
 
   /// 状态变化回调
   VoidCallback? onStateChanged;
@@ -142,8 +146,10 @@ class SleepTimerService {
   void _complete() {
     _cancelTimer();
     _state = SleepTimerState.inactive();
+    _justCompleted = true;
     onStateChanged?.call();
     onComplete?.call();
+    Future.microtask(() => _justCompleted = false);
   }
 
   /// 取消定时器
