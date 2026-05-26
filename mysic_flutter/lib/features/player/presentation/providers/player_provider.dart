@@ -94,8 +94,8 @@ class PlayerProvider extends ChangeNotifier {
       onSongCompleted?.call();
     });
 
-    // 透传 shouldAutoNext 回调到 AudioPlayerService
-    _audioPlayerService.shouldAutoNext = shouldAutoNext;
+    // 透传 shouldAutoNext 回调到 AudioPlayerService（动态引用，每次调用时读取当前值）
+    _audioPlayerService.shouldAutoNext = () => shouldAutoNext?.call() ?? true;
 
     // 监听当前歌曲变化
     _audioPlayerService.currentSongStream.listen((song) {
