@@ -49,6 +49,10 @@ class AudioPlayerService {
   final _currentSongController = StreamController<Song?>.broadcast();
   final _songCompletedController = StreamController<void>.broadcast();
 
+  /// 外部回调：是否允许自动播放下一首
+  /// 返回 false 时，_onSongCompleted 不会调用 next()
+  bool Function()? shouldAutoNext;
+
   // 平台特定播放器
   just_audio.AudioPlayer? _justAudioPlayer;        // 移动端
   MysicAudioHandler? _audioHandler;     // 移动端后台服务
@@ -519,6 +523,13 @@ class AudioPlayerService {
     AppLogger.d('AudioPlayerService#_onSongCompleted', '========== _onSongCompleted ==========');
     AppLogger.d('AudioPlayerService#_onSongCompleted', 'currentIndex: $_currentIndex, playlist length: ${_playlist.length}, loopMode: $_loopMode');
     _songCompletedController.add(null);
+
+    // 检查外部是否允许自动播放下一首
+    if (shouldAutoNext != null && !shouldAutoNext!()) {
+      AppLogger.i('AudioPlayerService#_onSongCompleted', '外部阻止自动下一首，停止播放');
+      _updateState(MysicPlayerState.completed);
+      return;
+    }
 
     if (_currentIndex < _playlist.length - 1 || _loopMode == MysicLoopMode.all) {
       AppLogger.i('AudioPlayerService#_onSongCompleted', '准备播放下一首');
