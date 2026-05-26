@@ -14,6 +14,9 @@ class SleepTimerProvider extends ChangeNotifier {
   /// 当前状态
   SleepTimerState get state => _service.state;
 
+  /// 是否刚完成倒计时（一次性标志）
+  bool get justCompleted => _service.justCompleted;
+
   /// 状态变化回调
   void _onStateChanged() {
     notifyListeners();
