@@ -366,6 +366,13 @@ class AudioPlayerService {
   Future<void> next() async {
     if (_playlist.isEmpty) return;
 
+    _advanceToNext();
+    await _playCurrentSong();
+    // 不手动更新状态，依赖流的状态更新
+  }
+
+  /// 前进到下一首（仅更新索引和歌曲，不播放）
+  void _advanceToNext() {
     if (_isShuffleMode) {
       final randomIndex = _getRandomIndex();
       _currentIndex = randomIndex;
@@ -381,14 +388,16 @@ class AudioPlayerService {
 
     _currentSong = _playlist[_currentIndex];
     _currentSongController.add(_currentSong);
+  }
+
+  /// 播放当前索引的歌曲
+  Future<void> _playCurrentSong() async {
     _updateState(MysicPlayerState.loading);
 
     if (Platform.isAndroid || Platform.isIOS) {
-      // 同步更新 AudioHandler 的索引
       _audioHandler?.updateCurrentIndex(_currentIndex);
       await _justAudioPlayer!.stop();
       await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
-      // 立即更新通知栏歌曲信息
       _audioHandler?.setMediaItem(_currentSong!, duration: _justAudioPlayer!.duration);
       await _justAudioPlayer!.play();
     } else {
@@ -396,7 +405,19 @@ class AudioPlayerService {
       await _audioplayersPlayer!.setSource(audioplayers.DeviceFileSource(_currentSong!.filePath));
       await _audioplayersPlayer!.resume();
     }
-    // 不手动更新状态，依赖流的状态更新
+  }
+
+  /// 加载当前索引的歌曲但不播放（用于睡眠定时器暂停场景）
+  Future<void> _loadCurrentSong() async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      _audioHandler?.updateCurrentIndex(_currentIndex);
+      await _justAudioPlayer!.stop();
+      await _justAudioPlayer!.setFilePath(_currentSong!.filePath);
+      _audioHandler?.setMediaItem(_currentSong!, duration: _justAudioPlayer!.duration);
+    } else {
+      await _audioplayersPlayer!.stop();
+      await _audioplayersPlayer!.setSource(audioplayers.DeviceFileSource(_currentSong!.filePath));
+    }
   }
 
   /// 播放上一首
@@ -536,8 +557,14 @@ class AudioPlayerService {
     final autoNext = shouldAutoNext?.call() ?? true;
     AppLogger.i('AudioPlayerService#_onSongCompleted', 'shouldAutoNext 结果: $autoNext');
     if (!autoNext) {
-      AppLogger.i('AudioPlayerService#_onSongCompleted', '外部阻止自动下一首，停止播放');
-      _updateState(MysicPlayerState.completed);
+      AppLogger.i('AudioPlayerService#_onSongCompleted', '外部阻止自动下一首，切换到下一首并暂停');
+      if (_currentIndex < _playlist.length - 1 || _loopMode == MysicLoopMode.all) {
+        // 先前进到下一首，异步加载后暂停
+        _advanceToNext();
+        _loadCurrentSongAndPause();
+      } else {
+        _updateState(MysicPlayerState.completed);
+      }
       return;
     }
 
