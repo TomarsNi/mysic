@@ -547,10 +547,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildTopBar(BuildContext context) {
-    // 设计稿规范：
-    // - 三栏布局：菜单按钮 + 标题 + 添加按钮
-    // - 按钮：p-3 rounded-xl bg-card
-    // - 标题：上方 muted xs 文字，下方 font-medium sm
+    if (_isSearchMode) {
+      return _buildSearchTopBar(context);
+    }
+    return _buildNormalTopBar(context);
+  }
+
+  Widget _buildNormalTopBar(BuildContext context) {
     return Consumer2<PlayerProvider, ApiConfigProvider>(
       builder: (context, playerProvider, apiConfigProvider, child) {
         final currentSong = playerProvider.currentSong;
@@ -560,7 +563,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           padding: const EdgeInsets.only(left: 0, right: 0, top: 16, bottom: 16),
           child: Stack(
             children: [
-              // 文字层 - 绝对居中于屏幕
               Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -585,10 +587,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ),
               ),
 
-              // 按钮层 - 左右分布
               Row(
                 children: [
-                  // 抽屉按钮
                   _TopBarButton(
                     icon: Icons.menu_rounded,
                     onPressed: () => Scaffold.of(context).openDrawer(),
@@ -596,16 +596,20 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
                   const Spacer(),
 
-                  // 魔法棒按钮
+                  // 搜索按钮
+                  _TopBarButton(
+                    icon: Icons.search_rounded,
+                    onPressed: _enterSearchMode,
+                  ),
+
                   if (hasEnabledApi) ...[
+                    const SizedBox(width: 0),
                     MagicWandButton(
                       visible: currentSong != null,
                       onTap: () => _showSkillSelection(context, currentSong!),
                     ),
-                    const SizedBox(width: 12),
                   ],
 
-                  // 加号按钮
                   _AddButton(
                     currentSong: currentSong,
                     onAddToPlaylist: () => _showAddToPlaylist(context, currentSong!),
@@ -618,6 +622,64 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSearchTopBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 0, right: 0, top: 16, bottom: 16),
+      child: Row(
+        children: [
+          _TopBarButton(
+            icon: Icons.arrow_back_rounded,
+            onPressed: _exitSearchMode,
+          ),
+
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                style: const TextStyle(
+                  color: AppColors.white,
+                  fontSize: 14,
+                ),
+                decoration: InputDecoration(
+                  hintText: '搜索歌曲、艺术家...',
+                  hintStyle: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 14,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    color: AppColors.muted,
+                    size: 20,
+                  ),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+                onChanged: _onSearchChanged,
+              ),
+            ),
+          ),
+
+          if (_searchController.text.isNotEmpty)
+            _TopBarButton(
+              icon: Icons.close_rounded,
+              onPressed: () {
+                _searchController.clear();
+                _onSearchChanged('');
+              },
+            ),
+        ],
+      ),
     );
   }
 
