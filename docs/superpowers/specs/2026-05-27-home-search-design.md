@@ -6,7 +6,7 @@
 
 ## 搜索范围
 
-仅搜索歌曲，匹配歌曲名称和艺术家名称。使用已有的 `SongRepository.searchSongs(query)` 方法。
+仅搜索歌曲，匹配歌曲名称、艺术家名称和专辑名称。使用已有的 `PlaylistRepository.searchSongs(query)` 方法。
 
 ## 交互设计
 

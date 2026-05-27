@@ -18,8 +18,6 @@ void main() {
       Playlist? favoritesPlaylist,
       Future<void> Function(Playlist)? onPlaylistTap,
       Future<void> Function(Playlist)? onFavoritesTap,
-      VoidCallback? onScanSettingsTap,
-      VoidCallback? onSettingsTap,
       VoidCallback? onAboutTap,
       VoidCallback? onCreatePlaylistTap,
     }) async {
@@ -42,8 +40,6 @@ void main() {
                     favoritesPlaylist: favoritesPlaylist,
                     onPlaylistTap: onPlaylistTap,
                     onFavoritesTap: onFavoritesTap,
-                    onScanSettingsTap: onScanSettingsTap,
-                    onSettingsTap: onSettingsTap,
                     onAboutTap: onAboutTap,
                     onCreatePlaylistTap: onCreatePlaylistTap,
                   ),
@@ -62,12 +58,6 @@ void main() {
 
       expect(find.text('Mysic'), findsOneWidget);
       expect(find.text('本地音乐播放器'), findsOneWidget);
-    });
-
-    testWidgets('should render scan button', (tester) async {
-      await pumpAppDrawer(tester);
-
-      expect(find.text('扫描设置'), findsOneWidget);
     });
 
     testWidgets('should render empty state when no playlists', (tester) async {
@@ -158,20 +148,6 @@ void main() {
       expect(tappedPlaylist?.id, 1);
     });
 
-    testWidgets('should call onScanSettingsTap when scan button is tapped', (tester) async {
-      bool scanTapped = false;
-
-      await pumpAppDrawer(
-        tester,
-        onScanSettingsTap: () => scanTapped = true,
-      );
-
-      await tester.tap(find.text('扫描设置'));
-      await tester.pumpAndSettle();
-
-      expect(scanTapped, isTrue);
-    });
-
     testWidgets('should call onCreatePlaylistTap when create button is tapped', (tester) async {
       bool createTapped = false;
 
@@ -191,25 +167,10 @@ void main() {
       expect(createTapped, isTrue);
     });
 
-    testWidgets('should render settings and about buttons', (tester) async {
+    testWidgets('should render about button', (tester) async {
       await pumpAppDrawer(tester);
 
-      expect(find.text('设置'), findsOneWidget);
-      expect(find.text('关于'), findsOneWidget);
-    });
-
-    testWidgets('should call onSettingsTap when settings is tapped', (tester) async {
-      bool settingsTapped = false;
-
-      await pumpAppDrawer(
-        tester,
-        onSettingsTap: () => settingsTapped = true,
-      );
-
-      await tester.tap(find.text('设置'));
-      await tester.pumpAndSettle();
-
-      expect(settingsTapped, isTrue);
+      expect(find.text('关于我们'), findsOneWidget);
     });
 
     testWidgets('should call onAboutTap when about is tapped', (tester) async {

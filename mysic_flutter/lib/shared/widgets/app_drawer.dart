@@ -23,17 +23,8 @@ class AppDrawer extends StatelessWidget {
   /// 收藏歌单点击回调
   final Future<void> Function(Playlist)? onFavoritesTap;
 
-  /// 扫描设置点击回调
-  final VoidCallback? onScanSettingsTap;
-
-  /// 设置点击回调
-  final VoidCallback? onSettingsTap;
-
   /// 关于点击回调
   final VoidCallback? onAboutTap;
-
-  /// API 设置点击回调
-  final VoidCallback? onApiSettingsTap;
 
   /// 新建歌单点击回调
   final VoidCallback? onCreatePlaylistTap;
@@ -45,10 +36,7 @@ class AppDrawer extends StatelessWidget {
     this.favoritesPlaylist,
     this.onPlaylistTap,
     this.onFavoritesTap,
-    this.onScanSettingsTap,
-    this.onSettingsTap,
     this.onAboutTap,
-    this.onApiSettingsTap,
     this.onCreatePlaylistTap,
   });
 
@@ -259,86 +247,6 @@ class AppDrawer extends StatelessWidget {
     Navigator.of(context).pop();
   }
 
-  Widget _buildScanButton(BuildContext context) {
-    return Consumer<PlayerProvider>(
-      builder: (context, playerProvider, child) {
-        // 从 Provider 获取扫描进度
-        final scanProgress = playerProvider.scanProgress ?? 0.0;
-        final isScanning = playerProvider.isScanning;
-
-        // 设计稿：w-full relative overflow-hidden px-4 py-3 rounded-xl bg-accent/20
-        return Material(
-          color: AppColors.accent.withValues(alpha: 0.20), // bg-accent/20
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            onTap: isScanning ? null : onScanSettingsTap,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Stack(
-                children: [
-                  // 进度条背景 - 设计稿: absolute inset-0 bg-accent/30
-                  if (isScanning)
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.accent.withValues(alpha: 0.30),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: scanProgress.clamp(0.0, 1.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.accent.withValues(alpha: 0.50),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  // 按钮内容 - 设计稿：flex items-center justify-center gap-2
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // 图标 - 设计稿：w-5 h-5
-                      isScanning
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
-                              ),
-                            )
-                          : const Icon(
-                              Icons.refresh_rounded, // 设计稿使用刷新图标
-                              color: AppColors.accent,
-                              size: 20,
-                            ),
-                      const SizedBox(width: 8),
-                      // 文字
-                      Text(
-                        isScanning ? '${(scanProgress * 100).toInt()}%' : '扫描设置',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.accent,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildPlaylistSection(BuildContext context) {
     // 过滤掉"我喜欢听"歌单（它在上方单独显示）
     final filteredPlaylists = playlists
@@ -450,85 +358,38 @@ class AppDrawer extends StatelessWidget {
           ),
         ),
       ),
-      child: Column(
-        children: [
-          // 扫描全盘按钮 - 设计稿：w-full bg-accent/20 text-accent
-          _buildScanButton(context),
-
-          const SizedBox(height: 8),
-
-          // API 设置按钮 - 设计稿：w-full bg-white/5 text-white/70
-          Material(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              onTap: () {
-                Navigator.of(context).pop();
-                onApiSettingsTap?.call();
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.api_rounded,
-                      size: 20,
-                      color: AppColors.white.withValues(alpha: 0.7),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'API 设置',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.white.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: () {
+            Navigator.of(context).pop();
+            onAboutTap?.call();
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 20,
+                  color: AppColors.white.withValues(alpha: 0.7),
                 ),
-              ),
+                const SizedBox(width: 8),
+                Text(
+                  '关于我们',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
             ),
           ),
-
-          const SizedBox(height: 8),
-
-          // 关于按钮 - 设计稿：w-full bg-white/5 text-white/70
-          Material(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              onTap: () {
-                Navigator.of(context).pop();
-                onAboutTap?.call();
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.info_outline_rounded,
-                      size: 20,
-                      color: AppColors.white.withValues(alpha: 0.7),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '关于我们',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.white.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
