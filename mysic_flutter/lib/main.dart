@@ -240,6 +240,52 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
+  void _enterSearchMode() {
+    setState(() {
+      _isSearchMode = true;
+      _searchQuery = '';
+      _searchResults = [];
+    });
+    // 延迟请求焦点，确保搜索框已渲染
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _searchFocusNode.requestFocus();
+    });
+  }
+
+  void _exitSearchMode() {
+    _debounceTimer?.cancel();
+    _searchController.clear();
+    setState(() {
+      _isSearchMode = false;
+      _searchQuery = '';
+      _searchResults = [];
+    });
+  }
+
+  void _onSearchChanged(String query) {
+    // 立即 setState 以更新清除按钮的可见性
+    setState(() {});
+
+    _debounceTimer?.cancel();
+    if (query.isEmpty) {
+      setState(() {
+        _searchQuery = '';
+        _searchResults = [];
+      });
+      return;
+    }
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      final playlistProvider = context.read<PlaylistProvider>();
+      final results = await playlistProvider.searchSongs(query);
+      if (mounted && _isSearchMode) {
+        setState(() {
+          _searchQuery = query;
+          _searchResults = results;
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer2<PlayerProvider, PlaylistProvider>(
