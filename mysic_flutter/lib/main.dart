@@ -5,6 +5,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
+import 'dart:async';
 
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_colors.dart';
@@ -16,9 +17,6 @@ import 'features/playlist/presentation/providers/playlist_provider.dart';
 import 'features/lyrics/presentation/pages/lyrics_page.dart' show LyricsPage;
 import 'features/lyrics/data/services/lyrics_parser.dart' show LyricLine;
 import 'features/settings/presentation/pages/about_page.dart';
-import 'features/settings/presentation/pages/api_settings_page.dart';
-import 'features/settings/data/scan_options_provider.dart';
-import 'features/settings/presentation/pages/scan_settings_page.dart';
 import 'features/settings/presentation/providers/api_config_provider.dart';
 import 'features/settings/presentation/widgets/scan_directory_list.dart';
 import 'features/ai_skills/presentation/providers/ai_skills_provider.dart';
@@ -88,7 +86,6 @@ class MysicApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PlaylistProvider()),
         ChangeNotifierProvider(create: (_) => ApiConfigProvider()..load()),
         ChangeNotifierProvider(create: (_) => AiSkillsProvider()),
-        ChangeNotifierProvider(create: (_) => ScanOptionsProvider()..load()),
       ],
       child: MaterialApp(
         title: 'Mysic',
@@ -113,6 +110,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   bool _isScanning = false;
   MusicScanner? _currentScanner;
   PlayerProvider? _playerProvider;
+
+  // 搜索状态
+  bool _isSearchMode = false;
+  String _searchQuery = '';
+  List<Song> _searchResults = [];
+  Timer? _debounceTimer;
+  final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -227,6 +232,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   @override
   void dispose() {
     _playerProvider?.onSongCompleted = null;
+    _debounceTimer?.cancel();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
     _fabAnimationController.dispose();
     super.dispose();
   }
@@ -288,10 +296,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 );
               }
             },
-            onScanSettingsTap: () => _showScanSettings(context),
-            onSettingsTap: () => _showSettings(context),
             onAboutTap: () => _showAbout(context),
-            onApiSettingsTap: () => _showApiSettings(context),
             onCreatePlaylistTap: () => _createPlaylist(context),
           ),
           body: _buildBody(context, playerProvider),
@@ -807,37 +812,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  void _showSettings(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF16213E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => const SettingsSheet(),
-    );
-  }
-
   void _showAbout(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const AboutPage(),
-      ),
-    );
-  }
-
-  void _showApiSettings(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const ApiSettingsPage(),
-      ),
-    );
-  }
-
-  void _showScanSettings(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const ScanSettingsPage(),
       ),
     );
   }
