@@ -361,16 +361,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
           // 主内容区
           Expanded(
-            child: Column(
-              children: [
-                // 有边距的内容区域
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: _isSearchMode
+                ? _buildSearchContent(context, playerProvider)
+                : Column(
                     children: [
-                      const SizedBox(height: 20),
+                      // 有边距的内容区域
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 20),
 
-                      // 专辑封面 - 使用 Selector 避免频繁重建
+                            // 专辑封面 - 使用 Selector 避免频繁重建
                       Expanded(
                         flex: 3,
                         child: Center(
@@ -538,10 +540,174 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ),
 
                 const SizedBox(height: 24),
-              ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+      );
+  }
+
+  Widget _buildSearchContent(
+    BuildContext context,
+    PlayerProvider playerProvider,
+  ) {
+    if (_searchQuery.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_rounded,
+              size: 64,
+              color: AppColors.muted.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '搜索歌曲或艺术家',
+              style: TextStyle(fontSize: 16, color: AppColors.muted),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_searchResults.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.music_off_rounded,
+              size: 64,
+              color: AppColors.muted.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '未找到相关歌曲',
+              style: TextStyle(fontSize: 16, color: AppColors.muted),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: _searchResults.length,
+      itemBuilder: (context, index) {
+        final song = _searchResults[index];
+        return _SearchResultTile(
+          song: song,
+          onTap: () async {
+            await playerProvider.setPlaylist(
+              _searchResults,
+              startIndex: index,
+              autoPlay: true,
+              playlistName: '搜索: $_searchQuery',
+            );
+            _exitSearchMode();
+          },
+          onLongPress: () => _showSongActionMenu(context, song),
+        );
+      },
+    );
+  }
+
+  void _showSongActionMenu(BuildContext context, Song song) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.muted.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.music_note_rounded,
+                    color: AppColors.accent,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          song.title,
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          song.displayArtist,
+                          style: TextStyle(color: AppColors.muted, fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: Icon(Icons.playlist_add_rounded, color: AppColors.accent),
+              title: Text(
+                '添加到歌单',
+                style: TextStyle(color: AppColors.white),
+              ),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _showAddToPlaylist(context, song);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.edit_rounded, color: AppColors.white),
+              title: Text('编辑', style: TextStyle(color: AppColors.white)),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _showEditSongDialog(context, song);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.delete_rounded,
+                color: const Color(0xFFEF4444),
+              ),
+              title: Text(
+                '删除',
+                style: TextStyle(color: const Color(0xFFEF4444)),
+              ),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _showDeleteConfirmSheet(context, song);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
