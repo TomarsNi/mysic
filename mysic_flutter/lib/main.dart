@@ -346,13 +346,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             onAboutTap: () => _showAbout(context),
             onCreatePlaylistTap: () => _createPlaylist(context),
           ),
-          body: _buildBody(context, playerProvider),
+          body: _ErrorBoundary(child: _buildBody(context, playerProvider, playlistProvider)),
         );
       },
     );
   }
 
-  Widget _buildBody(BuildContext context, PlayerProvider playerProvider) {
+  Widget _buildBody(BuildContext context, PlayerProvider playerProvider, PlaylistProvider playlistProvider) {
     return SafeArea(
       child: Column(
         children: [
@@ -363,7 +363,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           Expanded(
             child: _isSearchMode
                 ? _buildSearchContent(context, playerProvider)
-                : Column(
+                : playlistProvider.isLoading && playerProvider.currentSong == null
+                    ? const Center(
+                        child: CircularProgressIndicator(color: AppColors.accent),
+                      )
+                    : Column(
                     children: [
                       // 有边距的内容区域
                       Expanded(
@@ -767,17 +771,29 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
                   if (hasEnabledApi) ...[
                     const SizedBox(width: 0),
-                    MagicWandButton(
-                      visible: currentSong != null,
-                      onTap: () => _showSkillSelection(context, currentSong!),
-                    ),
+                    Builder(builder: (context) {
+                      final song = currentSong;
+                      return MagicWandButton(
+                        visible: song != null,
+                        onTap: song != null ? () => _showSkillSelection(context, song) : null,
+                      );
+                    }),
                   ],
 
                   _AddButton(
                     currentSong: currentSong,
-                    onAddToPlaylist: () => _showAddToPlaylist(context, currentSong!),
-                    onEdit: () => _showEditSongDialog(context, currentSong!),
-                    onDelete: () => _showDeleteConfirmSheet(context, currentSong!),
+                    onAddToPlaylist: () {
+                      final song = currentSong;
+                      if (song != null) _showAddToPlaylist(context, song);
+                    },
+                    onEdit: () {
+                      final song = currentSong;
+                      if (song != null) _showEditSongDialog(context, song);
+                    },
+                    onDelete: () {
+                      final song = currentSong;
+                      if (song != null) _showDeleteConfirmSheet(context, song);
+                    },
                   ),
                 ],
               ),
@@ -872,7 +888,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   Widget _buildSongInfo(Song? song) {
     return Consumer<PlaylistProvider>(
       builder: (context, playlistProvider, _) {
-        final isFavorite = song?.id != null && playlistProvider.isSongFavorite(song!.id!);
+        final songId = song?.id;
+        final isFavorite = songId != null && playlistProvider.isSongFavorite(songId);
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -2161,5 +2178,51 @@ class _SearchResultTileState extends State<_SearchResultTile> {
         ),
       ),
     );
+  }
+}
+
+/// 错误边界 widget，防止子 widget 渲染异常导致黑屏
+class _ErrorBoundary extends StatefulWidget {
+  const _ErrorBoundary({required this.child});
+  final Widget child;
+
+  @override
+  State<_ErrorBoundary> createState() => _ErrorBoundaryState();
+}
+
+class _ErrorBoundaryState extends State<_ErrorBoundary> {
+  Object? _error;
+
+  @override
+  void didUpdateWidget(covariant _ErrorBoundary oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_error != null && widget.child != oldWidget.child) {
+      _error = null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: AppColors.accent, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              '渲染出错',
+              style: TextStyle(color: AppColors.muted, fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => setState(() => _error = null),
+              child: const Text('重试', style: TextStyle(color: AppColors.accent)),
+            ),
+          ],
+        ),
+      );
+    }
+    return widget.child;
   }
 }
