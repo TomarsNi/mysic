@@ -547,7 +547,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       ),
     );
   }
-  }
 
   Widget _buildSearchContent(
     BuildContext context,
