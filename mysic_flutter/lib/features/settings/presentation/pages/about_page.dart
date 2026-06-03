@@ -1,5 +1,10 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/app_logger.dart';
 
@@ -526,6 +531,8 @@ class AboutPage extends StatelessWidget {
   }
 
   void _showDonateDialog(BuildContext context) {
+    final qrKey = GlobalKey();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -540,19 +547,39 @@ class AboutPage extends StatelessWidget {
             Text('请喝咖啡'),
           ],
         ),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
+            const Text(
               '感谢您的支持！',
               style: TextStyle(color: AppColors.muted),
             ),
-            SizedBox(height: 16),
-            Text(
-              '支付宝 / 微信收款码',
-              style: TextStyle(color: AppColors.muted, fontSize: 12),
+            const SizedBox(height: 20),
+            // 微信收款码 - 放大展示区域
+            RepaintBoundary(
+              key: qrKey,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.asset(
+                    'assets/images/wechat_qrcode.png',
+                    width: 280,
+                    height: 280,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
             ),
-            // TODO: 添加收款码图片
+            const SizedBox(height: 12),
+            const Text(
+              '微信扫码支持',
+              style: TextStyle(color: AppColors.muted, fontSize: 14),
+            ),
           ],
         ),
         actions: [
@@ -560,7 +587,88 @@ class AboutPage extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('关闭'),
           ),
+          TextButton.icon(
+            onPressed: () async {
+              await _saveQrCode(context, qrKey);
+            },
+            icon: const Icon(Icons.save_alt_rounded, size: 18),
+            label: const Text('保存图片'),
+          ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _saveQrCode(BuildContext context, GlobalKey qrKey) async {
+    try {
+      // 显示加载提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('正在保存...'),
+          duration: Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // 捕获 RenderRepaintBoundary
+      final boundary =
+          qrKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        _showSaveError(context, '无法获取图片');
+        return;
+      }
+
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        if (context.mounted) _showSaveError(context, '图片转换失败');
+        return;
+      }
+
+      final pngBytes = byteData.buffer.asUint8List();
+
+      // 获取保存路径
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filePath = '${directory.path}/mysic_qrcode_$timestamp.png';
+
+      // 保存文件
+      final file = File(filePath);
+      await file.writeAsBytes(pngBytes);
+
+      // 显示成功提示
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('图片已保存到: $filePath'),
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: '打开',
+              onPressed: () {
+                // TODO: 打开文件所在目录
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      AppLogger.e('AboutPage#_saveQrCode', '保存图片失败: $e');
+      if (context.mounted) {
+        _showSaveError(context, '保存失败，请重试');
+      }
+    }
+  }
+
+  void _showSaveError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.withValues(alpha: 0.8),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

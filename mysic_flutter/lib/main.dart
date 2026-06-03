@@ -603,6 +603,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         final song = _searchResults[index];
         return _SearchResultTile(
           song: song,
+          searchQuery: _searchQuery,
           onTap: () async {
             await playerProvider.setPlaylist(
               _searchResults,
@@ -828,21 +829,30 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 style: const TextStyle(
                   color: AppColors.white,
                   fontSize: 14,
+                  height: 1.2,
                 ),
                 decoration: InputDecoration(
                   hintText: '搜索歌曲、艺术家...',
                   hintStyle: const TextStyle(
                     color: AppColors.muted,
                     fontSize: 14,
+                    height: 1.2,
                   ),
-                  prefixIcon: const Icon(
-                    Icons.search_rounded,
-                    color: AppColors.muted,
-                    size: 20,
+                  prefixIcon: const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: Icon(
+                      Icons.search_rounded,
+                      color: AppColors.muted,
+                      size: 20,
+                    ),
+                  ),
+                  prefixIconConstraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
                   ),
                   border: InputBorder.none,
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 onChanged: _onSearchChanged,
               ),
@@ -2110,11 +2120,13 @@ class _FavoriteButtonState extends State<_FavoriteButton>
 /// 搜索结果歌曲项
 class _SearchResultTile extends StatefulWidget {
   final Song song;
+  final String searchQuery;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
   const _SearchResultTile({
     required this.song,
+    required this.searchQuery,
     required this.onTap,
     required this.onLongPress,
   });
@@ -2144,29 +2156,37 @@ class _SearchResultTileState extends State<_SearchResultTile> {
           ),
           child: Row(
             children: [
-              Icon(
-                Icons.music_note_rounded,
-                color: AppColors.accent,
-                size: 20,
-              ),
+              AlbumCoverSmall(song: widget.song, size: 44),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.song.title,
+                    _HighlightText(
+                      text: widget.song.title,
+                      query: widget.searchQuery,
                       style: const TextStyle(
                         color: AppColors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
+                      highlightStyle: const TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
-                    Text(
-                      widget.song.displayArtist,
+                    _HighlightText(
+                      text: '${widget.song.displayArtist} · ${widget.song.displayAlbum}',
+                      query: widget.searchQuery,
                       style: TextStyle(color: AppColors.muted, fontSize: 12),
+                      highlightStyle: TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
@@ -2177,6 +2197,59 @@ class _SearchResultTileState extends State<_SearchResultTile> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 搜索关键词高亮文本
+class _HighlightText extends StatelessWidget {
+  final String text;
+  final String query;
+  final TextStyle style;
+  final TextStyle highlightStyle;
+  final TextOverflow overflow;
+  final int maxLines;
+
+  const _HighlightText({
+    required this.text,
+    required this.query,
+    required this.style,
+    required this.highlightStyle,
+    this.overflow = TextOverflow.clip,
+    this.maxLines = 1,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (query.isEmpty) {
+      return Text(text, style: style, overflow: overflow, maxLines: maxLines);
+    }
+
+    final spans = <TextSpan>[];
+    final lowerText = text.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    int start = 0;
+
+    while (start < text.length) {
+      final index = lowerText.indexOf(lowerQuery, start);
+      if (index == -1) {
+        spans.add(TextSpan(text: text.substring(start), style: style));
+        break;
+      }
+      if (index > start) {
+        spans.add(TextSpan(text: text.substring(start, index), style: style));
+      }
+      spans.add(TextSpan(
+        text: text.substring(index, index + query.length),
+        style: highlightStyle,
+      ));
+      start = index + query.length;
+    }
+
+    return RichText(
+      text: TextSpan(children: spans),
+      overflow: overflow,
+      maxLines: maxLines,
     );
   }
 }
