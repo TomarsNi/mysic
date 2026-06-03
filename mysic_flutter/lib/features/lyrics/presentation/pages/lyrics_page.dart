@@ -24,6 +24,8 @@ class _LyricsPageState extends State<LyricsPage> {
   // 歌词行的 GlobalKey 列表，用于精确定位
   final Map<int, GlobalKey> _lineKeys = {};
 
+  static const double _estimatedLineHeight = 48.0;
+
   // 编辑模式状态
   bool _isEditMode = false;
   bool _isLineEditMode = false;
@@ -38,14 +40,37 @@ class _LyricsPageState extends State<LyricsPage> {
 
   void _scrollToCurrentLine(int index) {
     final key = _lineKeys[index];
-    if (key == null || key.currentContext == null) return;
+    if (key != null && key.currentContext != null) {
+      Scrollable.ensureVisible(
+        key.currentContext!,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
 
-    Scrollable.ensureVisible(
-      key.currentContext!,
-      alignment: 0.5, // 0.5 = 居中
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
+    // 降级：目标行未构建，预估位置滚动
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final halfHeight = _scrollController.position.viewportDimension / 2;
+    final targetOffset =
+        (index * _estimatedLineHeight - halfHeight).clamp(0.0, maxScroll);
+    _scrollController.jumpTo(targetOffset);
+
+    // 下一帧用 ensureVisible 精确修正
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final key = _lineKeys[index];
+      if (key != null && key.currentContext != null) {
+        Scrollable.ensureVisible(
+          key.currentContext!,
+          alignment: 0.5,
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   int _getCurrentLineIndex(Duration position, List<LyricLine> lyrics) {
