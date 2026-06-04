@@ -99,7 +99,8 @@ class WindowsMusicScanner extends PlatformMusicScanner {
 
   /// 检查文件名是否为非音乐文件
   bool _isLikelyNonMusicFile(String filePath) {
-    final fileName = filePath.toLowerCase();
+    // 只检查文件名部分，不检查完整路径
+    final fileName = filePath.split(Platform.pathSeparator).last.toLowerCase();
     for (final keyword in _nonMusicKeywords) {
       if (fileName.contains(keyword)) {
         return true;
