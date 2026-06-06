@@ -12,6 +12,16 @@
 - **睡眠定时**：支持设置睡眠倒计时，自动暂停播放
 - **搜索功能**：支持按歌曲名、艺术家搜索本地音乐
 
+## 界面预览
+
+| 播放器首页 | 设置页 | 歌单列表 |
+|:---:|:---:|:---:|
+| ![播放器首页](docs/screenhot/screenshot_player_home.jpeg) | ![设置页](docs/screenhot/screenshot_settings.jpeg) | ![设置页-有数据](docs/screenhot/screenshot_settings_with_data.jpeg) |
+
+| 创建歌单 | 创建歌单-填写中 | 创建歌单-键盘输入 |
+|:---:|:---:|:---:|
+| ![创建歌单](docs/screenhot/screenshot_create_playlist.jpeg) | ![创建歌单-填写中](docs/screenhot/screenshot_create_playlist_filled.jpeg) | ![创建歌单-键盘](docs/screenhot/screenshot_create_playlist_keyboard.jpeg) |
+
 ## 技术栈
 
 - **Flutter 3.9+** - 跨平台 UI 框架
