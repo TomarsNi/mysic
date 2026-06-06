@@ -14,13 +14,13 @@
 
 ## 界面预览
 
-| 播放器首页 | 设置页 | 歌单列表 |
+| 播放器首页 | 歌词页面 | 设置页 |
 |:---:|:---:|:---:|
-| ![播放器首页](docs/screenhot/screenshot_player_home.jpeg) | ![设置页](docs/screenhot/screenshot_settings.jpeg) | ![设置页-有数据](docs/screenhot/screenshot_settings_with_data.jpeg) |
+| ![播放器首页](docs/screenhot/screenshot_player_home.jpeg) | ![歌词页面](docs/screenhot/screenshot_lyrics.jpeg) | ![设置页](docs/screenhot/screenshot_settings_with_data.jpeg) |
 
-| 创建歌单 | 创建歌单-填写中 | 创建歌单-键盘输入 |
-|:---:|:---:|:---:|
-| ![创建歌单](docs/screenhot/screenshot_create_playlist.jpeg) | ![创建歌单-填写中](docs/screenhot/screenshot_create_playlist_filled.jpeg) | ![创建歌单-键盘](docs/screenhot/screenshot_create_playlist_keyboard.jpeg) |
+| 创建歌单 |
+|:---:|
+| ![创建歌单](docs/screenhot/screenshot_create_playlist.jpeg) |
 
 ## 技术栈
 
